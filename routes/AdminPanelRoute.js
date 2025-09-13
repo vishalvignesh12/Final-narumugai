@@ -4,6 +4,14 @@ export const ADMIN_DASHBOARD = '/admin/dashboard'
 export const ADMIN_MEDIA_SHOW = '/admin/media'
 export const ADMIN_MEDIA_EDIT = (id) => id ? `/admin/media/edit/${id}` : ''
 
+// Slider routes
+export const ADMIN_SLIDER_SHOW = '/admin/sliders'
+export const ADMIN_SLIDER_ADD = '/admin/sliders/add'
+
+// Banner routes
+export const ADMIN_BANNER_SHOW = '/admin/banners'
+export const ADMIN_BANNER_ADD = '/admin/banners/add'
+
 // Category routes 
 
 export const ADMIN_CATEGORY_ADD = '/admin/category/add'

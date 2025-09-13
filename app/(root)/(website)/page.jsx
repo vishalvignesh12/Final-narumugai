@@ -1,11 +1,7 @@
+'use client'
 import MainSlider from '@/components/Application/Website/MainSlider'
-import Image from 'next/image'
-import Link from 'next/link'
-import React from 'react'
-import banner1 from '@/public/assets/images/banner1.png'
-import banner2 from '@/public/assets/images/banner2.png'
+import React, { useEffect, useState } from 'react'
 import FeaturedProduct from '@/components/Application/Website/FeaturedProduct'
-import advertisingBanner from '@/public/assets/images/advertising-banner.png'
 import Testimonial from '@/components/Application/Website/Testimonial'
 
 import { GiReturnArrow } from "react-icons/gi";
@@ -19,44 +15,38 @@ const Home = () => {
             <section>
                 <MainSlider />
             </section>
+            {/* Banners section - kept static for now but can be made dynamic similar to sliders */}
             <section className='lg:px-32 px-4 sm:pt-20 pt-5 pb-10'>
                 <div className='grid grid-cols-2 sm:gap-10 gap-2'>
-
                     <div className='border rounded-lg overflow-hidden'>
-                        <Link href="" >
-                            <Image
-                                src={banner1.src}
-                                width={banner1.width}
-                                height={banner1.height}
+                        <a href="#" >
+                            <img 
+                                src="/assets/images/banner1.png" 
                                 alt='banner 1'
-                                className='transition-all hover:scale-110'
+                                className='transition-all hover:scale-110 w-full h-auto'
                             />
-                        </Link>
+                        </a>
                     </div>
                     <div className='border rounded-lg overflow-hidden'>
-                        <Link href="" >
-                            <Image
-                                src={banner2.src}
-                                width={banner2.width}
-                                height={banner2.height}
+                        <a href="#" >
+                            <img 
+                                src="/assets/images/banner2.png" 
                                 alt='banner 2'
-                                className='transition-all hover:scale-110'
+                                className='transition-all hover:scale-110 w-full h-auto'
                             />
-                        </Link>
+                        </a>
                     </div>
-
                 </div>
             </section>
 
             <FeaturedProduct />
 
+            {/* Advertising banner - kept static for now but can be made dynamic */}
             <section className='sm:pt-20 pt-5 pb-10'>
-                <Image
-                    src={advertisingBanner.src}
-                    height={advertisingBanner.height}
-                    width={advertisingBanner.width}
+                <img 
+                    src="/assets/images/advertising-banner.png" 
                     alt='Advertisement'
-
+                    className='w-full h-auto'
                 />
             </section>
 

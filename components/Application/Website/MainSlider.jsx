@@ -1,17 +1,12 @@
 'use client'
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Slider from "react-slick";
-
-import slider1 from '@/public/assets/images/slider-1.png'
-import slider2 from '@/public/assets/images/slider-2.png'
-import slider3 from '@/public/assets/images/slider-3.png'
-import slider4 from '@/public/assets/images/slider-4.png'
 import Image from 'next/image';
 import { LuChevronRight } from "react-icons/lu";
 import { LuChevronLeft } from "react-icons/lu";
-
+import axios from 'axios';
 
 const ArrowNext = (props) => {
     const { onClick } = props
@@ -31,6 +26,26 @@ const ArrowPrev = (props) => {
 }
 
 const MainSlider = () => {
+    const [sliders, setSliders] = useState([])
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const fetchSliders = async () => {
+            try {
+                const response = await axios.get('/api/sliders/get?isActive=true')
+                if (response.data.success) {
+                    setSliders(response.data.data)
+                }
+            } catch (error) {
+                console.error('Failed to fetch sliders:', error)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchSliders()
+    }, [])
+
     const settings = {
         dots: true,
         infinite: true,
@@ -51,21 +66,46 @@ const MainSlider = () => {
             }
         ]
     }
+
+    if (loading) {
+        return (
+            <div className="h-64 flex items-center justify-center">
+                <p>Loading sliders...</p>
+            </div>
+        )
+    }
+
+    // Fallback to static images if no sliders are available
+    if (sliders.length === 0) {
+        return (
+            <div className="h-64 flex items-center justify-center">
+                <p>No sliders available</p>
+            </div>
+        )
+    }
+
     return (
         <div>
             <Slider {...settings}>
-                <div>
-                    <Image src={slider1.src} width={slider1.width} height={slider1.height} alt='slider 1' />
-                </div>
-                <div>
-                    <Image src={slider2.src} width={slider2.width} height={slider2.height} alt='slider 2' />
-                </div>
-                <div>
-                    <Image src={slider3.src} width={slider3.width} height={slider3.height} alt='slider 3' />
-                </div>
-                <div>
-                    <Image src={slider4.src} width={slider4.width} height={slider4.height} alt='slider 4' />
-                </div>
+                {sliders.map((slider) => (
+                    <div key={slider._id}>
+                        {slider.link ? (
+                            <a href={slider.link} target="_blank" rel="noopener noreferrer">
+                                <img 
+                                    src={slider.mediaId?.secure_url} 
+                                    alt={slider.mediaId?.alt || slider.title || 'Slider image'}
+                                    className="w-full h-auto"
+                                />
+                            </a>
+                        ) : (
+                            <img 
+                                src={slider.mediaId?.secure_url} 
+                                alt={slider.mediaId?.alt || slider.title || 'Slider image'}
+                                className="w-full h-auto"
+                            />
+                        )}
+                    </div>
+                ))}
             </Slider>
         </div>
     )
