@@ -32,14 +32,7 @@ const Header = () => {
 
 
                         <div className='lg:hidden flex justify-between items-center bg-gray-50 py-3 border-b px-3'>
-
-                            <Image
-                                src={logo}
-                                width={383}
-                                height={146}
-                                alt='logo'
-                                className='lg:w-32 w-24'
-                            />
+                            <h1 className='text-4xl font-bold text-pink-500 mb-3 '>Narumugai</h1>
 
                             <button type='button' onClick={() => setIsMobileMenu(false)} >
                                 <IoMdClose size={25} className='text-gray-500 hover:text-primary' />
