@@ -17,7 +17,8 @@ import Link from 'next/link'
 const Filter = () => {
     const searchParams = useSearchParams()
 
-    const [priceFilter, setPriceFilter] = useState({ minPrice: 0, maxPrice: 3000 })
+    const [priceFilter, setPriceFilter] = useState({ minPrice: 0, maxPrice: 5000 })
+    const [priceRange, setPriceRange] = useState({ minPrice: 0, maxPrice: 5000 })
     const [selectedCategory, setSelectedCategory] = useState([])
     const [selectedColor, setSelectedColor] = useState([])
     const [selectedSize, setSelectedSize] = useState([])
@@ -25,6 +26,7 @@ const Filter = () => {
     const { data: categoryData } = useFetch('/api/category/get-category')
     const { data: colorData } = useFetch('/api/product-variant/colors')
     const { data: sizeData } = useFetch('/api/product-variant/sizes')
+    const { data: priceRangeData } = useFetch('/api/product/price-range')
 
     const urlSearchParams = new URLSearchParams(searchParams.toString())
     const router = useRouter()
@@ -37,6 +39,31 @@ const Filter = () => {
         searchParams.get('size') ? setSelectedSize(searchParams.get('size').split(',')) : setSelectedSize([])
 
     }, [searchParams])
+
+    // Update price range when data is loaded
+    useEffect(() => {
+        if (priceRangeData && priceRangeData.success) {
+            const { minPrice, maxPrice } = priceRangeData.data
+            setPriceRange({ minPrice, maxPrice })
+            // Initialize price filter with the actual range if no URL params
+            if (!searchParams.get('minPrice') && !searchParams.get('maxPrice')) {
+                setPriceFilter({ minPrice, maxPrice })
+            }
+        }
+    }, [priceRangeData, searchParams])
+
+    // Update price filter from URL params
+    useEffect(() => {
+        const urlMinPrice = searchParams.get('minPrice')
+        const urlMaxPrice = searchParams.get('maxPrice')
+        
+        if (urlMinPrice || urlMaxPrice) {
+            setPriceFilter({
+                minPrice: urlMinPrice ? parseInt(urlMinPrice) : priceRange.minPrice,
+                maxPrice: urlMaxPrice ? parseInt(urlMaxPrice) : priceRange.maxPrice
+            })
+        }
+    }, [searchParams, priceRange])
 
 
 
@@ -174,10 +201,19 @@ const Filter = () => {
                 <AccordionItem value="4">
                     <AccordionTrigger className="uppercase font-semibold hover:no-underline">Price</AccordionTrigger>
                     <AccordionContent>
-                        <Slider defaultValue={[0, 3000]} max={3000} step={1} onValueChange={handlePriceChange} />
+                        <Slider 
+                            value={[priceFilter.minPrice, priceFilter.maxPrice]} 
+                            min={priceRange.minPrice} 
+                            max={priceRange.maxPrice} 
+                            step={1} 
+                            onValueChange={handlePriceChange} 
+                        />
                         <div className='flex justify-between items-center pt-2'>
                             <span>{priceFilter.minPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                             <span>{priceFilter.maxPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                        </div>
+                        <div className='text-center text-sm text-gray-500 mt-2'>
+                            Range: {priceRange.minPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })} - {priceRange.maxPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                         </div>
 
                         <div className='mt-4'>

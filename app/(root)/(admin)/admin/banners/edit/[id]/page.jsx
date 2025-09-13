@@ -1,7 +1,7 @@
 'use client'
 import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
 import ButtonLoading from '@/components/Application/ButtonLoading'
-import MediaLibraryModal from '@/components/Application/Admin/MediaLibraryModal'
+import MediaModal from '@/components/Application/Admin/MediaModal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -38,7 +38,7 @@ const EditBannerPage = () => {
     const [loading, setLoading] = useState(false)
     const [fetching, setFetching] = useState(true)
     const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false)
-    const [selectedMedia, setSelectedMedia] = useState(null)
+    const [selectedMediaArray, setSelectedMediaArray] = useState([])
 
     // Fetch banner data
     useEffect(() => {
@@ -61,7 +61,7 @@ const EditBannerPage = () => {
                     })
                     
                     if (banner.mediaId) {
-                        setSelectedMedia(banner.mediaId)
+                        setSelectedMediaArray([banner.mediaId])
                     }
                 } else {
                     showToast('error', response.data.message || 'Failed to fetch banner data.')
@@ -95,13 +95,15 @@ const EditBannerPage = () => {
         }))
     }
 
-    const handleMediaSelect = (media) => {
-        setSelectedMedia(media)
-        setFormData(prev => ({
-            ...prev,
-            mediaId: media._id
-        }))
-        setIsMediaLibraryOpen(false)
+    const handleMediaSelect = () => {
+        if (selectedMediaArray.length > 0) {
+            const media = selectedMediaArray[0] // Take first selected media for single selection
+            setFormData(prev => ({
+                ...prev,
+                mediaId: media._id
+            }))
+            setIsMediaLibraryOpen(false)
+        }
     }
 
     const handleSubmit = async (e) => {
@@ -166,15 +168,15 @@ const EditBannerPage = () => {
                             <div className="md:col-span-2">
                                 <Label htmlFor="media">Banner Image *</Label>
                                 <div className="mt-1">
-                                    {selectedMedia ? (
+                                    {selectedMediaArray.length > 0 ? (
                                         <div className="flex items-center gap-4">
                                             <img 
-                                                src={selectedMedia.secure_url} 
-                                                alt={selectedMedia.alt || 'Selected media'}
+                                                src={selectedMediaArray[0].secure_url} 
+                                                alt={selectedMediaArray[0].alt || 'Selected media'}
                                                 className="w-24 h-24 object-cover rounded border"
                                             />
                                             <div>
-                                                <p className="font-medium">{selectedMedia.title || 'Untitled'}</p>
+                                                <p className="font-medium">{selectedMediaArray[0].title || 'Untitled'}</p>
                                                 <Button 
                                                     type="button" 
                                                     variant="outline" 
@@ -295,11 +297,12 @@ const EditBannerPage = () => {
                 </CardContent>
             </Card>
             
-            <MediaLibraryModal
-                isOpen={isMediaLibraryOpen}
-                onClose={() => setIsMediaLibraryOpen(false)}
-                onMediaSelect={handleMediaSelect}
-                multiple={false}
+            <MediaModal
+                open={isMediaLibraryOpen}
+                setOpen={setIsMediaLibraryOpen}
+                selectedMedia={selectedMediaArray}
+                setSelectedMedia={setSelectedMediaArray}
+                isMultiple={false}
             />
         </div>
     )

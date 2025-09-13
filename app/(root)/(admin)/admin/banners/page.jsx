@@ -23,8 +23,12 @@ const BannersPage = () => {
     const [selectAll, setSelectAll] = useState(false)
 
     const fetchBanners = async (page) => {
-        const { data: response } = await axios.get(`/api/banners/get?page=${page}&&limit=10`)
-        return response
+        const { data: response } = await axios.get(`/api/banners/get?page=${page}&limit=10`)
+        return {
+            banners: response.data.banners || [],
+            hasMore: response.data.hasMore || false,
+            totalCount: response.data.totalCount || 0
+        }
     }
 
     const {

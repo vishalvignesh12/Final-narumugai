@@ -18,7 +18,7 @@ const Footer = () => {
                 <div className='lg:col-span-1 md:col-span-2 col-span-1'>
                     <h1 className='text-4xl font-bold text-pink-500 mb-3'>Narumugai</h1>
                     <p className='text-gray-500 text-sm'>
-                        E-store is your trusted destination for quality and convenience. From fashion to essentials, we bring everything you need right to your doorstep. Shop smart, live better — only at E-store.
+                        Narumugai is your trusted destination for quality and convenience. From fashion to essentials, we bring everything you need right to your doorstep. Shop smart, live better — only at Narumugai.
                     </p>
                 </div>
 
@@ -70,7 +70,7 @@ const Footer = () => {
                     <ul>
                         <li className='mb-2 text-gray-500 flex gap-2'>
                             <IoLocationOutline size={20} />
-                            <span className='text-sm'>E-store market Lucknow, India 256320</span>
+                            <span className='text-sm'>Narumugai market Lucknow, India 256320</span>
                         </li>
                         <li className='mb-2 text-gray-500 flex gap-2'>
                             <MdOutlinePhone size={20} />
@@ -78,7 +78,7 @@ const Footer = () => {
                         </li>
                         <li className='mb-2 text-gray-500 flex gap-2'>
                             <MdOutlineMail size={20} />
-                            <Link href="mailto:support@estore.com" className='hover:text-primary text-sm'>support@estore.com</Link>
+                            <Link href="mailto:support@narumugai.com" className='hover:text-primary text-sm'>support@narumugai.com</Link>
                         </li>
 
                     </ul>
@@ -110,7 +110,7 @@ const Footer = () => {
 
 
             <div className='py-5 bg-gray-100' >
-                <p className='text-center'>© 2024 Estore. All Rights Reserved.</p>
+                <p className='text-center'>© {new Date().getFullYear()} Narumugai. All Rights Reserved.</p>
             </div>
 
         </footer>

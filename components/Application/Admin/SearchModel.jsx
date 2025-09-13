@@ -11,6 +11,7 @@ import searchData from "@/lib/search"
 import Fuse from "fuse.js"
 import Link from "next/link"
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation"
 
 
 const options = {
@@ -21,8 +22,16 @@ const options = {
 const SearchModel = ({ open, setOpen }) => {
     const [query, setQuery] = useState('')
     const [results, setResult] = useState([])
+    const pathname = usePathname()
 
     const fuse = new Fuse(searchData, options)
+
+    // Close search modal on route change
+    useEffect(() => {
+        setOpen(false)
+        setQuery('')
+        setResult([])
+    }, [pathname, setOpen])
 
     useEffect(() => {
         if (query.trim() === "") {

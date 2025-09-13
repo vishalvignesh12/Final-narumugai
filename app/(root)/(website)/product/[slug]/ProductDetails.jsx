@@ -33,12 +33,22 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
     const [isAddedIntoCart, setIsAddedIntoCart] = useState(false)
     const [isProductLoading, setIsProductLoading] = useState(false)
     useEffect(() => {
-        setActiveThumb(variant?.media[0]?.secure_url)
-    }, [variant])
+        if (variant?.media && variant.media.length > 0) {
+            setActiveThumb(variant.media[0]?.secure_url)
+        } else if (product?.media && product.media.length > 0) {
+            // Fallback to product media if variant has no media
+            setActiveThumb(product.media[0]?.secure_url)
+        }
+    }, [variant, product])
 
     useEffect(() => {
         if (cartStore.count > 0) {
-            const existingProduct = cartStore.products.findIndex((cartProduct) => cartProduct.productId === product._id && cartProduct.variantId === variant._id)
+            // Handle null variant._id for fallback variants
+            const variantIdToCheck = variant._id || `fallback-${product._id}`
+            const existingProduct = cartStore.products.findIndex((cartProduct) => {
+                const cartVariantId = cartProduct.variantId || `fallback-${cartProduct.productId}`
+                return cartProduct.productId === product._id && cartVariantId === variantIdToCheck
+            })
 
             if (existingProduct >= 0) {
                 setIsAddedIntoCart(true)
@@ -49,7 +59,7 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
 
         setIsProductLoading(false)
 
-    }, [variant])
+    }, [variant, product, cartStore])
 
     const handleThumb = (thumbUrl) => {
         setActiveThumb(thumbUrl)
@@ -69,14 +79,14 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
     const handleAddToCart = () => {
         const cartProduct = {
             productId: product._id,
-            variantId: variant._id,
+            variantId: variant._id || `fallback-${product._id}`, // Use fallback ID for products without variants
             name: product.name,
             url: product.slug,
             size: variant.size,
             color: variant.color,
             mrp: variant.mrp,
             sellingPrice: variant.sellingPrice,
-            media: variant?.media[0]?.secure_url,
+            media: variant?.media[0]?.secure_url || product?.media[0]?.secure_url,
             qty: qty
         }
 
@@ -126,9 +136,10 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
                         />
                     </div>
                     <div className="flex xl:flex-col items-center xl:gap-5 gap-3 xl:w-36 overflow-auto xl:pb-0 pb-2 max-h-[600px]">
-                        {variant?.media?.map((thumb) => (
+                        {/* Use variant media first, fallback to product media */}
+                        {(variant?.media && variant.media.length > 0 ? variant.media : product?.media || []).map((thumb, index) => (
                             <Image
-                                key={thumb._id}
+                                key={thumb._id || `thumb-${index}`}
                                 src={thumb?.secure_url || imgPlaceholder.src}
                                 width={100}
                                 height={100}

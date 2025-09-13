@@ -17,10 +17,30 @@ import { IoMdClose } from "react-icons/io";
 import { adminAppSidebarMenu } from "@/lib/adminSidebarMenu"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { useEffect } from "react"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 
 const AppSidebar = () => {
-    const { toggleSidebar } = useSidebar()
+    const { toggleSidebar, setOpenMobile } = useSidebar()
+    const pathname = usePathname()
+    const isMobile = useIsMobile()
+    
+    // Close mobile sidebar on route change
+    useEffect(() => {
+        if (isMobile) {
+            setOpenMobile(false)
+        }
+    }, [pathname, isMobile, setOpenMobile])
+    
+    // Handle link clicks on mobile
+    const handleLinkClick = () => {
+        if (isMobile) {
+            setOpenMobile(false)
+        }
+    }
+    
     return (
         <Sidebar className="z-50">
             <SidebarHeader className="border-b h-14 p-0">
@@ -39,7 +59,7 @@ const AppSidebar = () => {
                             <SidebarMenuItem>
                                 <CollapsibleTrigger asChild>
                                     <SidebarMenuButton asChild className="font-semibold px-2 py-5">
-                                        <Link href={menu?.url}>
+                                        <Link href={menu?.url} onClick={handleLinkClick}>
                                             <menu.icon />
                                             {menu.title}
 
@@ -57,7 +77,7 @@ const AppSidebar = () => {
                                             {menu.submenu.map((submenuItem, subMenuIndex) => (
                                                 <SidebarMenuSubItem key={subMenuIndex}>
                                                     <SidebarMenuSubButton asChild className="px-2 py-5">
-                                                        <Link href={submenuItem.url}>
+                                                        <Link href={submenuItem.url} onClick={handleLinkClick}>
                                                             {submenuItem.title}
                                                         </Link>
                                                     </SidebarMenuSubButton>

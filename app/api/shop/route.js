@@ -14,7 +14,8 @@ export async function GET(request) {
         const size = searchParams.get('size')
         const color = searchParams.get('color')
         const minPrice = parseInt(searchParams.get('minPrice')) || 0
-        const maxPrice = parseInt(searchParams.get('maxPrice')) || 100000
+        // If maxPrice is not provided, use a very high number to include all products
+        const maxPrice = searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')) : 999999
         const categorySlug = searchParams.get('category')
         const search = searchParams.get('q')
 

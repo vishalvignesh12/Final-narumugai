@@ -47,14 +47,28 @@ export async function GET(request, { params }) {
             variantFilter.color = color
         }
 
-        const variant = await ProductVariantModel.findOne(variantFilter).populate('media', 'secure_url').lean()
+        let variant = await ProductVariantModel.findOne(variantFilter).populate('media', 'secure_url').lean()
 
+        // If no specific variant found, try to get the first available variant
         if (!variant) {
-            return response(false, 404, 'Product not found.')
+            variant = await ProductVariantModel.findOne({ product: getProduct._id }).populate('media', 'secure_url').lean()
+        }
+
+        // If still no variant found, create a fallback variant from product data
+        if (!variant) {
+            variant = {
+                _id: null,
+                product: getProduct._id,
+                color: 'Default',
+                size: 'Default',
+                mrp: getProduct.mrp,
+                sellingPrice: getProduct.sellingPrice,
+                discountPercentage: getProduct.discountPercentage,
+                media: getProduct.media || []
+            }
         }
 
         // get color and size 
-
         const getColor = await ProductVariantModel.distinct('color', { product: getProduct._id })
 
         const getSize = await ProductVariantModel.aggregate([
@@ -70,6 +84,10 @@ export async function GET(request, { params }) {
             { $project: { _id: 0, size: "$_id" } }
         ])
 
+        // If no variants exist, provide default options
+        const colors = getColor.length > 0 ? getColor : ['Default']
+        const sizes = getSize.length > 0 ? getSize.map(item => item.size) : ['Default']
+
 
         // get review  
 
@@ -79,8 +97,8 @@ export async function GET(request, { params }) {
         const productData = {
             product: getProduct,
             variant: variant,
-            colors: getColor,
-            sizes: getSize.length ? getSize.map(item => item.size) : [],
+            colors: colors,
+            sizes: sizes,
             reviewCount: review
         }
 

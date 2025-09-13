@@ -3,11 +3,13 @@ import UserPanelNavigation from './UserPanelNavigation'
 
 const UserPanelLayout = ({ children }) => {
     return (
-        <div className='flex lg:flex-nowrap flex-wrap gap-10 lg:px-32 px-5 my-20'>
-            <div className='lg:w-64 w-full lg:mb-0 mb-5'>
-                <UserPanelNavigation />
+        <div className='lg:flex lg:flex-nowrap flex-col lg:gap-8 gap-6 lg:px-32 md:px-8 px-4 lg:my-20 md:my-16 my-10'>
+            <div className='lg:w-64 w-full flex-shrink-0 lg:mb-0 mb-6'>
+                <div className='lg:sticky lg:top-4'>
+                    <UserPanelNavigation />
+                </div>
             </div>
-            <div className='lg:w-[calc(100%-16rem)] w-full'>
+            <div className='flex-1 min-w-0'>
                 {children}
             </div>
         </div>

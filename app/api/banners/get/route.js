@@ -8,14 +8,16 @@ export async function GET(request) {
         await connectDB()
 
         const searchParams = request.nextUrl.searchParams;
-        const isActive = searchParams.get('isActive') !== 'false'; // default to true
+        const isActive = searchParams.get('isActive');
         const position = searchParams.get('position');
+        const page = parseInt(searchParams.get('page') || '0', 10);
+        const limit = parseInt(searchParams.get('limit') || '10', 10);
 
         const filter = {}
         
         // Only apply isActive filter if explicitly requested
-        if (searchParams.has('isActive')) {
-            filter.isActive = isActive
+        if (isActive !== null) {
+            filter.isActive = isActive === 'true'
         }
         
         if (position) {
@@ -24,12 +26,23 @@ export async function GET(request) {
         
         filter.deletedAt = null
 
+        const totalCount = await BannerModel.countDocuments(filter)
+        const skip = page * limit
+        const hasMore = totalCount > skip + limit
+
         const banners = await BannerModel.find(filter)
             .populate('mediaId')
             .sort({ order: 1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
             .lean()
 
-        return response(true, 200, 'Banners retrieved successfully.', banners)
+        return response(true, 200, 'Banners retrieved successfully.', {
+            banners,
+            totalCount,
+            hasMore,
+            currentPage: page
+        })
 
     } catch (error) {
         return catchError(error)

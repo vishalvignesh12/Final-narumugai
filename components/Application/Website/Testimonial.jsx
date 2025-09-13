@@ -69,11 +69,12 @@ const Testimonial = () => {
         infinite: true,
         speed: 500,
         autoplay: true,
+        autoplaySpeed: 4000,
         slidesToShow: 3,
         slidesToScroll: 1,
         responsive: [
             {
-                breakpoint: 1024,
+                breakpoint: 1200,
                 settings: {
                     slidesToShow: 2,
                     slidesToScroll: 1,
@@ -86,7 +87,17 @@ const Testimonial = () => {
                 settings: {
                     slidesToShow: 1,
                     slidesToScroll: 1,
+                    dots: true,
+                    arrows: false,
+                }
+            },
+            {
+                breakpoint: 480,
+                settings: {
+                    slidesToShow: 1,
+                    slidesToScroll: 1,
                     dots: false,
+                    arrows: false,
                 }
             },
 
@@ -94,19 +105,22 @@ const Testimonial = () => {
     }
 
     return (
-        <div className='lg:px-32 px-4 sm:pt-20 pt-5 pb-10'>
-            <h2 className='text-center sm:text-4xl text-2xl mb-5 font-semibold'>Customer Review</h2>
+        <div className='lg:px-32 md:px-8 px-4 lg:pt-20 md:pt-16 sm:pt-12 pt-8 lg:pb-16 md:pb-12 pb-8'>
+            <h2 className='text-center lg:text-4xl md:text-3xl sm:text-2xl text-xl mb-8 lg:mb-10 font-semibold'>Customer Reviews</h2>
             <Slider {...settings}>
                 {testimonials.map((item, index) => (
-                    <div key={index} className="p-5">
-                        <div className='border rounded-lg p-5'>
-                            <BsChatQuote size={30} className='mb-3' />
+                    <div key={index} className="lg:p-5 md:p-4 p-3">
+                        <div className='border rounded-lg lg:p-6 md:p-5 p-4 shadow-sm hover:shadow-md transition-shadow bg-white h-full'>
+                            <BsChatQuote size={30} className='mb-4 text-primary' />
 
-                            <p className='mb-5'>{item.review}</p>
-                            <h4 className='font-semibold'>{item.name}</h4>
-                            <div className='flex mt-1'>
+                            <p className='mb-5 lg:text-base md:text-sm text-sm text-gray-700 line-height-relaxed'>{item.review}</p>
+                            <h4 className='font-semibold lg:text-lg md:text-base text-sm mb-2'>{item.name}</h4>
+                            <div className='flex'>
                                 {Array.from({ length: item.rating }).map((_, i) => (
-                                    <IoStar key={`star${i}`} className='text-yellow-400' size={20} />
+                                    <IoStar key={`star${i}`} className='text-yellow-400' size={18} />
+                                ))}
+                                {Array.from({ length: 5 - item.rating }).map((_, i) => (
+                                    <IoStar key={`empty${i}`} className='text-gray-300' size={18} />
                                 ))}
                             </div>
 
