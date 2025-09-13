@@ -64,21 +64,6 @@ const Header = () => {
                                     Shop
                                 </Link>
                             </li>
-                            <li className='text-gray-600 hover:text-primary hover:font-semibold'>
-                                <Link href={`${WEBSITE_SHOP}?category=t-shirts`} className='block py-2'>
-                                    T-shirt
-                                </Link>
-                            </li>
-                            <li className='text-gray-600 hover:text-primary hover:font-semibold'>
-                                <Link href={`${WEBSITE_SHOP}?category=hoodies`} className='block py-2'>
-                                    Hoodies
-                                </Link>
-                            </li>
-                            <li className='text-gray-600 hover:text-primary hover:font-semibold'>
-                                <Link href={`${WEBSITE_SHOP}?category=overshized`} className='block py-2'>
-                                    Oversized
-                                </Link>
-                            </li>
                         </ul>
                     </nav>
 
