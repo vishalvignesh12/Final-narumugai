@@ -12,9 +12,9 @@ const layout = ({ children }) => {
             enableSystem
             disableTransitionOnChange
         >
-            <SidebarProvider>
+            <SidebarProvider defaultOpen={true}>
                 <AppSidebar />
-                <main className="md:w-[calc(100vw-16rem)] w-full overflow-x-hidden">
+                <main className="w-full overflow-x-hidden transition-all duration-300 ease-in-out">
                     <div className='pt-[70px] lg:px-8 md:px-6 px-4 min-h-[calc(100vh-40px)] lg:pb-10 md:pb-8 pb-6'>
                         <Topbar />
                         {children}

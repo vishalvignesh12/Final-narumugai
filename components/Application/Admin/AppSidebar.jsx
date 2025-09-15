@@ -34,9 +34,15 @@ const AppSidebar = () => {
         }
     }, [pathname, isMobile, setOpenMobile])
     
-    // Handle link clicks on mobile
-    const handleLinkClick = () => {
-        if (isMobile) {
+    // Handle link clicks - only close sidebar for actual navigation links, not parent menu toggles
+    const handleLinkClick = (hasSubmenu = false, url = "") => {
+        // Don't close sidebar if it's a parent menu item with submenus (url is "#")
+        if (hasSubmenu && url === "#") {
+            return // Let the collapsible handle the toggle
+        }
+        
+        // Only close mobile sidebar for actual navigation links
+        if (isMobile && url !== "#") {
             setOpenMobile(false)
         }
     }
@@ -45,7 +51,8 @@ const AppSidebar = () => {
         <Sidebar className="z-50">
             <SidebarHeader className="border-b h-14 p-0">
                 <div className="flex justify-between items-center px-4">
-                    <h1 className='text-4xl font-bold text-pink-500 mb-3 '>Narumugai</h1>
+                    <h1 className='text-4xl font-bold text-pink-500 mb-3'>Narumugai</h1>
+                    {/* Close button - keep mobile-only for original mobile behavior */}
                     <Button onClick={toggleSidebar} type="button" size="icon" className="md:hidden">
                         <IoMdClose />
                     </Button>
@@ -59,14 +66,20 @@ const AppSidebar = () => {
                             <SidebarMenuItem>
                                 <CollapsibleTrigger asChild>
                                     <SidebarMenuButton asChild className="font-semibold px-2 py-5">
-                                        <Link href={menu?.url} onClick={handleLinkClick}>
-                                            <menu.icon />
-                                            {menu.title}
-
-                                            {menu.submenu && menu.submenu.length > 0 &&
+                                        {menu.submenu && menu.submenu.length > 0 ? (
+                                            // Parent menu item with submenus - make it a button, not a link
+                                            <div className="flex items-center w-full cursor-pointer" onClick={() => handleLinkClick(true, menu.url)}>
+                                                <menu.icon />
+                                                {menu.title}
                                                 <LuChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                                            }
-                                        </Link>
+                                            </div>
+                                        ) : (
+                                            // Regular menu item without submenus - keep as link
+                                            <Link href={menu?.url} onClick={() => handleLinkClick(false, menu.url)}>
+                                                <menu.icon />
+                                                {menu.title}
+                                            </Link>
+                                        )}
                                     </SidebarMenuButton>
                                 </CollapsibleTrigger>
 
@@ -77,7 +90,7 @@ const AppSidebar = () => {
                                             {menu.submenu.map((submenuItem, subMenuIndex) => (
                                                 <SidebarMenuSubItem key={subMenuIndex}>
                                                     <SidebarMenuSubButton asChild className="px-2 py-5">
-                                                        <Link href={submenuItem.url} onClick={handleLinkClick}>
+                                                        <Link href={submenuItem.url} onClick={() => handleLinkClick(false, submenuItem.url)}>
                                                             {submenuItem.title}
                                                         </Link>
                                                     </SidebarMenuSubButton>

@@ -1,7 +1,7 @@
 'use client'
 import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
 import ButtonLoading from '@/components/Application/ButtonLoading'
-import MediaLibraryModal from '@/components/Application/Admin/MediaLibraryModal'
+import MediaModal from '@/components/Application/Admin/MediaModal'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -201,7 +201,7 @@ const AddSliderPage = () => {
                 </CardContent>
             </Card>
             
-            <MediaLibraryModal
+            <MediaModal
                 isOpen={isMediaLibraryOpen}
                 onClose={() => setIsMediaLibraryOpen(false)}
                 onMediaSelect={handleMediaSelect}

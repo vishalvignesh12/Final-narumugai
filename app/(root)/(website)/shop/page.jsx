@@ -18,17 +18,30 @@ import { useSearchParams } from 'next/navigation'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import ProductBox from '@/components/Application/Website/ProductBox'
 import ButtonLoading from '@/components/Application/ButtonLoading'
+import Head from 'next/head'
+
 const breadcrumb = {
-    title: 'Shop',
+    title: 'Shop Sarees',
     links: [
-        { label: 'Shop', href: WEBSITE_SHOP }
+        { label: 'Shop Sarees', href: WEBSITE_SHOP }
     ]
 }
+
+// Saree categories for better navigation
+const sareeCategories = [
+    { name: 'Silk Sarees', filter: 'silk', description: 'Premium silk sarees for special occasions' },
+    { name: 'Cotton Sarees', filter: 'cotton', description: 'Comfortable cotton sarees for daily wear' },
+    { name: 'Designer Sarees', filter: 'designer', description: 'Latest designer sarees from top brands' },
+    { name: 'Wedding Sarees', filter: 'wedding', description: 'Bridal and wedding collection sarees' },
+    { name: 'Party Wear', filter: 'party', description: 'Elegant sarees for parties and events' },
+    { name: 'Casual Sarees', filter: 'casual', description: 'Simple and elegant everyday sarees' }
+]
 const Shop = () => {
     const searchParams = useSearchParams().toString()
     const [limit, setLimit] = useState(9)
     const [sorting, setSorting] = useState('default_sorting')
     const [isMobileFilter, setIsMobileFilter] = useState(false)
+    const [selectedCategory, setSelectedCategory] = useState('')
     const windowSize = useWindowSize()
 
 
@@ -53,9 +66,90 @@ const Shop = () => {
 
 
     return (
-        <div >
+        <div>
+            <Head>
+                <title>Shop Premium Sarees Online | Narumugai Saree Collection</title>
+                <meta name="description" content="Discover our exquisite collection of sarees including silk sarees, cotton sarees, designer sarees, and wedding sarees. Premium quality sarees with best prices and fast delivery." />
+                <meta name="keywords" content="sarees online, silk sarees, cotton sarees, designer sarees, wedding sarees, party wear sarees, traditional sarees, Indian sarees" />
+                <meta property="og:title" content="Shop Premium Sarees Online | Narumugai Saree Collection" />
+                <meta property="og:description" content="Discover our exquisite collection of sarees including silk sarees, cotton sarees, designer sarees, and wedding sarees. Premium quality sarees with best prices and fast delivery." />
+                <meta property="og:type" content="product.group" />
+                <meta name="twitter:card" content="summary_large_image" />
+                <meta name="twitter:title" content="Shop Premium Sarees Online | Narumugai Saree Collection" />
+                <meta name="twitter:description" content="Discover our exquisite collection of sarees including silk sarees, cotton sarees, designer sarees, and wedding sarees." />
+                <link rel="canonical" href="https://narumugai.com/shop" />
+            </Head>
+            
+            {/* Structured Data for Saree Collection */}
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{
+                    __html: JSON.stringify({
+                        "@context": "https://schema.org",
+                        "@type": "CollectionPage",
+                        "name": "Saree Collection - Narumugai",
+                        "description": "Premium collection of sarees including silk, cotton, designer and wedding sarees",
+                        "url": "https://narumugai.com/shop",
+                        "mainEntity": {
+                            "@type": "ItemList",
+                            "name": "Saree Categories",
+                            "itemListElement": sareeCategories.map((category, index) => ({
+                                "@type": "ListItem",
+                                "position": index + 1,
+                                "name": category.name,
+                                "description": category.description
+                            }))
+                        },
+                        "breadcrumb": {
+                            "@type": "BreadcrumbList",
+                            "itemListElement": [
+                                {
+                                    "@type": "ListItem",
+                                    "position": 1,
+                                    "name": "Home",
+                                    "item": "https://narumugai.com"
+                                },
+                                {
+                                    "@type": "ListItem",
+                                    "position": 2,
+                                    "name": "Shop Sarees",
+                                    "item": "https://narumugai.com/shop"
+                                }
+                            ]
+                        }
+                    })
+                }}
+            />
+            
             <WebsiteBreadcrumb props={breadcrumb} />
-            <section className='lg:flex lg:px-32 md:px-8 px-4 my-10 lg:my-20 gap-6'>
+            
+            {/* Hero Section for Saree Shop */}
+            <section className="bg-gradient-to-r from-pink-50 to-purple-50 py-12 lg:px-32 md:px-8 px-4">
+                <div className="text-center max-w-4xl mx-auto">
+                    <h1 className="text-4xl lg:text-5xl font-bold text-gray-800 mb-4">
+                        Premium Saree Collection
+                    </h1>
+                    <p className="text-lg text-gray-600 mb-8">
+                        Discover our exquisite range of traditional and contemporary sarees. From elegant silk sarees to comfortable cotton sarees, find the perfect saree for every occasion.
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mt-8">
+                        {sareeCategories.map((category, index) => (
+                            <button
+                                key={index}
+                                onClick={() => setSelectedCategory(category.filter)}
+                                className={`p-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                    selectedCategory === category.filter
+                                        ? 'bg-pink-500 text-white shadow-lg'
+                                        : 'bg-white text-gray-700 hover:bg-pink-50 hover:text-pink-600 border border-gray-200'
+                                }`}
+                            >
+                                {category.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </section>
+            <section className='lg:flex lg:px-32 md:px-8 px-4 my-10 lg:my-16 gap-6'>
                 {windowSize.width > 1024 ?
 
                     <div className='lg:w-72 flex-shrink-0'>

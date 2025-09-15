@@ -50,7 +50,10 @@ const Header = () => {
         <div className='bg-white border-b lg:px-32 md:px-8 px-4'>
             <div className='flex justify-between items-center lg:py-5 py-3'>
                 <Link href={WEBSITE_HOME}>
-                    <h1 className='lg:text-4xl md:text-3xl text-2xl font-bold text-pink-500 lg:mb-3 mb-2'>Narumugai</h1>
+                    <div className='text-center'>
+                        <h1 className='lg:text-4xl md:text-3xl text-2xl font-bold text-pink-500 lg:mb-1 mb-1'>Narumugai</h1>
+                        <p className='text-xs text-gray-500 font-medium hidden lg:block'>Premium Saree Collection</p>
+                    </div>
                 </Link>
 
                 <div className='flex justify-between lg:gap-20 md:gap-10 gap-5'>
@@ -66,7 +69,10 @@ const Header = () => {
 
 
                         <div className='lg:hidden flex justify-between items-center bg-gray-50 py-4 border-b px-4'>
-                            <h1 className='text-2xl font-bold text-pink-500'>Narumugai</h1>
+                            <div>
+                                <h1 className='text-2xl font-bold text-pink-500'>Narumugai</h1>
+                                <p className='text-xs text-gray-500 font-medium'>Premium Saree Collection</p>
+                            </div>
 
                             <button type='button' onClick={() => setIsMobileMenu(false)} className='p-2 hover:bg-gray-200 rounded-full transition-colors'>
                                 <IoMdClose size={24} className='text-gray-500 hover:text-primary' />

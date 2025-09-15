@@ -16,10 +16,17 @@ const Topbar = () => {
             <div className='flex items-center md:hidden'>
                 <h1 className='lg:text-2xl text-xl font-bold text-pink-500'>Narumugai</h1>
             </div>
-            <div className='md:block hidden flex-1 max-w-md'>
-                <AdminSearch />
+            
+            <div className='md:flex hidden items-center gap-2'>
+                {/* Desktop sidebar toggle button */}
+                <Button onClick={toggleSidebar} type="button" size="icon" variant="ghost" className="flex-shrink-0">
+                    <RiMenu4Fill className='lg:text-lg text-base' />
+                </Button>
+                
+                <div className='flex-1 max-w-md'>
+                    <AdminSearch />
+                </div>
             </div>
-
 
             <div className='flex items-center lg:gap-3 md:gap-2 gap-1'>
                 <div className='md:hidden'>
@@ -27,6 +34,7 @@ const Topbar = () => {
                 </div>
                 <ThemeSwitch />
                 <UserDropdown />
+                {/* Mobile hamburger button - keep original mobile behavior */}
                 <Button onClick={toggleSidebar} type="button" size="icon" className="md:hidden flex-shrink-0">
                     <RiMenu4Fill className='lg:text-lg text-base' />
                 </Button>
