@@ -9,13 +9,24 @@ const nextConfig = {
                 pathname: '/**',
             }
         ],
-        unoptimized: true,  // Temporary fix for Cloudinary 500 errors
+        unoptimized: false,  // Enable optimization for production
         dangerouslyAllowSVG: true,
         contentDispositionType: 'attachment',
         contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;"
     },
     experimental: {
         optimizePackageImports: ['lucide-react'],
+    },
+    // Optimize for Vercel deployment
+    output: 'standalone',
+    poweredByHeader: false,
+    compress: true,
+    // API routes optimization
+    api: {
+        bodyParser: {
+            sizeLimit: '10mb',
+        },
+        responseLimit: false,
     }
 };
 
