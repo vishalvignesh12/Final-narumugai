@@ -7,9 +7,15 @@ const nextConfig = {
                 hostname: 'res.cloudinary.com',
                 port: '',
                 pathname: '/**',
-                search: ''
             }
-        ]
+        ],
+        unoptimized: true,  // Temporary fix for Cloudinary 500 errors
+        dangerouslyAllowSVG: true,
+        contentDispositionType: 'attachment',
+        contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;"
+    },
+    experimental: {
+        optimizePackageImports: ['lucide-react'],
     }
 };
 

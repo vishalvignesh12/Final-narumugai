@@ -2,6 +2,7 @@ import GlobalProvider from "@/components/Application/GlobalProvider";
 import "./globals.css";
 import { Assistant } from 'next/font/google'
 import { ToastContainer } from 'react-toastify';
+import { getMetadataBaseURL } from '@/lib/config';
 const assistantFont = Assistant({
   weight: ['400', '500', '600', '700', '800'],
   subsets: ['latin'],
@@ -9,6 +10,7 @@ const assistantFont = Assistant({
 })
 
 export const metadata = {
+  metadataBase: getMetadataBaseURL(),
   title: {
     default: "Narumugai - Premium Sarees Online | Traditional Indian Sarees",
     template: "%s | Narumugai Sarees"
@@ -38,7 +40,7 @@ export const metadata = {
     siteName: "Narumugai",
     images: [
       {
-        url: "/og-image.jpg",
+        url: "/assets/images/slider-1.png",
         width: 1200,
         height: 630,
         alt: "Narumugai Sarees Collection",
@@ -49,7 +51,7 @@ export const metadata = {
     card: "summary_large_image",
     title: "Narumugai - Premium Sarees Online",
     description: "Discover exquisite collection of traditional and designer sarees at Narumugai.",
-    images: ["/og-image.jpg"],
+    images: ["/assets/images/slider-1.png"],
     creator: "@narumugai",
   },
   verification: {
@@ -66,8 +68,8 @@ export default function RootLayout({ children }) {
         <link rel="canonical" href="https://narumugai.com" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="theme-color" content="#ec4899" />
-        <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="/assets/images/favicon.ico" />
+        <link rel="apple-touch-icon" href="/assets/images/logo-black.png" />
         <link rel="manifest" href="/manifest.json" />
         
         {/* Schema.org structured data */}
@@ -109,7 +111,7 @@ export default function RootLayout({ children }) {
                 "closes": "21:00"
               },
               "priceRange": "₹₹",
-              "paymentAccepted": ["Cash", "Credit Card", "Debit Card", "UPI", "Net Banking"]
+              "paymentAccepted": ["Credit Card", "Debit Card", "UPI", "Net Banking"]
             })
           }}
         />

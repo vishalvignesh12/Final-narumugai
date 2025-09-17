@@ -2,6 +2,7 @@ import axios from 'axios'
 import React from 'react'
 import ProductDetails from './ProductDetails'
 import { Metadata } from 'next'
+import { getBaseURL } from '@/lib/config'
 
 export async function generateMetadata({ params, searchParams }) {
     const { slug } = await params
@@ -25,24 +26,65 @@ export async function generateMetadata({ params, searchParams }) {
                 openGraph: {
                     title: `${product.name} | Premium Saree Online | Narumugai`,
                     description: `Buy ${product.name} online at best price. Premium quality saree with free shipping.`,
-                    type: 'product',
-                    url: `https://narumugai.com/product/${slug}`,
+                    type: 'website',
+                    url: `${getBaseURL()}/product/${slug}`,
+                    siteName: 'Narumugai',
+                    locale: 'en_IN',
                     images: [
                         {
-                            url: variant?.media?.[0]?.secure_url || product?.media?.[0]?.secure_url || '',
-                            width: 800,
-                            height: 800,
-                            alt: product.name
-                        }
+                            url: variant?.media?.[0]?.secure_url || product?.media?.[0]?.secure_url || '/assets/images/img-placeholder.webp',
+                            width: 1200,
+                            height: 630,
+                            alt: `${product.name} - ${variant?.color || ''} ${variant?.size || ''} | Narumugai Sarees`.trim(),
+                            type: 'image/jpeg'
+                        },
+                        // Additional product images for better social media sharing
+                        ...(variant?.media?.slice(1, 4) || product?.media?.slice(1, 4) || []).map(img => ({
+                            url: img.secure_url,
+                            width: 1200,
+                            height: 630,
+                            alt: `${product.name} - Additional view | Narumugai Sarees`,
+                            type: 'image/jpeg'
+                        }))
                     ]
                 },
                 twitter: {
                     card: 'summary_large_image',
+                    site: '@narumugai',
+                    creator: '@narumugai',
                     title: `${product.name} | Premium Saree Online | Narumugai`,
-                    description: `Buy ${product.name} online at best price. Premium quality saree with free shipping.`
+                    description: `Buy ${product.name} online at best price. Premium quality saree with free shipping.`,
+                    images: [variant?.media?.[0]?.secure_url || product?.media?.[0]?.secure_url || '/assets/images/img-placeholder.webp'],
+                    app: {
+                        name: {
+                            iphone: 'Narumugai',
+                            ipad: 'Narumugai',
+                            googleplay: 'Narumugai'
+                        },
+                        id: {
+                            iphone: 'narumugai-app',
+                            ipad: 'narumugai-app',
+                            googleplay: 'com.narumugai.app'
+                        }
+                    }
                 },
                 alternates: {
-                    canonical: `https://narumugai.com/product/${slug}`
+                    canonical: `${getBaseURL()}/product/${slug}`
+                },
+                // Additional metadata for better SEO and social sharing
+                other: {
+                    'product:price:amount': variant.sellingPrice,
+                    'product:price:currency': 'INR',
+                    'product:availability': 'in stock',
+                    'product:condition': 'new',
+                    'product:brand': 'Narumugai',
+                    'product:retailer_item_id': variant._id || product._id,
+                    'product:category': product.category || 'Sarees',
+                    'product:color': variant?.color,
+                    'product:size': variant?.size,
+                    'business:contact_data:country_name': 'India',
+                    'business:contact_data:locality': 'Chennai',
+                    'business:contact_data:region': 'Tamil Nadu'
                 }
             }
         }

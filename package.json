@@ -6,7 +6,9 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "network": "node scripts/set-network-access.js",
+    "localhost": "node scripts/set-network-access.js localhost"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-react": "^9.5.0",

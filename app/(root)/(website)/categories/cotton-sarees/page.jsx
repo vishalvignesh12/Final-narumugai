@@ -10,14 +10,15 @@ export const metadata = {
     openGraph: {
         title: 'Cotton Sarees Online | Comfortable Daily Wear Cotton Sarees | Narumugai',
         description: 'Shop premium cotton sarees perfect for daily wear, office, and casual occasions.',
-        type: 'product.group',
+        type: 'website',
         url: 'https://narumugai.com/categories/cotton-sarees',
         images: [
             {
-                url: 'https://narumugai.com/images/cotton-sarees-collection.jpg',
+                url: '/assets/images/slider-4.png',
                 width: 1200,
                 height: 630,
-                alt: 'Cotton Sarees Collection - Narumugai'
+                alt: 'Cotton Sarees Collection - Narumugai',
+                type: 'image/jpeg'
             }
         ]
     },

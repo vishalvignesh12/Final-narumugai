@@ -6,11 +6,35 @@ export const metadata = {
     title: 'Designer Sarees Online | Latest Designer Saree Collection | Narumugai',
     description: 'Explore our stunning collection of designer sarees featuring contemporary designs, modern patterns, and stylish drapes.',
     keywords: 'designer sarees, modern sarees, contemporary sarees, party wear sarees, stylish sarees',
+    category: 'fashion',
+    robots: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1
+    },
     openGraph: {
         title: 'Designer Sarees Online | Latest Designer Saree Collection | Narumugai',
         description: 'Explore our stunning collection of designer sarees featuring contemporary designs.',
-        type: 'product.group',
-        url: 'https://narumugai.com/categories/designer-sarees'
+        type: 'website',
+        url: 'https://narumugai.com/categories/designer-sarees',
+        siteName: 'Narumugai',
+        locale: 'en_IN',
+        images: [
+            {
+                url: '/assets/images/slider-2.png',
+                width: 1200,
+                height: 630,
+                alt: 'Designer Sarees Collection - Contemporary & Modern Styles | Narumugai',
+                type: 'image/jpeg'
+            }
+        ]
+    },
+    twitter: {
+        card: 'summary_large_image',
+        site: '@narumugai',
+        title: 'Designer Sarees Online | Latest Designer Saree Collection | Narumugai',
+        description: 'Explore our stunning collection of designer sarees featuring contemporary designs.'
     },
     alternates: {
         canonical: 'https://narumugai.com/categories/designer-sarees'

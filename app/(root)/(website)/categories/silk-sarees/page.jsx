@@ -10,14 +10,15 @@ export const metadata = {
     openGraph: {
         title: 'Premium Silk Sarees Online | Traditional & Designer Silk Sarees | Narumugai',
         description: 'Discover our exquisite collection of premium silk sarees including Banarasi, Kanjivaram, Mysore silk sarees.',
-        type: 'product.group',
+        type: 'website',
         url: 'https://narumugai.com/categories/silk-sarees',
         images: [
             {
-                url: 'https://narumugai.com/images/silk-sarees-collection.jpg',
+                url: '/assets/images/slider-3.png',
                 width: 1200,
                 height: 630,
-                alt: 'Premium Silk Sarees Collection - Narumugai'
+                alt: 'Premium Silk Sarees Collection - Narumugai',
+                type: 'image/jpeg'
             }
         ]
     },
