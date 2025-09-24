@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import useDeleteMutation from '@/hooks/useDeleteMutation'
 import { ADMIN_DASHBOARD, ADMIN_SLIDER_SHOW, ADMIN_SLIDER_ADD } from '@/routes/AdminPanelRoute'
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
@@ -22,26 +22,19 @@ const SlidersPage = () => {
     const [selectedSliders, setSelectedSliders] = useState([])
     const [selectAll, setSelectAll] = useState(false)
 
-    const fetchSliders = async (page) => {
-        const { data: response } = await axios.get(`/api/sliders/get?page=${page}&&limit=10`)
+    const fetchSliders = async () => {
+        const { data: response } = await axios.get(`/api/sliders/get?page=0&limit=1000`)
         return response
     }
 
     const {
         data,
         error,
-        fetchNextPage,
-        hasNextPage,
-        isFetching,
-        status
-    } = useInfiniteQuery({
+        isPending,
+        isError
+    } = useQuery({
         queryKey: ['sliders-data'],
-        queryFn: async ({ pageParam }) => await fetchSliders(pageParam),
-        initialPageParam: 0,
-        getNextPageParam: (lastPage, pages) => {
-            const nextPage = pages.length
-            return lastPage.hasMore ? nextPage : undefined
-        },
+        queryFn: fetchSliders
     })
 
     const deleteMutation = useDeleteMutation('sliders-data', '/api/sliders/delete')
@@ -61,7 +54,7 @@ const SlidersPage = () => {
 
     useEffect(() => {
         if (selectAll) {
-            const ids = data?.pages?.flatMap(page => page.sliders?.map(slider => slider._id)) || [];
+            const ids = data?.sliders?.map(slider => slider._id) || [];
             setSelectedSliders(ids)
         } else {
             setSelectedSliders([])
@@ -103,85 +96,71 @@ const SlidersPage = () => {
                         </div>
                     }
 
-                    {status === 'pending' ?
+                    {isPending ?
                         <div>Loading...</div> :
-                        status === 'error' ?
+                        isError ?
                             <div className='text-red-500 text-sm'>
                                 {error.message}
                             </div> :
                             <>
-                                {data?.pages?.flatMap(page => page.sliders)?.length === 0 && <div>No sliders found.</div>}
+                                {data?.sliders?.length === 0 && <div>No sliders found.</div>}
                                 <div className='grid grid-cols-1 gap-4 mb-5'>
                                     {
-                                        data?.pages?.map((page, index) => (
-                                            <React.Fragment key={index}>
-                                                {
-                                                    page?.sliders?.map((slider) => (
-                                                        <div key={slider._id} className="border rounded-lg p-4 flex items-center gap-4">
-                                                            <div className="flex items-center gap-2">
-                                                                <Checkbox
-                                                                    checked={selectedSliders.includes(slider._id)}
-                                                                    onCheckedChange={(checked) => {
-                                                                        if (checked) {
-                                                                            setSelectedSliders([...selectedSliders, slider._id])
-                                                                        } else {
-                                                                            setSelectedSliders(selectedSliders.filter(id => id !== slider._id))
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                {slider.mediaId && (
-                                                                    <img 
-                                                                        src={slider.mediaId.secure_url} 
-                                                                        alt={slider.mediaId.alt || slider.title || 'Slider image'}
-                                                                        className="w-24 h-24 object-cover rounded"
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                            <div className="flex-1">
-                                                                <h3 className="font-semibold">{slider.title || 'Untitled Slider'}</h3>
-                                                                <p className="text-sm text-gray-500">{slider.alt || 'No alt text'}</p>
-                                                                {slider.link && (
-                                                                    <p className="text-sm text-blue-500">
-                                                                        <Link href={slider.link} target="_blank">
-                                                                            {slider.link}
-                                                                        </Link>
-                                                                    </p>
-                                                                )}
-                                                                <div className="mt-2">
-                                                                    <span className={`px-2 py-1 rounded text-xs ${slider.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                                                        {slider.isActive ? 'Active' : 'Inactive'}
-                                                                    </span>
-                                                                    <span className="ml-2 px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
-                                                                        Order: {slider.order}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex gap-2">
-                                                                <Button variant="outline" size="sm">
-                                                                    <Link href={`/admin/sliders/edit/${slider._id}`}>
-                                                                        Edit
-                                                                    </Link>
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                }
-                                            </React.Fragment>
+                                        data?.sliders?.map((slider) => (
+                                            <div key={slider._id} className="border rounded-lg p-4 flex items-center gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Checkbox
+                                                        checked={selectedSliders.includes(slider._id)}
+                                                        onCheckedChange={(checked) => {
+                                                            if (checked) {
+                                                                setSelectedSliders([...selectedSliders, slider._id])
+                                                            } else {
+                                                                setSelectedSliders(selectedSliders.filter(id => id !== slider._id))
+                                                            }
+                                                        }}
+                                                    />
+                                                    {slider.mediaId && (
+                                                        <img 
+                                                            src={slider.mediaId.secure_url} 
+                                                            alt={slider.mediaId.alt || slider.title || 'Slider image'}
+                                                            className="w-24 h-24 object-cover rounded"
+                                                        />
+                                                    )}
+                                                </div>
+                                                <div className="flex-1">
+                                                    <h3 className="font-semibold">{slider.title || 'Untitled Slider'}</h3>
+                                                    <p className="text-sm text-gray-500">{slider.alt || 'No alt text'}</p>
+                                                    {slider.link && (
+                                                        <p className="text-sm text-blue-500">
+                                                            <Link href={slider.link} target="_blank">
+                                                                {slider.link}
+                                                            </Link>
+                                                        </p>
+                                                    )}
+                                                    <div className="mt-2">
+                                                        <span className={`px-2 py-1 rounded text-xs ${slider.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                                            {slider.isActive ? 'Active' : 'Inactive'}
+                                                        </span>
+                                                        <span className="ml-2 px-2 py-1 rounded text-xs bg-gray-100 text-gray-800">
+                                                            Order: {slider.order}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <Button variant="outline" size="sm">
+                                                        <Link href={`/admin/sliders/edit/${slider._id}`}>
+                                                            Edit
+                                                        </Link>
+                                                    </Button>
+                                                </div>
+                                            </div>
                                         ))
                                     }
                                 </div>
                             </>
                     }
 
-                    {hasNextPage &&
-                        <ButtonLoading 
-                            type="button" 
-                            className="cursor-pointer" 
-                            loading={isFetching} 
-                            onClick={() => fetchNextPage()} 
-                            text="Load More" 
-                        />
-                    }
+
                 </CardContent>
             </Card>
         </div>

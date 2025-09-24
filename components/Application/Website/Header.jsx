@@ -12,6 +12,7 @@ import { IoMdClose } from "react-icons/io";
 import { usePathname } from 'next/navigation'
 import { HiMiniBars3 } from "react-icons/hi2";
 import Search from './Search'
+import WishlistIcon from './WishlistIcon'
 
 
 const Header = () => {
@@ -108,6 +109,8 @@ const Header = () => {
                                 size={24}
                             />
                         </button>
+
+                        <WishlistIcon />
 
                         <Cart />
 

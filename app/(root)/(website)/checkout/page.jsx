@@ -63,9 +63,9 @@ const Checkout = () => {
     useEffect(() => {
         const cartProducts = cart.products
 
-        const subTotalAmount = cartProducts.reduce((sum, product) => sum + (product.sellingPrice * product.qty), 0)
+        const subTotalAmount = cartProducts.reduce((sum, product) => sum + product.sellingPrice, 0)
 
-        const discount = cartProducts.reduce((sum, product) => sum + ((product.mrp - product.sellingPrice) * product.qty), 0)
+        const discount = cartProducts.reduce((sum, product) => sum + (product.mrp - product.sellingPrice), 0)
 
         setSubTotal(subTotalAmount)
         setDiscount(discount)
@@ -203,7 +203,7 @@ const Checkout = () => {
                             productId: cartItem.productId,
                             variantId: cartItem.variantId,
                             name: cartItem.name,
-                            qty: cartItem.qty,
+                            qty: 1,
                             mrp: cartItem.mrp,
                             sellingPrice: cartItem.sellingPrice,
                         }

@@ -4,10 +4,12 @@ import persistStore from "redux-persist/es/persistStore"
 import localStorage from "redux-persist/es/storage"
 import authReducer from "./reducer/authReducer"
 import cartReducer  from "./reducer/cartReducer"
+import wishlistReducer from "./reducer/wishlistReducer"
 
 const rootReducer = combineReducers({
     authStore: authReducer,
-    cartStore: cartReducer
+    cartStore: cartReducer,
+    wishlistStore: wishlistReducer
 })
 
 

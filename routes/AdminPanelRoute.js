@@ -23,6 +23,7 @@ export const ADMIN_CATEGORY_EDIT = (id) => id ? `/admin/category/edit/${id}` : '
 export const ADMIN_PRODUCT_ADD = '/admin/product/add'
 export const ADMIN_PRODUCT_SHOW = '/admin/product'
 export const ADMIN_PRODUCT_EDIT = (id) => id ? `/admin/product/edit/${id}` : ''
+export const ADMIN_PRODUCT_AVAILABILITY = '/admin/product/availability'
 
 
 // Product Variant routes 

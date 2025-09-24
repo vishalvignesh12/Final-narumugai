@@ -13,9 +13,6 @@ export async function GET(request) {
         // get filters from query params  
         const size = searchParams.get('size')
         const color = searchParams.get('color')
-        const minPrice = parseInt(searchParams.get('minPrice')) || 0
-        // If maxPrice is not provided, use a very high number to include all products
-        const maxPrice = searchParams.get('maxPrice') ? parseInt(searchParams.get('maxPrice')) : 999999
         const categorySlug = searchParams.get('category')
         const search = searchParams.get('q')
 
@@ -46,7 +43,7 @@ export async function GET(request) {
         }
 
         // match stage  
-        let matchStage = {}
+        let matchStage = { deletedAt: null }  // Add deletedAt filter for products
         if (categoryId.length > 0) matchStage.category = { $in: categoryId }  // filter by category   
 
         if (search) {
@@ -76,27 +73,46 @@ export async function GET(request) {
                             as: 'variant',
                             cond: {
                                 $and: [
+                                    { $eq: ["$$variant.deletedAt", null] }, // Only non-deleted variants
                                     size ? { $in: ["$$variant.size", size.split(',')] } : { $literal: true },
-                                    color ? { $in: ["$$variant.color", color.split(',')] } : { $literal: true },
-                                    { $gte: ["$$variant.sellingPrice", minPrice] },
-                                    { $lte: ["$$variant.sellingPrice", maxPrice] },
+                                    color ? { $in: ["$$variant.color", color.split(',')] } : { $literal: true }
                                 ]
                             }
                         }
                     }
                 }
             },
-            {
-                $match: {
-                    variants: { $ne: [] }
-                }
-            },
+            // Optional: Only include products with variants (commented out to allow products without variants)
+            // {
+            //     $match: {
+            //         variants: { $ne: [] }
+            //     }
+            // },
             {
                 $lookup: {
                     from: 'medias',
                     localField: 'media',
                     foreignField: '_id',
                     as: 'media'
+                }
+            },
+            {
+                $addFields: {
+                    // If no variants exist, use product data as default variant
+                    effectiveVariants: {
+                        $cond: {
+                            if: { $eq: [{ $size: "$variants" }, 0] },
+                            then: [{
+                                _id: "$_id",
+                                color: "Default",
+                                size: "One Size",
+                                mrp: "$mrp",
+                                sellingPrice: "$sellingPrice",
+                                discountPercentage: "$discountPercentage"
+                            }],
+                            else: "$variants"
+                        }
+                    }
                 }
             },
             {
@@ -107,21 +123,27 @@ export async function GET(request) {
                     mrp: 1,
                     sellingPrice: 1,
                     discountPercentage: 1,
+                    isAvailable: 1,
+                    soldAt: 1,
                     media: {
                         _id: 1,
                         secure_url: 1,
                         alt: 1
                     },
-                    variants: {
-                        color: 1,
-                        size: 1,
-                        mrp: 1,
-                        sellingPrice: 1,
-                        discountPercentage: 1,
-                    }
+                    variants: "$effectiveVariants"
                 }
             }
         ])
+
+        // Debug: Log the query and results
+        console.log('Shop API Debug:');
+        console.log('Match Stage:', JSON.stringify(matchStage));
+        console.log('Products found:', products.length);
+        if (products.length === 0) {
+            // Let's check if there are any products at all
+            const totalProducts = await ProductModel.countDocuments({ deletedAt: null });
+            console.log('Total products in DB:', totalProducts);
+        }
 
 
 

@@ -32,6 +32,18 @@ const TermsAndConditions = () => {
 
                 <p className='text-gray-600 text-lg mb-6'>Welcome to Narumugai Saree Store. By accessing or using our website to browse or purchase sarees, you agree to be bound by the following terms and conditions. Please read them carefully.</p>
 
+                <div className='bg-blue-50 border-l-4 border-blue-500 p-4 mb-6'>
+                    <p className='text-blue-700'>
+                        <strong>Important:</strong> For payment processing terms and conditions, please also refer to our 
+                        <a href="https://merchant.razorpay.com/policy/RIgEbrrWrD7Wl7/terms" 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           className='text-blue-600 hover:text-blue-800 ml-1 underline'>
+                            Razorpay Terms & Conditions
+                        </a>
+                    </p>
+                </div>
+
                 <p className='mt-3 text-gray-600'>If you do not agree with any part of these terms, please do not use our website or purchase our sarees.</p>
 
                 <h2 className='text-2xl font-semibold mt-8 mb-4 text-gray-800'>1. Use of Our Website:</h2>
@@ -103,9 +115,9 @@ const TermsAndConditions = () => {
                 </p>
                 <div className='mt-4 p-4 bg-gray-50 rounded-lg'>
                     <p className='text-gray-700'><strong>Email:</strong> support@narumugai.com</p>
-                    <p className='text-gray-700'><strong>Phone:</strong> +91-8569874589</p>
+                    <p className='text-gray-700'><strong>Phone:</strong> +91-9884585989</p>
                     <p className='text-gray-700'><strong>Business Hours:</strong> Monday - Saturday: 10:00 AM - 8:00 PM</p>
-                    <p className='text-gray-700'><strong>Address:</strong> Narumugai Saree Emporium, 123 Fashion Street, Textile Market, Lucknow, Uttar Pradesh 226001</p>
+                    <p className='text-gray-700'><strong>Address:</strong> Narumugai, No. 426 TI cycles, road, Ambattur, Chennai, Tamil Nadu 600053</p>
                 </div>
 
                 <p className='mt-6 text-gray-600 font-medium'>

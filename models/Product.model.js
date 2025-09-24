@@ -41,6 +41,15 @@ const productSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    isAvailable: {
+        type: Boolean,
+        default: true,
+        index: true
+    },
+    soldAt: {
+        type: Date,
+        default: null
+    },
     deletedAt: {
         type: Date,
         default: null,

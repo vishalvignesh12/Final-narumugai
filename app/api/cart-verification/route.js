@@ -21,7 +21,7 @@ export async function POST(request) {
                         mrp: variant.mrp,
                         sellingPrice: variant.sellingPrice,
                         media: variant?.media[0]?.secure_url,
-                        qty: cartItem.qty,
+                        qty: 1,
                     }
                 }
             })

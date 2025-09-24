@@ -8,17 +8,13 @@ import {
     AccordionTrigger,
 } from "@/components/ui/accordion"
 import { Checkbox } from '@/components/ui/checkbox'
-import { Slider } from '@/components/ui/slider'
-import ButtonLoading from '../ButtonLoading'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { WEBSITE_HOME, WEBSITE_SHOP } from '@/routes/WebsiteRoute'
+import { WEBSITE_SHOP } from '@/routes/WebsiteRoute'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 const Filter = () => {
     const searchParams = useSearchParams()
 
-    const [priceFilter, setPriceFilter] = useState({ minPrice: 0, maxPrice: 5000 })
-    const [priceRange, setPriceRange] = useState({ minPrice: 0, maxPrice: 5000 })
     const [selectedCategory, setSelectedCategory] = useState([])
     const [selectedColor, setSelectedColor] = useState([])
     const [selectedSize, setSelectedSize] = useState([])
@@ -26,7 +22,6 @@ const Filter = () => {
     const { data: categoryData } = useFetch('/api/category/get-category')
     const { data: colorData } = useFetch('/api/product-variant/colors')
     const { data: sizeData } = useFetch('/api/product-variant/sizes')
-    const { data: priceRangeData } = useFetch('/api/product/price-range')
 
     const urlSearchParams = new URLSearchParams(searchParams.toString())
     const router = useRouter()
@@ -39,37 +34,6 @@ const Filter = () => {
         searchParams.get('size') ? setSelectedSize(searchParams.get('size').split(',')) : setSelectedSize([])
 
     }, [searchParams])
-
-    // Update price range when data is loaded
-    useEffect(() => {
-        if (priceRangeData && priceRangeData.success) {
-            const { minPrice, maxPrice } = priceRangeData.data
-            setPriceRange({ minPrice, maxPrice })
-            // Initialize price filter with the actual range if no URL params
-            if (!searchParams.get('minPrice') && !searchParams.get('maxPrice')) {
-                setPriceFilter({ minPrice, maxPrice })
-            }
-        }
-    }, [priceRangeData, searchParams])
-
-    // Update price filter from URL params
-    useEffect(() => {
-        const urlMinPrice = searchParams.get('minPrice')
-        const urlMaxPrice = searchParams.get('maxPrice')
-        
-        if (urlMinPrice || urlMaxPrice) {
-            setPriceFilter({
-                minPrice: urlMinPrice ? parseInt(urlMinPrice) : priceRange.minPrice,
-                maxPrice: urlMaxPrice ? parseInt(urlMaxPrice) : priceRange.maxPrice
-            })
-        }
-    }, [searchParams, priceRange])
-
-
-
-    const handlePriceChange = (value) => {
-        setPriceFilter({ minPrice: value[0], maxPrice: value[1] })
-    }
 
 
 
@@ -121,12 +85,6 @@ const Filter = () => {
 
     }
 
-    const handlePriceFilter = () => {
-        urlSearchParams.set('minPrice', priceFilter.minPrice)
-        urlSearchParams.set('maxPrice', priceFilter.maxPrice)
-        router.push(`${WEBSITE_SHOP}?${urlSearchParams}`)
-    }
-
 
     return (
         <div>
@@ -137,7 +95,7 @@ const Filter = () => {
                     </Link>
                 </Button>
             }
-            <Accordion type="multiple" defaultValue={['1', '2', '3', '4']}>
+            <Accordion type="multiple" defaultValue={['1', '2', '3']}>
                 <AccordionItem value="1">
                     <AccordionTrigger className="uppercase font-semibold hover:no-underline">Category</AccordionTrigger>
                     <AccordionContent>
@@ -198,30 +156,7 @@ const Filter = () => {
                         </div>
                     </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="4">
-                    <AccordionTrigger className="uppercase font-semibold hover:no-underline">Price</AccordionTrigger>
-                    <AccordionContent>
-                        <Slider 
-                            value={[priceFilter.minPrice, priceFilter.maxPrice]} 
-                            min={priceRange.minPrice} 
-                            max={priceRange.maxPrice} 
-                            step={1} 
-                            onValueChange={handlePriceChange} 
-                        />
-                        <div className='flex justify-between items-center pt-2'>
-                            <span>{priceFilter.minPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
-                            <span>{priceFilter.maxPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
-                        </div>
-                        <div className='text-center text-sm text-gray-500 mt-2'>
-                            Range: {priceRange.minPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })} - {priceRange.maxPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                        </div>
 
-                        <div className='mt-4'>
-                            <ButtonLoading onClick={handlePriceFilter} type="button" text="Filter Price" className="rounded-full" />
-                        </div>
-
-                    </AccordionContent>
-                </AccordionItem>
             </Accordion>
         </div>
     )

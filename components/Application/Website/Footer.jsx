@@ -67,6 +67,9 @@ const Footer = () => {
                         <li className='mb-2 text-gray-500'>
                             <Link href="/return-policy">Return & Exchange</Link>
                         </li>
+                        <li className='mb-2 text-gray-500'>
+                            <Link href="/refund-policy">Refund Policy</Link>
+                        </li>
                     </ul>
                 </div>
                 <div>
@@ -74,11 +77,11 @@ const Footer = () => {
                     <ul>
                         <li className='mb-2 text-gray-500 flex gap-2'>
                             <IoLocationOutline size={20} />
-                            <span className='text-sm'>Narumugai Saree Emporium<br/>123 Fashion Street, Textile Market<br/>Lucknow, Uttar Pradesh 226001</span>
+                            <span className='text-sm'>Narumugai<br/>No. 426 TI cycles, road<br/>Ambattur, Chennai, Tamil Nadu 600053</span>
                         </li>
                         <li className='mb-2 text-gray-500 flex gap-2'>
                             <MdOutlinePhone size={20} />
-                            <Link href="tel:+91-8569874589" className='hover:text-primary text-sm'>+91-8569874589</Link>
+                            <Link href="tel:+91-9884585989" className='hover:text-primary text-sm'>+91-9884585989</Link>
                         </li>
                         <li className='mb-2 text-gray-500 flex gap-2'>
                             <MdOutlineMail size={20} />
@@ -101,7 +104,7 @@ const Footer = () => {
                         <Link href="https://instagram.com/narumugaisarees" target="_blank" rel="noopener noreferrer">
                             <FaInstagram className='text-primary hover:text-pink-700 transition-colors' size={25} />
                         </Link>
-                        <Link href="https://wa.me/918569874589" target="_blank" rel="noopener noreferrer">
+                        <Link href="https://wa.me/919884585989" target="_blank" rel="noopener noreferrer">
                             <FaWhatsapp className='text-primary hover:text-pink-700 transition-colors' size={25} />
                         </Link>
                         <Link href="https://facebook.com/narumugaisarees" target="_blank" rel="noopener noreferrer">
@@ -130,6 +133,8 @@ const Footer = () => {
                             <Link href="/terms-and-conditions" className='hover:text-primary'>Terms & Conditions</Link>
                             <span>|</span>
                             <Link href="/shipping-policy" className='hover:text-primary'>Shipping Policy</Link>
+                            <span>|</span>
+                            <Link href="/refund-policy" className='hover:text-primary'>Refund Policy</Link>
                         </div>
                     </div>
                 </div>

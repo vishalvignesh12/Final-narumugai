@@ -12,7 +12,7 @@ import { ADMIN_DASHBOARD, ADMIN_BANNER_SHOW } from '@/routes/AdminPanelRoute'
 import axios from 'axios'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { showToast } from '@/lib/showToast'
 
 const breadcrumbData = [
@@ -36,6 +36,22 @@ const AddBannerPage = () => {
     const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false)
     const [selectedMediaArray, setSelectedMediaArray] = useState([])
 
+    // Update mediaId when selectedMediaArray changes
+    useEffect(() => {
+        if (selectedMediaArray.length > 0) {
+            const media = selectedMediaArray[0]
+            setFormData(prev => ({
+                ...prev,
+                mediaId: media._id
+            }))
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                mediaId: ''
+            }))
+        }
+    }, [selectedMediaArray])
+
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target
         setFormData(prev => ({
@@ -49,17 +65,6 @@ const AddBannerPage = () => {
             ...prev,
             [name]: value
         }))
-    }
-
-    const handleMediaSelect = () => {
-        if (selectedMediaArray.length > 0) {
-            const media = selectedMediaArray[0] // Take first selected media for single selection
-            setFormData(prev => ({
-                ...prev,
-                mediaId: media._id
-            }))
-            setIsMediaLibraryOpen(false)
-        }
     }
 
     const handleSubmit = async (e) => {

@@ -16,7 +16,7 @@ import axios from 'axios'
 import Link from 'next/link'
 import { WEBSITE_LOGIN } from '@/routes/WebsiteRoute'
 import { showToast } from '@/lib/showToast'
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import ReviewList from './ReviewList'
 import useFetch from '@/hooks/useFetch'
 
@@ -86,23 +86,19 @@ const ProductReveiw = ({ productId }) => {
     }
 
 
-    const fetchReview = async (pageParam) => {
-        const { data: getReviewData } = await axios.get(`/api/review/get?productId=${productId}&page=${pageParam}`)
+    const fetchReviews = async () => {
+        const { data: getReviewData } = await axios.get(`/api/review/get?productId=${productId}&page=0&limit=100`)
         if (!getReviewData.success) {
-            return
+            return { reviews: [], totalReview: 0 }
         }
 
         return getReviewData.data
     }
 
 
-    const { error, data, isFetching, fetchNextPage, hasNextPage } = useInfiniteQuery({
+    const { error, data, isFetching } = useQuery({
         queryKey: ['product-review'],
-        queryFn: async ({ pageParam }) => await fetchReview(pageParam),
-        initialPageParam: 0,
-        getNextPageParam: (lastPage) => {
-            return lastPage.nextPage
-        }
+        queryFn: fetchReviews
     })
 
 
@@ -243,23 +239,21 @@ const ProductReveiw = ({ productId }) => {
 
 
                 <div className='mt-10 border-t pt-5'>
-                    <h5 className='text-xl font-semibold'>{data?.pages[0]?.totalReview || 0} Reviews</h5>
+                    <h5 className='text-xl font-semibold'>{data?.totalReview || 0} Reviews</h5>
 
                     <div className='mt-10'>
-                        {data && data.pages.map(page => (
-                            page.reviews.map(review => (
-                                <div className='mb-5' key={review._id}>
-                                    <ReviewList review={review} />
-                                </div>
-                            ))
+                        {data && data.reviews && data.reviews.map(review => (
+                            <div className='mb-5' key={review._id}>
+                                <ReviewList review={review} />
+                            </div>
                         ))}
 
-                        {hasNextPage &&
-                            <ButtonLoading text="Load More" type="button" loading={isFetching} onClick={fetchNextPage} />
-                        }
-
+                        {data && data.reviews && data.reviews.length === 0 && (
+                            <div className='text-center py-8 text-gray-500'>
+                                No reviews yet. Be the first to review this product!
+                            </div>
+                        )}
                     </div>
-
                 </div>
 
 

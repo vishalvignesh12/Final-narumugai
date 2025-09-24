@@ -1,19 +1,19 @@
 'use client'
+'use client'
 import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
 import Media from '@/components/Application/Admin/Media'
 import UploadMedia from '@/components/Application/Admin/UploadMedia'
-import ButtonLoading from '@/components/Application/ButtonLoading'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
 import useDeleteMutation from '@/hooks/useDeleteMutation'
 import { ADMIN_DASHBOARD, ADMIN_MEDIA_SHOW } from '@/routes/AdminPanelRoute'
-import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const breadcrumbData = [
     { href: ADMIN_DASHBOARD, label: 'Home' },
@@ -39,28 +39,19 @@ const MediaPage = () => {
         }
     }, [searchParams])
 
-    const fetchMedia = async (page, deleteType) => {
-        const { data: response } = await axios.get(`/api/media?page=${page}&&limit=10&&deleteType=${deleteType}`)
-
+    const fetchMedia = async (deleteType) => {
+        const { data: response } = await axios.get(`/api/media?page=0&limit=10000&deleteType=${deleteType}`)
         return response
     }
-
 
     const {
         data,
         error,
-        fetchNextPage,
-        hasNextPage,
-        isFetching,
+        isLoading,
         status
-    } = useInfiniteQuery({
+    } = useQuery({
         queryKey: ['media-data', deleteType],
-        queryFn: async ({ pageParam }) => await fetchMedia(pageParam, deleteType),
-        initialPageParam: 0,
-        getNextPageParam: (lastPage, pages) => {
-            const nextPage = pages.length
-            return lastPage.hasMore ? nextPage : undefined
-        },
+        queryFn: async () => await fetchMedia(deleteType),
     })
 
 
@@ -87,12 +78,12 @@ const MediaPage = () => {
 
     useEffect(() => {
         if (selectAll) {
-            const ids = data.pages.flatMap(page => page.mediaData.map(media => media._id));
+            const ids = data?.mediaData?.map(media => media._id) || [];
             setSelectedMedia(ids)
         } else {
             setSelectedMedia([])
         }
-    }, [selectAll])
+    }, [selectAll, data])
 
 
 
@@ -166,7 +157,7 @@ const MediaPage = () => {
 
 
 
-                    {status === 'pending'
+                    {status === 'pending' || isLoading
                         ?
                         <div>Loading...</div>
                         :
@@ -176,33 +167,25 @@ const MediaPage = () => {
                             </div>
                             :
                             <>
-                                {data.pages.flatMap(page => page.mediaData.map(media => media._id)).length === 0 && <div >Data not found.</div>}
+                                {data?.mediaData?.length === 0 && <div >Data not found.</div>}
 
                                 <div className='grid lg:grid-cols-5 sm:grid-cols-3 grid-cols-2 gap-2 mb-5'>
                                     {
-                                        data?.pages?.map((page, index) => (
-                                            <React.Fragment key={index}>
-                                                {
-                                                    page?.mediaData?.map((media) => (
-                                                        <Media key={media._id}
-                                                            media={media}
-                                                            handleDelete={handleDelete}
-                                                            deleteType={deleteType}
-                                                            selectedMedia={selectedMedia}
-                                                            setSelectedMedia={setSelectedMedia}
-                                                        />
-                                                    ))
-                                                }
-                                            </React.Fragment>
+                                        data?.mediaData?.filter(media => media && media._id && media.secure_url).map((media) => (
+                                            <Media key={media._id}
+                                                media={media}
+                                                handleDelete={handleDelete}
+                                                deleteType={deleteType}
+                                                selectedMedia={selectedMedia}
+                                                setSelectedMedia={setSelectedMedia}
+                                            />
                                         ))
                                     }
                                 </div>
                             </>
                     }
              
-                    {hasNextPage &&
-                        <ButtonLoading type="button" className="cursor-pointer" loading={isFetching} onClick={() => fetchNextPage()} text="Load More" />
-                    }
+
 
                 </CardContent>
             </Card>

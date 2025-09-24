@@ -15,7 +15,6 @@ import Link from "next/link"
 import { useEffect, useState } from "react"
 import imgPlaceholder from '@/public/assets/images/img-placeholder.webp'
 import { decode, encode } from "entities";
-import { HiMinus, HiPlus } from "react-icons/hi2";
 import ButtonLoading from "@/components/Application/ButtonLoading";
 import { useDispatch, useSelector } from "react-redux";
 import { addIntoCart } from "@/store/reducer/cartReducer";
@@ -29,7 +28,6 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
     const cartStore = useSelector(store => store.cartStore)
     
     const [activeThumb, setActiveThumb] = useState()
-    const [qty, setQty] = useState(1)
     const [isAddedIntoCart, setIsAddedIntoCart] = useState(false)
     const [isProductLoading, setIsProductLoading] = useState(false)
     useEffect(() => {
@@ -65,16 +63,6 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
         setActiveThumb(thumbUrl)
     }
 
-    const handleQty = (actionType) => {
-        if (actionType === 'inc') {
-            setQty(prev => prev + 1)
-        } else {
-            if (qty !== 1) {
-                setQty(prev => prev - 1)
-            }
-        }
-    }
-
 
     const handleAddToCart = () => {
         const cartProduct = {
@@ -87,7 +75,7 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
             mrp: variant.mrp,
             sellingPrice: variant.sellingPrice,
             media: variant?.media[0]?.secure_url || product?.media[0]?.secure_url,
-            qty: qty
+            qty: 1
         }
 
         dispatch(addIntoCart(cartProduct))
@@ -203,32 +191,28 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
                         </div>
                     </div>
 
-                    <div className="mt-5">
-                        <p className="font-bold mb-2">Quantity</p>
-                        <div className="flex items-center h-10 border w-fit rounded-full">
-
-                            <button type="button" className="h-full w-10 flex justify-center items-center" onClick={() => handleQty('desc')}>
-                                <HiMinus />
-                            </button>
-                            <input type="text" value={qty} className="w-14 text-center border-none outline-offset-0" readOnly />
-                            <button type="button" className="h-full w-10 flex justify-center items-center" onClick={() => handleQty('inc')}>
-                                <HiPlus />
-                            </button>
-
-                        </div>
-                    </div>
-
 
                     <div className="mt-5">
-                        {!isAddedIntoCart ?
-                            <ButtonLoading type="button" text="Add To Cart" className="w-full rounded-full py-6 text-md cursor-pointer" onClick={handleAddToCart} />
-                            :
+                        {!product.isAvailable ? (
+                            <Button 
+                                disabled 
+                                className="w-full rounded-full py-6 text-md bg-gray-400 hover:bg-gray-400 cursor-not-allowed" 
+                                type="button"
+                            >
+                                Sold Out
+                            </Button>
+                        ) : !isAddedIntoCart ? (
+                            <ButtonLoading 
+                                type="button" 
+                                text="Add To Cart" 
+                                className="w-full rounded-full py-6 text-md cursor-pointer" 
+                                onClick={handleAddToCart} 
+                            />
+                        ) : (
                             <Button className="w-full rounded-full py-6 text-md cursor-pointer" type="button" asChild>
                                 <Link href={WEBSITE_CART}>Go To Cart</Link>
                             </Button>
-                        }
-
-
+                        )}
                     </div>
 
                 </div>

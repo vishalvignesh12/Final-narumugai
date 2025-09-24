@@ -1,31 +1,29 @@
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { keepPreviousData, useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import Image from 'next/image'
 import React, { useState } from 'react'
 import loading from '@/public/assets/images/loading.svg'
 import ModalMediaBlock from './ModalMediaBlock'
 import { showToast } from '@/lib/showToast'
-import ButtonLoading from '../ButtonLoading'
 const MediaModal = ({ open, setOpen, selectedMedia, setSelectedMedia, isMultiple }) => {
 
     const [previouslySelected, setPreviouslySelected] = useState([])
 
-    const fetchMedia = async (page) => {
-        const { data: response } = await axios.get(`/api/media?page=${page}&&limit=18&&deleteType=SD`)
-        return response
+    const fetchMedia = async () => {
+        try {
+            const { data: response } = await axios.get(`/api/media?page=0&limit=10000&deleteType=SD`)
+            return response
+        } catch (error) {
+            console.error('Failed to fetch media:', error)
+            throw new Error('Failed to load media files')
+        }
     }
 
-    const { isPending, isError, error, data, isFetching, fetchNextPage, hasNextPage } = useInfiniteQuery({
+    const { isPending, isError, error, data } = useQuery({
         queryKey: ['MediaModal'],
-        queryFn: async ({ pageParam }) => await fetchMedia(pageParam),
-        placeholderData: keepPreviousData,
-        initialPageParam: 0,
-        getNextPageParam: (lastPage, allPages) => {
-            const nextPage = allPages.length
-            return lastPage.hasMore ? nextPage : undefined
-        }
+        queryFn: fetchMedia
     })
 
 
@@ -73,35 +71,24 @@ const MediaModal = ({ open, setOpen, selectedMedia, setSelectedMedia, isMultiple
                                     <span className='text-red-500'>{error.message}</span>
                                 </div>
                                 :
-                                <>
+                                <>  
                                     <div className='grid lg:grid-cols-6 grid-cols-3 gap-2'>
                                         {
-                                            data?.pages?.map((page, index) => (
-                                                <React.Fragment key={index}>
-                                                    {
-                                                        page?.mediaData?.map((media) => (
-                                                            <ModalMediaBlock
-                                                                key={media._id}
-                                                                media={media}
-                                                                selectedMedia={selectedMedia}
-                                                                setSelectedMedia={setSelectedMedia}
-                                                                isMultiple={isMultiple}
-                                                            />
-                                                        ))
-                                                    }
-                                                </React.Fragment>
+                                            data?.mediaData?.filter(media => media && media._id && media.secure_url).map((media) => (
+                                                <ModalMediaBlock
+                                                    key={media._id}
+                                                    media={media}
+                                                    selectedMedia={selectedMedia}
+                                                    setSelectedMedia={setSelectedMedia}
+                                                    isMultiple={isMultiple}
+                                                />
                                             ))
                                         }
                                     </div>
 
-                                    {hasNextPage ?
-                                        <div className='flex justify-center py-5'>
-                                            <ButtonLoading type="button" onClick={() => fetchNextPage()} loading={isFetching} text="Load More" />
-                                        </div>
-                                        :
-                                        <p className='text-center py-5'>Nothing more to load.</p>
-                                    }
-
+                                    {(!data?.mediaData || data?.mediaData?.length === 0) && (
+                                        <p className='text-center py-5'>No media found.</p>
+                                    )}
                                 </>
                         }
                     </div>

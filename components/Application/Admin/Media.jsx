@@ -77,10 +77,14 @@ const Media = ({ media, handleDelete, deleteType, selectedMedia, setSelectedMedi
             <div>
                 <Image
                     src={media?.secure_url}
-                    alt={media?.alt || 'Image'}
+                    alt={media?.alt || media?.title || 'Media image'}
                     height={300}
                     width={300}
                     className='object-cover w-full sm:h-[200px] h-[150px]'
+                    onError={(e) => {
+                        console.error('Image failed to load:', media?.secure_url);
+                        e.target.style.display = 'none';
+                    }}
                 />
             </div>
         </div>

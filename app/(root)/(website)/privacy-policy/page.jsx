@@ -78,8 +78,8 @@ const PrivacyPolicy = () => {
                 </p>
                 <div className='mt-4 p-4 bg-gray-50 rounded-lg'>
                     <p className='text-gray-700'><strong>Email:</strong> privacy@narumugai.com</p>
-                    <p className='text-gray-700'><strong>Phone:</strong> +91-8569874589</p>
-                    <p className='text-gray-700'><strong>Address:</strong> Narumugai Saree Emporium, 123 Fashion Street, Textile Market, Lucknow, Uttar Pradesh 226001</p>
+                    <p className='text-gray-700'><strong>Phone:</strong> +91-9884585989</p>
+                    <p className='text-gray-700'><strong>Address:</strong> Narumugai, No. 426 TI cycles, road, Ambattur, Chennai, Tamil Nadu 600053</p>
                 </div>
 
                 <p className='mt-6 text-gray-600'>

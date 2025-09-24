@@ -3,6 +3,11 @@ import Image from 'next/image'
 import React from 'react'
 
 const ModalMediaBlock = ({ media, selectedMedia, setSelectedMedia, isMultiple }) => {
+    // Validate media object and its properties
+    if (!media || !media._id || !media.secure_url) {
+        return null; // Don't render if media is invalid
+    }
+
     const handleCheck = () => {
         let newSelectedMedia = []
         const isSelected = selectedMedia.find(m => m._id === media._id) ? true : false
@@ -16,7 +21,9 @@ const ModalMediaBlock = ({ media, selectedMedia, setSelectedMedia, isMultiple })
 
                 newSelectedMedia = [...selectedMedia, {
                     _id: media._id,
-                    url: media.secure_url
+                    secure_url: media.secure_url,
+                    alt: media.alt || '',
+                    title: media.title || ''
                 }]
             }
 
@@ -24,7 +31,12 @@ const ModalMediaBlock = ({ media, selectedMedia, setSelectedMedia, isMultiple })
 
         } else {
             // select single media 
-            setSelectedMedia([{ _id: media._id, url: media.secure_url }])
+            setSelectedMedia([{ 
+                _id: media._id, 
+                secure_url: media.secure_url,
+                alt: media.alt || '',
+                title: media.title || ''
+            }])
         }
     }
     return (
@@ -39,10 +51,14 @@ const ModalMediaBlock = ({ media, selectedMedia, setSelectedMedia, isMultiple })
             <div className='size-full relative'>
                 <Image
                     src={media.secure_url}
-                    alt={media.alt || ''}
+                    alt={media.alt || media.title || 'Media image'}
                     width={300}
                     height={300}
                     className='object-cover md:h-[150px] h-[100px]'
+                    onError={(e) => {
+                        console.error('Image failed to load:', media.secure_url);
+                        e.target.style.display = 'none';
+                    }}
                 />
             </div>
         </label>

@@ -52,8 +52,8 @@ const AppSidebar = () => {
             <SidebarHeader className="border-b h-14 p-0">
                 <div className="flex justify-between items-center px-4">
                     <h1 className='text-4xl font-bold text-pink-500 mb-3'>Narumugai</h1>
-                    {/* Close button - keep mobile-only for original mobile behavior */}
-                    <Button onClick={toggleSidebar} type="button" size="icon" className="md:hidden">
+                    {/* Close button for both mobile and desktop */}
+                    <Button onClick={toggleSidebar} type="button" size="icon" variant="ghost">
                         <IoMdClose />
                     </Button>
                 </div>

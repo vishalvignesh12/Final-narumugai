@@ -7,9 +7,8 @@ import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import imgPlaceholder from '@/public/assets/images/img-placeholder.webp'
-import { HiMinus, HiPlus } from "react-icons/hi2";
 import { IoCloseCircleOutline } from "react-icons/io5";
-import { decreaseQuantity, increaseQuantity, removeFromCart } from '@/store/reducer/cartReducer'
+import { removeFromCart } from '@/store/reducer/cartReducer'
 
 const breadCrumb = {
     title: 'Cart',
@@ -27,9 +26,9 @@ const CartPage = () => {
     useEffect(() => {
         const cartProducts = cart.products
 
-        const totalAmount = cartProducts.reduce((sum, product) => sum + (product.sellingPrice * product.qty), 0)
+        const totalAmount = cartProducts.reduce((sum, product) => sum + product.sellingPrice, 0)
 
-        const discount = cartProducts.reduce((sum, product) => sum + ((product.mrp - product.sellingPrice) * product.qty), 0)
+        const discount = cartProducts.reduce((sum, product) => sum + (product.mrp - product.sellingPrice), 0)
 
         setSubTotal(totalAmount)
         setDiscount(discount)
@@ -60,8 +59,6 @@ const CartPage = () => {
                                     <tr>
                                         <th className='text-start p-3 font-semibold'>Product</th>
                                         <th className='text-center p-3 font-semibold'>Price</th>
-                                        <th className='text-center p-3 font-semibold'>Quantity</th>
-                                        <th className='text-center p-3 font-semibold'>Total</th>
                                         <th className='text-center p-3 font-semibold'>Action</th>
                                     </tr>
                                 </thead>
@@ -93,28 +90,6 @@ const CartPage = () => {
                                                 <span className='md:hidden font-medium text-sm'>Price</span>
                                                 <span className='font-semibold lg:text-base text-sm'>
                                                     {product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                                </span>
-                                            </td>
-                                            <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2'>
-                                                <span className='md:hidden font-medium text-sm'>Quantity</span>
-                                                <div className='flex justify-center'>
-                                                    <div className="flex justify-center items-center lg:h-10 md:h-9 h-8 border w-fit rounded-full bg-white">
-                                                        <button type="button" className="h-full lg:w-10 w-8 flex justify-center items-center cursor-pointer hover:bg-gray-100 rounded-l-full" onClick={() => dispatch(decreaseQuantity({ productId: product.productId, variantId: product.variantId }))}>
-                                                            <HiMinus className='lg:text-base text-sm' />
-                                                        </button>
-                                                        <input type="text" value={product.qty} className="lg:w-14 md:w-12 w-10 text-center border-none outline-offset-0 lg:text-base text-sm" readOnly />
-                                                        <button type="button" className="h-full lg:w-10 w-8 flex justify-center items-center cursor-pointer hover:bg-gray-100 rounded-r-full"
-                                                            onClick={() => dispatch(increaseQuantity({ productId: product.productId, variantId: product.variantId }))}
-                                                        >
-                                                            <HiPlus className='lg:text-base text-sm' />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </td>
-                                            <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center'>
-                                                <span className='md:hidden font-medium text-sm'>Total</span>
-                                                <span className='font-semibold lg:text-base text-sm text-primary'>
-                                                    {(product.sellingPrice * product.qty).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                                                 </span>
                                             </td>
 

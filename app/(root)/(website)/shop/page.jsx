@@ -15,7 +15,7 @@ import {
 import useWindowSize from '@/hooks/useWindowSize'
 import axios from 'axios'
 import { useSearchParams } from 'next/navigation'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import ProductBox from '@/components/Application/Website/ProductBox'
 import ButtonLoading from '@/components/Application/ButtonLoading'
 import Head from 'next/head'
@@ -45,23 +45,19 @@ const Shop = () => {
     const windowSize = useWindowSize()
 
 
-    const fetchProduct = async (pageParam) => {
-        const { data: getProduct } = await axios.get(`/api/shop?page=${pageParam}&limit=${limit}&sort=${sorting}&${searchParams}`)
+    const fetchProducts = async () => {
+        const { data: getProducts } = await axios.get(`/api/shop?page=0&limit=100&sort=${sorting}&${searchParams}`)
 
-        if (!getProduct.success) {
-            return
+        if (!getProducts.success) {
+            return { products: [] }
         }
 
-        return getProduct.data
+        return getProducts.data
     }
 
-    const { error, data, isFetching, fetchNextPage, hasNextPage } = useInfiniteQuery({
+    const { error, data, isFetching } = useQuery({
         queryKey: ['products', limit, sorting, searchParams],
-        queryFn: async ({ pageParam }) => await fetchProduct(pageParam),
-        initialPageParam: 0,
-        getNextPageParam: (lastPage) => {
-            return lastPage.nextPage
-        }
+        queryFn: fetchProducts
     })
 
 
@@ -73,7 +69,7 @@ const Shop = () => {
                 <meta name="keywords" content="sarees online, silk sarees, cotton sarees, designer sarees, wedding sarees, party wear sarees, traditional sarees, Indian sarees" />
                 <meta property="og:title" content="Shop Premium Sarees Online | Narumugai Saree Collection" />
                 <meta property="og:description" content="Discover our exquisite collection of sarees including silk sarees, cotton sarees, designer sarees, and wedding sarees. Premium quality sarees with best prices and fast delivery." />
-                <meta property="og:type" content="product.group" />
+                <meta property="og:type" content="website" />
                 <meta name="twitter:card" content="summary_large_image" />
                 <meta name="twitter:title" content="Shop Premium Sarees Online | Narumugai Saree Collection" />
                 <meta name="twitter:description" content="Discover our exquisite collection of sarees including silk sarees, cotton sarees, designer sarees, and wedding sarees." />
@@ -187,25 +183,19 @@ const Shop = () => {
                     {error && <div className='p-4 font-semibold text-center text-red-600'>{error.message}</div>}
 
                     <div className='grid xl:grid-cols-3 lg:grid-cols-2 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 xl:gap-8 lg:gap-6 md:gap-4 gap-4 mt-6'>
-                        {data && data.pages.map(page => (
-                            page.products.map(product => (
-                                <ProductBox key={product._id} product={product} />
-                            ))
+                        {data && data.products && data.products.map(product => (
+                            <ProductBox key={product._id} product={product} />
                         ))}
                     </div>
 
-                    {/* load more button  */}
-
+                    {/* Results count */}
                     <div className='flex justify-center mt-10'>
-                        {hasNextPage ?
-                            <ButtonLoading type="button" loading={isFetching} text="Load More" onClick={fetchNextPage} className='px-8 py-3' />
-                            :
-                            <>
-                                {!isFetching && data && data.pages[0]?.products?.length > 0 && 
-                                    <span className='text-gray-500 text-sm'>No more products to load.</span>
-                                }
-                            </>
-                        }
+                        {!isFetching && data && data.products && data.products.length > 0 && (
+                            <span className='text-gray-500 text-sm'>Showing {data.products.length} products</span>
+                        )}
+                        {!isFetching && data && data.products && data.products.length === 0 && (
+                            <span className='text-gray-500 text-sm'>No products found.</span>
+                        )}
                     </div>
 
                 </div>

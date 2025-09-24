@@ -113,6 +113,8 @@ export async function GET(request) {
                     mrp: 1,
                     sellingPrice: 1,
                     discountPercentage: 1,
+                    isAvailable: 1,
+                    soldAt: 1,
                     category: "$categoryData.name",
                     createdAt: 1,
                     updatedAt: 1,

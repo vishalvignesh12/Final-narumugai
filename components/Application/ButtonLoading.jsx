@@ -1,7 +1,7 @@
 import { Loader2 } from "lucide-react"
 import { Button } from "../ui/button"
 import { cn } from "@/lib/utils"
-const ButtonLoading = ({ type, text, loading, className, onClick, ...props }) => {
+const ButtonLoading = ({ type, text, loading, className, onClick, children, ...props }) => {
     return (
         <Button
             type={type}
@@ -12,7 +12,7 @@ const ButtonLoading = ({ type, text, loading, className, onClick, ...props }) =>
             {loading &&
                 <Loader2 className="animate-spin" />
             }
-            {text}
+            {children || text}
         </Button>
     )
 }

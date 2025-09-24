@@ -3,6 +3,7 @@ import "./globals.css";
 import { Assistant } from 'next/font/google'
 import { ToastContainer } from 'react-toastify';
 import { getMetadataBaseURL } from '@/lib/config';
+import AutoCookieGuardian from '@/components/Application/AutoCookieGuardian';
 const assistantFont = Assistant({
   weight: ['400', '500', '600', '700', '800'],
   subsets: ['latin'],
@@ -85,15 +86,15 @@ export default function RootLayout({ children }) {
               "logo": "https://narumugai.com/logo.png",
               "address": {
                 "@type": "PostalAddress",
-                "streetAddress": "Narumugai market",
-                "addressLocality": "Lucknow",
-                "addressRegion": "Uttar Pradesh",
-                "postalCode": "256320",
+                "streetAddress": "No. 426 TI cycles, road, Ambattur",
+                "addressLocality": "Chennai",
+                "addressRegion": "Tamil Nadu",
+                "postalCode": "600053",
                 "addressCountry": "IN"
               },
               "contactPoint": {
                 "@type": "ContactPoint",
-                "telephone": "+91-8569874589",
+                "telephone": "+91-9884585989",
                 "contactType": "customer service",
                 "availableLanguage": ["English", "Hindi"]
               },
@@ -120,6 +121,7 @@ export default function RootLayout({ children }) {
         className={`${assistantFont.className} antialiased`}
       >
         <GlobalProvider>
+          <AutoCookieGuardian />
           <ToastContainer />
           {children}
         </GlobalProvider>

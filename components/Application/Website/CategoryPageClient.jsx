@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-import { useInfiniteQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import ProductBox from './ProductBox'
 import ButtonLoading from '../ButtonLoading'
@@ -20,25 +20,21 @@ const CategoryPageClient = ({ categoryInfo, categoryType, filterParams }) => {
     const [isMobileFilter, setIsMobileFilter] = useState(false)
     const windowSize = useWindowSize()
 
-    const fetchProducts = async (pageParam) => {
+    const fetchProducts = async () => {
         const { data: getProducts } = await axios.get(
-            `/api/shop?page=${pageParam}&limit=${limit}&sort=${sorting}&${filterParams}`
+            `/api/shop?page=0&limit=100&sort=${sorting}&${filterParams}`
         )
 
         if (!getProducts.success) {
-            return { products: [], nextPage: null }
+            return { products: [] }
         }
 
         return getProducts.data
     }
 
-    const { error, data, isFetching, fetchNextPage, hasNextPage } = useInfiniteQuery({
+    const { error, data, isFetching } = useQuery({
         queryKey: ['category-products', categoryType, limit, sorting, filterParams],
-        queryFn: async ({ pageParam }) => await fetchProducts(pageParam),
-        initialPageParam: 0,
-        getNextPageParam: (lastPage) => {
-            return lastPage.nextPage
-        }
+        queryFn: fetchProducts
     })
 
     return (
@@ -130,29 +126,18 @@ const CategoryPageClient = ({ categoryInfo, categoryType, filterParams }) => {
                     {error && <div className='p-4 font-semibold text-center text-red-600'>{error.message}</div>}
 
                     <div className='grid xl:grid-cols-3 lg:grid-cols-2 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 xl:gap-8 lg:gap-6 md:gap-4 gap-4 mt-6'>
-                        {data && data.pages.map(page => (
-                            page.products.map(product => (
-                                <ProductBox key={product._id} product={product} />
-                            ))
+                        {data && data.products && data.products.map(product => (
+                            <ProductBox key={product._id} product={product} />
                         ))}
                     </div>
 
-                    {/* Load more button */}
+                    {/* Results count */}
                     <div className='flex justify-center mt-10'>
-                        {hasNextPage ? (
-                            <ButtonLoading 
-                                type="button" 
-                                loading={isFetching} 
-                                text="Load More Products" 
-                                onClick={fetchNextPage} 
-                                className='px-8 py-3' 
-                            />
-                        ) : (
-                            <>
-                                {!isFetching && data && data.pages[0]?.products?.length > 0 && (
-                                    <span className='text-gray-500 text-sm'>You've seen all our amazing {categoryType} sarees!</span>
-                                )}
-                            </>
+                        {!isFetching && data && data.products && data.products.length > 0 && (
+                            <span className='text-gray-500 text-sm'>Showing {data.products.length} amazing {categoryType} sarees!</span>
+                        )}
+                        {!isFetching && data && data.products && data.products.length === 0 && (
+                            <span className='text-gray-500 text-sm'>No {categoryType} sarees found. Try adjusting your filters.</span>
                         )}
                     </div>
                 </div>

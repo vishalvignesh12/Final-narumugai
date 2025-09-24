@@ -40,6 +40,17 @@ const EditBannerPage = () => {
     const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false)
     const [selectedMediaArray, setSelectedMediaArray] = useState([])
 
+    // Update mediaId when selectedMediaArray changes
+    useEffect(() => {
+        if (selectedMediaArray.length > 0) {
+            const media = selectedMediaArray[0]
+            setFormData(prev => ({
+                ...prev,
+                mediaId: media._id
+            }))
+        }
+    }, [selectedMediaArray])
+
     // Fetch banner data
     useEffect(() => {
         const fetchBanner = async () => {
@@ -93,17 +104,6 @@ const EditBannerPage = () => {
             ...prev,
             [name]: value
         }))
-    }
-
-    const handleMediaSelect = () => {
-        if (selectedMediaArray.length > 0) {
-            const media = selectedMediaArray[0] // Take first selected media for single selection
-            setFormData(prev => ({
-                ...prev,
-                mediaId: media._id
-            }))
-            setIsMediaLibraryOpen(false)
-        }
     }
 
     const handleSubmit = async (e) => {
