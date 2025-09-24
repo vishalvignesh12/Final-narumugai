@@ -5,9 +5,15 @@
  * Usage: node scripts/set-network-access.js [IP_ADDRESS]
  */
 
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
+
+const require = createRequire(import.meta.url);
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 function getNetworkIP() {
     const interfaces = os.networkInterfaces();
@@ -81,8 +87,8 @@ function main() {
     updateEnvFile(targetIP);
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
     main();
 }
 
-module.exports = { updateEnvFile, getNetworkIP };
+export { updateEnvFile, getNetworkIP };

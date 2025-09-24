@@ -1,4 +1,4 @@
-const { useState, useLayoutEffect } = require("react")
+import { useState, useLayoutEffect } from "react"
 
 const useWindowSize = () => {
     const [size, setSize] = useState({ width: null, height: null })

@@ -16,7 +16,21 @@ const nextConfig = {
     },
     experimental: {
         optimizePackageImports: ['lucide-react'],
-    }
+    },
+    // Ensure static files are served correctly
+    async headers() {
+        return [
+            {
+                source: '/manifest.json',
+                headers: [
+                    {
+                        key: 'Content-Type',
+                        value: 'application/manifest+json',
+                    },
+                ],
+            },
+        ];
+    },
 };
 
 export default nextConfig;
