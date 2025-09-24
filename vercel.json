@@ -1,18 +1,7 @@
 {
   "functions": {
-    "app/**/*.js": {
+    "app/api/**/*.js": {
       "runtime": "nodejs20.x"
     }
-  },
-  "headers": [
-    {
-      "source": "/manifest.json",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/manifest+json"
-        }
-      ]
-    }
-  ]
+  }
 }
