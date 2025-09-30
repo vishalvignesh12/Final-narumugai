@@ -83,6 +83,19 @@ const orderSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    cancellationReason: {
+        type: String,
+        required: false
+    },
+    cancelledAt: {
+        type: Date,
+        required: false
+    },
+    cancelledBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    },
     deletedAt: {
         type: Date,
         default: null,

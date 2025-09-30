@@ -197,7 +197,7 @@ const Home = () => {
                     </div>
                     
                     {loading ? (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {[...Array(8)].map((_, index) => (
                                 <div key={index} className="bg-white rounded-2xl overflow-hidden shadow-sm animate-pulse">
                                     <div className="h-80 bg-gray-200"></div>
@@ -209,7 +209,7 @@ const Home = () => {
                             ))}
                         </div>
                     ) : (
-                        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {featuredProducts.map((product, index) => (
                                 <div
                                     key={product._id}

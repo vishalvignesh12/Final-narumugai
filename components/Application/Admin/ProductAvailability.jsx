@@ -148,7 +148,7 @@ const ProductAvailability = () => {
 
             {/* Product Grid */}
             {isPending ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {[...Array(8)].map((_, index) => (
                         <Card key={index} className="animate-pulse">
                             <CardContent className="p-4">
@@ -175,77 +175,114 @@ const ProductAvailability = () => {
                     </p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {products.map((product) => (
-                        <Card key={product._id} className={`transition-all duration-200 hover:shadow-lg ${!product.isAvailable ? 'opacity-75' : ''}`}>
-                            <CardContent className="p-4">
+                        <Card key={product._id} className={`group transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${!product.isAvailable ? 'opacity-80 bg-gray-50 dark:bg-gray-800' : 'bg-white hover:bg-gray-50 dark:bg-gray-900 dark:hover:bg-gray-800'}`}>
+                            <CardContent className="p-5">
                                 {/* Product Image */}
-                                <div className="relative w-full h-48 mb-4 rounded-lg overflow-hidden bg-gray-100">
+                                <div className="relative w-full h-52 mb-4 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
                                     <CloudinaryImage
                                         src={product.media?.[0]?.secure_url || imgPlaceholder.src}
                                         alt={product.media?.[0]?.alt || product.name}
                                         width={300}
                                         height={200}
-                                        className="object-cover w-full h-full"
+                                        className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
                                         fallbackSrc={imgPlaceholder.src}
                                     />
-                                    {/* Availability Badge */}
-                                    <div className="absolute top-2 right-2">
-                                        <Badge variant={product.isAvailable ? "default" : "destructive"}>
+                                    {/* Enhanced Availability Badge */}
+                                    <div className="absolute top-3 right-3">
+                                        <Badge 
+                                            variant={product.isAvailable ? "default" : "destructive"}
+                                            className={`text-xs font-semibold px-3 py-1 shadow-md ${
+                                                product.isAvailable 
+                                                    ? 'bg-green-500 hover:bg-green-600 text-white' 
+                                                    : 'bg-red-500 hover:bg-red-600 text-white'
+                                            }`}
+                                        >
                                             {product.isAvailable ? "Available" : "Sold Out"}
                                         </Badge>
                                     </div>
+                                    
+                                    {/* Overlay on hover */}
+                                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                 </div>
 
                                 {/* Product Info */}
-                                <div className="space-y-2 mb-4">
-                                    <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-2">
-                                        {product.name}
-                                    </h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                                        {product.category}
-                                    </p>
-                                    <div className="flex items-center space-x-2">
-                                        <span className="text-lg font-bold text-green-600">
-                                            ₹{product.sellingPrice}
-                                        </span>
-                                        {product.mrp > product.sellingPrice && (
-                                            <span className="text-sm text-gray-500 line-through">
-                                                ₹{product.mrp}
-                                            </span>
-                                        )}
-                                        {product.discountPercentage > 0 && (
-                                            <Badge variant="secondary" className="text-xs">
-                                                {product.discountPercentage}% OFF
-                                            </Badge>
+                                <div className="space-y-3 mb-5">
+                                    <div>
+                                        <h3 className="font-bold text-lg text-gray-900 dark:text-white line-clamp-2 mb-1">
+                                            {product.name}
+                                        </h3>
+                                        <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                                            {product.category}
+                                        </p>
+                                    </div>
+                                    
+                                    {/* Enhanced Price Display */}
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center space-x-2">
+                                                <span className="text-xl font-bold text-green-600 dark:text-green-400">
+                                                    ₹{product.sellingPrice?.toLocaleString('en-IN')}
+                                                </span>
+                                                {product.mrp > product.sellingPrice && (
+                                                    <span className="text-sm text-gray-500 line-through">
+                                                        ₹{product.mrp?.toLocaleString('en-IN')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            {product.discountPercentage > 0 && (
+                                                <Badge variant="secondary" className="text-xs font-semibold bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
+                                                    {product.discountPercentage}% OFF
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        
+                                        {/* Additional Product Info */}
+                                        <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                            <div className="flex justify-between">
+                                                <span>SKU:</span>
+                                                <span className="font-mono">{product.sku || 'N/A'}</span>
+                                            </div>
+                                            <div className="flex justify-between">
+                                                <span>Stock:</span>
+                                                <span className={`font-semibold ${
+                                                    product.isAvailable 
+                                                        ? 'text-green-600 dark:text-green-400' 
+                                                        : 'text-red-600 dark:text-red-400'
+                                                }`}>
+                                                    {product.isAvailable ? 'In Stock' : 'Out of Stock'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        {!product.isAvailable && product.soldAt && (
+                                            <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 p-2 rounded">
+                                                <span className="font-medium">Sold on:</span> {new Date(product.soldAt).toLocaleDateString()}
+                                            </div>
                                         )}
                                     </div>
-                                    {!product.isAvailable && product.soldAt && (
-                                        <p className="text-xs text-gray-500">
-                                            Sold on: {new Date(product.soldAt).toLocaleDateString()}
-                                        </p>
-                                    )}
                                 </div>
 
-                                {/* Action Button */}
+                                {/* Enhanced Action Button */}
                                 <ButtonLoading
                                     loading={updatingProduct === product._id}
                                     onClick={() => handleAvailabilityToggle(product._id, product.isAvailable, product.name)}
-                                    className={`w-full ${
+                                    className={`w-full h-11 font-semibold text-sm rounded-lg transition-all duration-200 ${
                                         product.isAvailable 
-                                            ? 'bg-red-600 hover:bg-red-700 text-white' 
-                                            : 'bg-green-600 hover:bg-green-700 text-white'
+                                            ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-200 dark:hover:shadow-red-900' 
+                                            : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-green-200 dark:hover:shadow-green-900'
                                     }`}
                                     disabled={updatingProduct === product._id}
                                 >
                                     {product.isAvailable ? (
                                         <>
-                                            <TbPackageOff className="mr-2" />
+                                            <TbPackageOff className="mr-2 w-4 h-4" />
                                             Mark as Sold Out
                                         </>
                                     ) : (
                                         <>
-                                            <TbPackage className="mr-2" />
+                                            <TbPackage className="mr-2 w-4 h-4" />
                                             Mark as Available
                                         </>
                                     )}

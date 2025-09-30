@@ -101,13 +101,13 @@ export const otpEmail = (otp) => {
 				<td>
 					<table align="center" border="0" cellpadding="0" cellspacing="0" class="row row-1"
 						role="presentation"
-						style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #f5f5f5;padding:50px 0;" width="100%">
+						style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #fdf2f8;padding:50px 0;" width="100%">
 						<tbody>
 							<tr>
 								<td>
 									<table align="center" border="0" cellpadding="0" cellspacing="0"
 										class="row-content stack" role="presentation"
-										style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #ffffff; color: #000000; width: 500px; margin: 0 auto;"
+										style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #ffffff; color: #000000; width: 500px; margin: 0 auto; border-radius: 12px; box-shadow: 0 10px 30px rgba(236, 72, 153, 0.1);"
 										width="500">
 										<tbody>
 											<tr>
@@ -139,7 +139,7 @@ export const otpEmail = (otp) => {
 														<tr>
 															<td class="pad" style="text-align:center;width:100%;">
 																<h1
-																	style="margin: 0; color: #393d47; direction: ltr; font-family: Tahoma, Verdana, Segoe, sans-serif; font-size: 25px; font-weight: normal; letter-spacing: normal; line-height: 120%; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 30px;">
+																	style="margin: 0; color: #ec4899; direction: ltr; font-family: Tahoma, Verdana, Segoe, sans-serif; font-size: 28px; font-weight: bold; letter-spacing: normal; line-height: 120%; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 34px;">
 																	<strong>Email Verification</strong>
 																</h1>
 															</td>
@@ -152,7 +152,7 @@ export const otpEmail = (otp) => {
 														<tr>
 															<td class="pad">
 																<div
-																	style="color:#393d47;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:14px;line-height:150%;text-align:center;mso-line-height-alt:21px;">
+																	style="color:#374151;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:15px;line-height:150%;text-align:center;mso-line-height-alt:22px;">
 																	<p style="margin: 0; word-break: break-word;">We
 																		received a request to verify your identity. Use
 																		the following One-Time Password (OTP) to
@@ -168,7 +168,7 @@ export const otpEmail = (otp) => {
 														<tr>
 															<td class="pad">
 																<h1
-																	style="margin: 0; color: #7747FF; direction: ltr; font-family: Arial, Helvetica Neue, Helvetica, sans-serif; font-size: 38px; font-weight: 700; letter-spacing: normal; line-height: 120%; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 45.6px;">
+																	style="margin: 0; color: #ec4899; direction: ltr; font-family: Arial, Helvetica Neue, Helvetica, sans-serif; font-size: 42px; font-weight: 700; letter-spacing: 4px; line-height: 120%; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 50px; background: linear-gradient(135deg, #ec4899, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; padding: 8px 0;">
 																	<span class="tinyMce-placeholder"
 																		style="word-break: break-word;">${otp}</span>
 																</h1>
@@ -183,15 +183,15 @@ export const otpEmail = (otp) => {
 															<td class="pad"
 																style="padding-bottom:5px;padding-left:10px;padding-right:10px;padding-top:10px;">
 																<div
-																	style="color:#393d47;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:13px;line-height:150%;text-align:center;mso-line-height-alt:19.5px;">
+																	style="color:#6b7280;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:13px;line-height:150%;text-align:center;mso-line-height-alt:19.5px;">
 																	<p style="margin: 0;"><strong>Note:</strong> This
 																		OTP is valid for 10 minutes. Do not share it
 																		with anyone.</p>
 																	<p style="margin: 0;">If you did not request this,
 																		please ignore this message.</p>
 																	<p style="margin: 0;">Thank you,<br />
-                                                                     <a href="https://www.youtube.com/@developergoswami" target="_blank">Developer
-																		Goswami</a>
+                                                                     <strong style="color: #ec4899;">Narumugai Team</strong><br/>
+                                                                     <a href="https://narumugai.com" target="_blank" style="color: #ec4899; text-decoration: none;">www.narumugai.com</a>
                                                                     </p>
 																</div>
 															</td>

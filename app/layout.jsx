@@ -4,6 +4,7 @@ import { Assistant } from 'next/font/google'
 import { ToastContainer } from 'react-toastify';
 import { getMetadataBaseURL } from '@/lib/config';
 import AutoCookieGuardian from '@/components/Application/AutoCookieGuardian';
+import '@/lib/errorSuppression'; // Suppress external script errors
 const assistantFont = Assistant({
   weight: ['400', '500', '600', '700', '800'],
   subsets: ['latin'],

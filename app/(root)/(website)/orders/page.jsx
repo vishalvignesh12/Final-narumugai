@@ -5,13 +5,21 @@ import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrum
 import useFetch from '@/hooks/useFetch'
 import { WEBSITE_ORDER_DETAILS } from '@/routes/WebsiteRoute'
 import Link from 'next/link'
-import React from 'react'
+import React, { useState } from 'react'
+import CancelOrderDialog from '@/components/Application/Website/CancelOrderDialog'
 const breadCrumbData = {
     title: 'Orders',
     links: [{ label: 'Orders' }]
 }
 const Orders = () => {
-    const { data: orderData, loading } = useFetch("/api/user-order")
+    const { data: orderData, loading, refetch } = useFetch("/api/user-order")
+    const [refreshKey, setRefreshKey] = useState(0)
+
+    const handleOrderCancelled = (orderId) => {
+        // Refresh the orders list
+        setRefreshKey(prev => prev + 1)
+        refetch()
+    }
 
     return (
         <div>
@@ -35,6 +43,8 @@ const Orders = () => {
                                             <th className='text-start p-2 text-sm border-b text-nowrap text-gray-500'>Order id</th>
                                             <th className='text-start p-2 text-sm border-b text-nowrap text-gray-500'>Total Item</th>
                                             <th className='text-start p-2 text-sm border-b text-nowrap text-gray-500'>Amount</th>
+                                            <th className='text-start p-2 text-sm border-b text-nowrap text-gray-500'>Status</th>
+                                            <th className='text-start p-2 text-sm border-b text-nowrap text-gray-500'>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -44,10 +54,28 @@ const Orders = () => {
                                                 <td className='text-start text-sm text-gray-500 p-2 font-bold'>{i + 1}</td>
                                                 <td className='text-start text-sm text-gray-500 p-2'><Link className='underline hover:text-blue-500 underline-offset-2' href={WEBSITE_ORDER_DETAILS(order.order_id)}>{order.order_id}</Link></td>
                                                 <td className='text-start text-sm text-gray-500 p-2 '>
-                                                    {order.products.length}
+                                                    {order.products.reduce((total, product) => total + (product.qty || 1), 0)}
                                                 </td>
                                                 <td className='text-start text-sm text-gray-500 p-2 '>
                                                     {order.totalAmount.toLocaleString('en-In', { style: 'currency', currency: 'INR' })}
+                                                </td>
+                                                <td className='text-start text-sm p-2'>
+                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                                        order.status === 'pending' ? 'bg-blue-100 text-blue-800' :
+                                                        order.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
+                                                        order.status === 'shipped' ? 'bg-cyan-100 text-cyan-800' :
+                                                        order.status === 'delivered' ? 'bg-green-100 text-green-800' :
+                                                        order.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                                                        'bg-gray-100 text-gray-800'
+                                                    }`}>
+                                                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                                                    </span>
+                                                </td>
+                                                <td className='text-start text-sm text-gray-500 p-2'>
+                                                    <CancelOrderDialog 
+                                                        order={order} 
+                                                        onOrderCancelled={handleOrderCancelled}
+                                                    />
                                                 </td>
                                             </tr>
                                         ))}

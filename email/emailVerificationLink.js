@@ -154,7 +154,7 @@ export const emailVerificationLink = (link) => {
                                                         <tr>
                                                             <td class="pad">
                                                                 <div
-                                                                    style="color:#393d47;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:14px;line-height:150%;text-align:center;mso-line-height-alt:21px;">
+                                                                    style="color:#374151;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:15px;line-height:150%;text-align:center;mso-line-height-alt:22px;">
                                                                     <p style="margin: 0; word-break: break-word;">We
                                                                         received a request to verify your identity. Use
                                                                         the following link to

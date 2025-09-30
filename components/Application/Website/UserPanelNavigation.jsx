@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { showToast } from '@/lib/showToast'
 import { USER_DASHBOARD, USER_ORDERS, USER_PROFILE, WEBSITE_LOGIN } from '@/routes/WebsiteRoute'
 import { logout } from '@/store/reducer/authReducer'
+import { clearCart } from '@/store/reducer/cartReducer'
 import axios from 'axios'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -19,10 +20,9 @@ const UserPanelNavigation = () => {
             if (!logoutResponse.success) {
                 throw new Error(logoutResponse.message)
             }
-
             dispatch(logout())
+            dispatch(clearCart()) // Clear the cart on logout
             showToast('success', logoutResponse.message)
-            router.push(WEBSITE_LOGIN)
         } catch (error) {
             showToast('error', error.message)
         }

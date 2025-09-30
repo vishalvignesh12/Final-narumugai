@@ -6,6 +6,7 @@ import Loading from './Loading'
 import { PersistGate } from 'redux-persist/integration/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import CartProvider from './Website/CartProvider'
 
 const queryClient = new QueryClient()
 
@@ -14,7 +15,9 @@ const GlobalProvider = ({ children }) => {
         <QueryClientProvider client={queryClient}>
             <Provider store={store}>
                 <PersistGate persistor={persistor} loading={<Loading />}>
-                    {children}
+                    <CartProvider>
+                        {children}
+                    </CartProvider>
                 </PersistGate>
             </Provider>
             <Suspense fallback={null}>

@@ -48,7 +48,7 @@ const LatestOrder = () => {
                     <TableRow key={order._id}>
                         <TableCell >{order._id}</TableCell>
                         <TableCell >{order.payment_id}</TableCell>
-                        <TableCell >{order.products.length}</TableCell>
+                        <TableCell >{order.products.reduce((total, product) => total + (product.qty || 1), 0)}</TableCell>
                         <TableCell >{statusBadge(order.status)}</TableCell>
                         <TableCell>{order.totalAmount}</TableCell>
 

@@ -16,7 +16,7 @@ import useWindowSize from '@/hooks/useWindowSize'
 
 const CategoryPageClient = ({ categoryInfo, categoryType, filterParams }) => {
     const [limit, setLimit] = useState(12)
-    const [sorting, setSorting] = useState('default_sorting')
+    const [sorting, setSorting] = useState('category_sorting')
     const [isMobileFilter, setIsMobileFilter] = useState(false)
     const windowSize = useWindowSize()
 
@@ -125,9 +125,9 @@ const CategoryPageClient = ({ categoryInfo, categoryType, filterParams }) => {
                     {isFetching && <div className='p-4 font-semibold text-center text-gray-600'>Loading products...</div>}
                     {error && <div className='p-4 font-semibold text-center text-red-600'>{error.message}</div>}
 
-                    <div className='grid xl:grid-cols-3 lg:grid-cols-2 md:grid-cols-3 sm:grid-cols-2 grid-cols-1 xl:gap-8 lg:gap-6 md:gap-4 gap-4 mt-6'>
+                    <div className='grid xl:grid-cols-3 lg:grid-cols-2 md:grid-cols-3 sm:grid-cols-2 grid-cols-2 xl:gap-8 lg:gap-6 md:gap-4 gap-4 mt-6'>
                         {data && data.products && data.products.map(product => (
-                            <ProductBox key={product._id} product={product} />
+                            <ProductBox key={product._id} product={product} showQuickActions={true} />
                         ))}
                     </div>
 

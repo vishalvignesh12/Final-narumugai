@@ -25,9 +25,10 @@ export async function GET(request) {
 
 
         // sorting 
-        const sortOption = searchParams.get('sort') || 'default_sorting'
+        const sortOption = searchParams.get('sort') || 'category_sorting'
         let sortquery = {}
         if (sortOption === 'default_sorting') sortquery = { createdAt: -1 }
+        if (sortOption === 'category_sorting') sortquery = { 'categoryData.name': 1, createdAt: -1 }
         if (sortOption === 'asc') sortquery = { name: 1 }
         if (sortOption === 'desc') sortquery = { name: -1 }
         if (sortOption === 'price_low_high') sortquery = { sellingPrice: 1 }
@@ -54,6 +55,20 @@ export async function GET(request) {
         // aggregation pipeline  
         const products = await ProductModel.aggregate([
             { $match: matchStage },
+            {
+                $lookup: {
+                    from: 'categories',
+                    localField: 'category',
+                    foreignField: '_id',
+                    as: 'categoryData'
+                }
+            },
+            {
+                $unwind: {
+                    path: "$categoryData", 
+                    preserveNullAndEmptyArrays: true
+                }
+            },
             { $sort: sortquery },
             { $skip: skip },
             { $limit: limit + 1 },
@@ -125,6 +140,12 @@ export async function GET(request) {
                     discountPercentage: 1,
                     isAvailable: 1,
                     soldAt: 1,
+                    quantity: 1,
+                    category: {
+                        _id: "$categoryData._id",
+                        name: "$categoryData.name",
+                        slug: "$categoryData.slug"
+                    },
                     media: {
                         _id: 1,
                         secure_url: 1,

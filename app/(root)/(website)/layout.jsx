@@ -1,5 +1,7 @@
 import Footer from '@/components/Application/Website/Footer'
-import Header from '@/components/Application/Website/Header'
+import NewNavbar from '@/components/Application/Website/NewNavbar'
+import LoginModal from '@/components/Application/Website/LoginModal'
+import AuthGuard from '@/components/Application/Website/AuthGuard'
 import React from 'react'
 import { Kumbh_Sans } from 'next/font/google'
 
@@ -12,11 +14,14 @@ const kumbh = Kumbh_Sans({
 const layout = ({ children }) => {
     return (
         <div className={kumbh.className}>
-            <Header />
-            <main>
-                {children}
-            </main>
-            <Footer />
+            <AuthGuard requireAuth={false}>
+                <NewNavbar />
+                <main>
+                    {children}
+                </main>
+                <Footer />
+            </AuthGuard>
+            <LoginModal />
         </div>
     )
 }

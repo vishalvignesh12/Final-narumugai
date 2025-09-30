@@ -4,6 +4,8 @@ import { catchError, response } from "@/lib/helperFunction";
 import { sendMail } from "@/lib/sendMail";
 import { zSchema } from "@/lib/zodSchema";
 import OrderModel from "@/models/Order.model";
+import ProductModel from "@/models/Product.model";
+import ProductVariantModel from "@/models/ProductVariant.model";
 import { validatePaymentVerification } from "razorpay/dist/utils/razorpay-utils";
 import { z } from "zod";
 
@@ -32,7 +34,11 @@ export async function POST(request) {
             discount: z.number().nonnegative(),
             couponDiscountAmount: z.number().nonnegative(),
             totalAmount: z.number().nonnegative(),
-            products: z.array(productSchema)
+            products: z.array(productSchema),
+            stockLockItems: z.array(z.object({
+                variantId: z.string(), // Accept any string - validation will happen in the logic
+                quantity: z.number().min(1)
+            })).optional()
         })
 
 
@@ -54,41 +60,167 @@ export async function POST(request) {
             paymentVerification = true
         }
 
-        const newOrder = await OrderModel.create({
-            user: validatedData.userId,
-            name: validatedData.name,
-            email: validatedData.email,
-            phone: validatedData.phone,
-            country: validatedData.country,
-            state: validatedData.state,
-            city: validatedData.city,
-            pincode: validatedData.pincode,
-            landmark: validatedData.landmark,
-            ordernote: validatedData.ordernote,
-            products: validatedData.products,
-            discount: validatedData.discount,
-            couponDiscountAmount: validatedData.couponDiscountAmount,
-            totalAmount: validatedData.totalAmount,
-            subtotal: validatedData.subtotal,
-            payment_id: validatedData.razorpay_payment_id,
-            order_id: validatedData.razorpay_order_id,
-            status: paymentVerification ? 'pending' : 'unverified'
-        })
-
+        // Start database session for transaction
+        const session = await OrderModel.startSession()
+        
         try {
-            const mailData = {
-                order_id: validatedData.razorpay_order_id,
-                orderDetailsUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/order-details/${validatedData.razorpay_order_id}`
+            session.startTransaction()
+
+            // If payment is verified and we have stock lock items, deduct the actual stock
+            // Only perform deduction if it hasn't been handled by atomic purchase elsewhere
+            if (paymentVerification && validatedData.stockLockItems && validatedData.stockLockItems.length > 0) {
+                for (const lockItem of validatedData.stockLockItems) {
+                    // Handle fallback variants (products without real variants)
+                    if (!lockItem.variantId || lockItem.variantId === 'null' || lockItem.variantId.includes('fallback-')) {
+                        // Extract product ID from fallback variant ID
+                        const productId = lockItem.variantId?.startsWith('fallback-') 
+                            ? lockItem.variantId.replace('fallback-', '') 
+                            : lockItem.variantId
+                        
+                        // For products without variants, deduct at product level
+                        // First check if the product exists and has sufficient quantity
+                        const product = await ProductModel.findById(productId).session(session);
+                        
+                        if (!product) {
+                            throw new Error('Product not found for stock deduction');
+                        }
+                        
+                        // Check if we have sufficient stock (quantity should be >= requested amount)
+                        if (product.quantity < lockItem.quantity) {
+                            throw new Error('Insufficient stock for this product');
+                        }
+                        
+                        const result = await ProductModel.findOneAndUpdate(
+                            {
+                                _id: productId,
+                                quantity: { $gte: lockItem.quantity }
+                            },
+                            {
+                                $inc: {
+                                    quantity: -lockItem.quantity
+                                }
+                            },
+                            {
+                                session,
+                                new: true
+                            }
+                        )
+
+                        if (!result) {
+                            throw new Error('Stock deduction failed - product may have been sold to another customer')
+                        }
+
+                        // Mark product as sold out if quantity becomes 0
+                        if (result.quantity === 0) {
+                            await ProductModel.findByIdAndUpdate(
+                                result._id,
+                                {
+                                    isAvailable: false,
+                                    soldAt: new Date()
+                                },
+                                { session }
+                            )
+                        }
+                        
+                        continue
+                    }
+                    
+                    // Handle real variants
+                    // Validate that it's a proper ID format for real variants (24 hex characters)
+                    if (lockItem.variantId.length !== 24 || !/^[0-9a-fA-F]{24}$/.test(lockItem.variantId)) {
+                        throw new Error(`Invalid variant ID format: ${lockItem.variantId}`);
+                    }
+                    
+                    // First check if the variant exists and has sufficient quantity
+                    const variant = await ProductVariantModel.findById(lockItem.variantId).session(session);
+                    
+                    if (!variant) {
+                        throw new Error('Product variant not found for stock deduction');
+                    }
+                    
+                    // Check if we have sufficient stock (quantity should be >= requested amount)
+                    if (variant.quantity < lockItem.quantity) {
+                        throw new Error('Insufficient stock for this variant');
+                    }
+                    
+                    // Deduct from actual quantity
+                    const result = await ProductVariantModel.findOneAndUpdate(
+                        {
+                            _id: lockItem.variantId,
+                            quantity: { $gte: lockItem.quantity }
+                        },
+                        {
+                            $inc: {
+                                quantity: -lockItem.quantity
+                            }
+                        },
+                        {
+                            session,
+                            new: true
+                        }
+                    ).populate('product')
+
+                    if (!result) {
+                        throw new Error('Stock deduction failed - product may have been sold to another customer')
+                    }
+
+                    // Mark product as sold out if quantity becomes 0
+                    if (result.quantity === 0) {
+                        await ProductModel.findByIdAndUpdate(
+                            result.product._id,
+                            {
+                                isAvailable: false,
+                                soldAt: new Date()
+                            },
+                            { session }
+                        )
+                    }
+                }
             }
 
-            await sendMail('Order placed successfully.', validatedData.email, orderNotification(mailData))
+            const newOrder = await OrderModel.create([{
+                user: validatedData.userId,
+                name: validatedData.name,
+                email: validatedData.email,
+                phone: validatedData.phone,
+                country: validatedData.country,
+                state: validatedData.state,
+                city: validatedData.city,
+                pincode: validatedData.pincode,
+                landmark: validatedData.landmark,
+                ordernote: validatedData.ordernote,
+                products: validatedData.products,
+                discount: validatedData.discount,
+                couponDiscountAmount: validatedData.couponDiscountAmount,
+                totalAmount: validatedData.totalAmount,
+                subtotal: validatedData.subtotal,
+                payment_id: validatedData.razorpay_payment_id,
+                order_id: validatedData.razorpay_order_id,
+                status: paymentVerification ? 'pending' : 'unverified'
+            }], { session })
+
+            await session.commitTransaction()
+
+            try {
+                const mailData = {
+                    order_id: validatedData.razorpay_order_id,
+                    orderDetailsUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/order-details/${validatedData.razorpay_order_id}`
+                }
+
+                await sendMail('Order placed successfully.', validatedData.email, orderNotification(mailData))
+
+            } catch (error) {
+                console.log(error)
+            }
+
+            return response(true, 200, 'Order placed successfully.')
 
         } catch (error) {
-            console.log(error)
+            await session.abortTransaction()
+            throw error
+        } finally {
+            session.endSession()
         }
-
-
-        return response(true, 200, 'Order placed successfully.')
 
     } catch (error) {
         return catchError(error)

@@ -193,7 +193,7 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
 
 
                     <div className="mt-5">
-                        {!product.isAvailable ? (
+                        {(!product.isAvailable || (product.quantity !== undefined && product.quantity <= 0)) ? (
                             <Button 
                                 disabled 
                                 className="w-full rounded-full py-6 text-md bg-gray-400 hover:bg-gray-400 cursor-not-allowed" 

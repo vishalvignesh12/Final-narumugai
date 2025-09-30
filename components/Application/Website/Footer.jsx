@@ -16,7 +16,7 @@ const Footer = () => {
             <div className='grid lg:grid-cols-5 md:grid-cols-2 grid-cols-1 gap-10 py-10 lg:px-32 px-4'>
 
                 <div className='lg:col-span-1 md:col-span-2 col-span-1'>
-                    <h1 className='text-4xl font-bold text-pink-500 mb-3'>Narumugai</h1>
+                    <h1 className='text-4xl font-bold text-pink-500 mb-3'>Narumugai botique</h1>
                     <p className='text-xs text-gray-400 font-medium mb-2'>Premium Saree Collection</p>
                     <p className='text-gray-500 text-sm'>
                         Narumugai is your premier destination for exquisite sarees. From traditional silk sarees to modern designer collections, we bring you the finest Indian ethnic wear with authentic craftsmanship and timeless elegance.
@@ -98,9 +98,7 @@ const Footer = () => {
 
                     <div className='flex gap-5 mt-6'>
 
-                        <Link href="https://youtube.com/@narumugaisarees" target="_blank" rel="noopener noreferrer">
-                            <AiOutlineYoutube className='text-primary hover:text-pink-700 transition-colors' size={25} />
-                        </Link>
+
                         <Link href="https://instagram.com/narumugaisarees" target="_blank" rel="noopener noreferrer">
                             <FaInstagram className='text-primary hover:text-pink-700 transition-colors' size={25} />
                         </Link>
@@ -110,9 +108,7 @@ const Footer = () => {
                         <Link href="https://facebook.com/narumugaisarees" target="_blank" rel="noopener noreferrer">
                             <TiSocialFacebookCircular className='text-primary hover:text-pink-700 transition-colors' size={25} />
                         </Link>
-                        <Link href="https://twitter.com/narumugaisarees" target="_blank" rel="noopener noreferrer">
-                            <FiTwitter className='text-primary hover:text-pink-700 transition-colors' size={25} />
-                        </Link>
+                        
 
                     </div>
 

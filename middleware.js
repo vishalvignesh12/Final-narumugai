@@ -44,6 +44,16 @@ export async function middleware(request) {
 
         // verify token 
         const access_token = request.cookies.get('access_token').value
+        
+        // Check if SECRET_KEY is defined
+        if (!process.env.SECRET_KEY) {
+            console.error('SECRET_KEY is not defined in environment variables')
+            const response = NextResponse.redirect(new URL(WEBSITE_LOGIN, request.nextUrl))
+            response.cookies.delete('access_token')
+            response.cookies.delete('refresh_token')
+            return response
+        }
+        
         const { payload } = await jwtVerify(access_token, new TextEncoder().encode(process.env.SECRET_KEY))
 
         const role = payload.role

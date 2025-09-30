@@ -65,7 +65,7 @@ const MyAccount = () => {
                                                 <td className='text-start text-sm text-gray-500 p-2 font-bold'>{i + 1}</td>
                                                 <td className='text-start text-sm text-gray-500 p-2'><Link className='underline hover:text-blue-500 underline-offset-2' href={WEBSITE_ORDER_DETAILS(order.order_id)}>{order.order_id}</Link></td>
                                                 <td className='text-start text-sm text-gray-500 p-2 '>
-                                                    {order.products.length}
+                                                    {order.products.reduce((total, product) => total + (product.qty || 1), 0)}
                                                 </td>
                                                 <td className='text-start text-sm text-gray-500 p-2 '>
                                                     {order.totalAmount.toLocaleString('en-In', { style: 'currency', currency: 'INR' })}

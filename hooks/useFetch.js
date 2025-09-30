@@ -1,3 +1,4 @@
+'use client'
 import axios from "axios"
 import { useEffect, useMemo, useState } from "react"
 
@@ -7,33 +8,42 @@ const useFetch = (url, method = "GET", options = {}) => {
     const [error, setError] = useState(null)
     const [refreshIndex, setRefreshIndex] = useState(0)
 
+    // Memoize options to prevent unnecessary re-renders
     const optionsString = JSON.stringify(options)
     const requestOptions = useMemo(() => {
-        const opts = { ...options }
-        if (method === 'POST' && !opts.data) {
-            opts.data = {}
+        try {
+            const opts = { ...options }
+            if (method === 'POST' && !opts.data) {
+                opts.data = {}
+            }
+            return opts
+        } catch (err) {
+            console.error('Error parsing options:', err)
+            return {}
         }
-        return opts
     }, [method, optionsString])
 
     useEffect(() => {
         const apiCall = async () => {
+            if (!url) return
+            
             setLoading(true)
             setError(null)
             try {
                 const { data: response } = await axios({
                     url,
                     method,
-                    ...(requestOptions)
+                    ...requestOptions
                 })
 
-                if (!response.success) {
-                    throw new Error(response.message)
+                if (!response?.success) {
+                    throw new Error(response?.message || 'Request failed')
                 }
 
                 setData(response)
             } catch (error) {
-                setError(error.message)
+                setError(error?.message || 'An error occurred')
+                console.error('useFetch error:', error)
             } finally {
                 setLoading(false)
             }
@@ -41,16 +51,13 @@ const useFetch = (url, method = "GET", options = {}) => {
 
         apiCall()
 
-    }, [url, refreshIndex, requestOptions])
-
+    }, [url, method, refreshIndex, requestOptions])
 
     const refetch = () => {
         setRefreshIndex(prev => prev + 1)
     }
 
-
     return { data, loading, error, refetch }
-
 }
 
 export default useFetch

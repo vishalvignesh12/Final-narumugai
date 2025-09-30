@@ -8,7 +8,9 @@ import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import imgPlaceholder from '@/public/assets/images/img-placeholder.webp'
 import { IoCloseCircleOutline } from "react-icons/io5";
-import { removeFromCart } from '@/store/reducer/cartReducer'
+import { removeFromCart, increaseQuantity, decreaseQuantity, updateCartItemQuantity } from '@/store/reducer/cartReducer'
+import { Input } from '@/components/ui/input'
+import { Plus, Minus } from 'lucide-react'
 
 const breadCrumb = {
     title: 'Cart',
@@ -26,9 +28,9 @@ const CartPage = () => {
     useEffect(() => {
         const cartProducts = cart.products
 
-        const totalAmount = cartProducts.reduce((sum, product) => sum + product.sellingPrice, 0)
+        const totalAmount = cartProducts.reduce((sum, product) => sum + (product.sellingPrice * (product.qty || 1)), 0)
 
-        const discount = cartProducts.reduce((sum, product) => sum + (product.mrp - product.sellingPrice), 0)
+        const discount = cartProducts.reduce((sum, product) => sum + ((product.mrp - product.sellingPrice) * (product.qty || 1)), 0)
 
         setSubTotal(totalAmount)
         setDiscount(discount)
@@ -58,7 +60,9 @@ const CartPage = () => {
                                 <thead className='border-b bg-gray-50 md:table-header-group hidden'>
                                     <tr>
                                         <th className='text-start p-3 font-semibold'>Product</th>
+                                        <th className='text-center p-3 font-semibold'>Quantity</th>
                                         <th className='text-center p-3 font-semibold'>Price</th>
+                                        <th className='text-center p-3 font-semibold'>Total</th>
                                         <th className='text-center p-3 font-semibold'>Action</th>
                                     </tr>
                                 </thead>
@@ -87,9 +91,54 @@ const CartPage = () => {
                                             </td>
 
                                             <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center'>
-                                                <span className='md:hidden font-medium text-sm'>Price</span>
+                                                <span className='md:hidden font-medium text-sm'>Quantity</span>
+                                                <div className='flex items-center gap-2'>
+                                                    <Button 
+                                                        type='button' 
+                                                        size='sm' 
+                                                        variant='outline' 
+                                                        onClick={() => dispatch(decreaseQuantity({ productId: product.productId, variantId: product.variantId }))}
+                                                        className='w-8 h-8 p-0'
+                                                    >
+                                                        <Minus className='w-3 h-3' />
+                                                    </Button>
+                                                    <Input 
+                                                        type='number' 
+                                                        min='1' 
+                                                        value={product.qty || 1}
+                                                        onChange={(e) => {
+                                                            const newQty = parseInt(e.target.value) || 1
+                                                            dispatch(updateCartItemQuantity({ 
+                                                                productId: product.productId, 
+                                                                variantId: product.variantId, 
+                                                                qty: newQty 
+                                                            }))
+                                                        }}
+                                                        className='w-16 text-center'
+                                                    />
+                                                    <Button 
+                                                        type='button' 
+                                                        size='sm' 
+                                                        variant='outline' 
+                                                        onClick={() => dispatch(increaseQuantity({ productId: product.productId, variantId: product.variantId }))}
+                                                        className='w-8 h-8 p-0'
+                                                    >
+                                                        <Plus className='w-3 h-3' />
+                                                    </Button>
+                                                </div>
+                                            </td>
+
+                                            <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center'>
+                                                <span className='md:hidden font-medium text-sm'>Unit Price</span>
                                                 <span className='font-semibold lg:text-base text-sm'>
                                                     {product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                                </span>
+                                            </td>
+
+                                            <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center'>
+                                                <span className='md:hidden font-medium text-sm'>Total</span>
+                                                <span className='font-semibold lg:text-base text-sm text-primary'>
+                                                    {(product.sellingPrice * (product.qty || 1)).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                                                 </span>
                                             </td>
 

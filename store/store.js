@@ -1,29 +1,36 @@
-import { combineReducers, configureStore } from "@reduxjs/toolkit"
-import persistReducer from "redux-persist/es/persistReducer"
-import persistStore from "redux-persist/es/persistStore"
-import localStorage from "redux-persist/es/storage"
-import authReducer from "./reducer/authReducer"
-import cartReducer  from "./reducer/cartReducer"
-import wishlistReducer from "./reducer/wishlistReducer"
+import { configureStore } from '@reduxjs/toolkit'
+import { persistStore, persistReducer } from 'redux-persist'
+import storage from 'redux-persist/lib/storage' // defaults to localStorage for web
+import { combineReducers } from 'redux'
 
-const rootReducer = combineReducers({
-    authStore: authReducer,
-    cartStore: cartReducer,
-    wishlistStore: wishlistReducer
-})
-
+import authReducer from './reducer/authReducer'
+import cartReducer from './reducer/cartReducer'
+import wishlistReducer from './reducer/wishlistReducer'
+import authMiddleware from './middleware/authMiddleware'
 
 const persistConfig = {
     key: 'root',
-    storage: localStorage
+    version: 1,
+    storage,
+    whitelist: ['cartStore', 'wishlistStore'] // Persist cart and wishlist
 }
 
-const persistedReducer = persistReducer(persistConfig, rootReducer)
+const reducers = combineReducers({
+    authStore: authReducer,
+    cartStore: cartReducer,
+    wishlistStore: wishlistReducer,
+})
+
+const persistedReducer = persistReducer(persistConfig, reducers)
 
 export const store = configureStore({
     reducer: persistedReducer,
     middleware: (getDefaultMiddleware) =>
-        getDefaultMiddleware({ serializableCheck: false })
+        getDefaultMiddleware({
+            serializableCheck: {
+                ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
+            },
+        }).concat(authMiddleware),
 })
 
 export const persistor = persistStore(store)

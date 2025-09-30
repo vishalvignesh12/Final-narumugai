@@ -64,6 +64,7 @@ export async function GET(request, { params }) {
                 mrp: getProduct.mrp,
                 sellingPrice: getProduct.sellingPrice,
                 discountPercentage: getProduct.discountPercentage,
+                quantity: getProduct.quantity || 0,
                 media: getProduct.media || []
             }
         }

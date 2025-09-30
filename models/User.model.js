@@ -51,6 +51,24 @@ const userSchema = new mongoose.Schema({
         default: null,
         index: true
     },
+    cart: [{
+        productId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Product',
+            required: true
+        },
+        variantId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'ProductVariant',
+            required: true
+        },
+        qty: {
+            type: Number,
+            required: true,
+            default: 1,
+            min: 1
+        }
+    }]
 }, { timestamps: true })
 
 

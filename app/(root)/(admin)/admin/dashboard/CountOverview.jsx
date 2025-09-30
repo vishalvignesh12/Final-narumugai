@@ -7,8 +7,8 @@ import { MdOutlineShoppingBag } from "react-icons/md";
 import { LuUserRound } from "react-icons/lu";
 import useFetch from '@/hooks/useFetch';
 import { ADMIN_CATEGORY_SHOW, ADMIN_CUSTOMERS_SHOW, ADMIN_PRODUCT_SHOW } from '@/routes/AdminPanelRoute';
-const CountOverview = () => {
 
+const CountOverview = () => {
     const { data: countData } = useFetch('/api/dashboard/admin/count')
 
     return (

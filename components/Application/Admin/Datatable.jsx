@@ -1,18 +1,23 @@
-import { IconButton, Tooltip } from '@mui/material'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import axios from 'axios'
+import { ThemeProvider, createTheme } from '@mui/material/styles'
+import { Tooltip, IconButton } from '@mui/material'
 import { MaterialReactTable, MRT_ShowHideColumnsButton, MRT_ToggleDensePaddingButton, MRT_ToggleFullScreenButton, MRT_ToggleGlobalFilterButton, useMaterialReactTable } from 'material-react-table'
 import Link from 'next/link'
 import React, { useState } from 'react'
-import RecyclingIcon from '@mui/icons-material/Recycling';
-import DeleteIcon from '@mui/icons-material/Delete';
-import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import RecyclingIcon from '@mui/icons-material/Recycling'
+import DeleteIcon from '@mui/icons-material/Delete'
+import RestoreFromTrashIcon from '@mui/icons-material/RestoreFromTrash'
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever'
 import useDeleteMutation from '@/hooks/useDeleteMutation'
 import ButtonLoading from '../ButtonLoading'
-import SaveAltIcon from '@mui/icons-material/SaveAlt';
+import SaveAltIcon from '@mui/icons-material/SaveAlt'
 import { showToast } from '@/lib/showToast'
 import { download, generateCsv, mkConfig } from 'export-to-csv'
+
+// Create a default theme
+const theme = createTheme()
+
 const Datatable = ({
     queryKey,
     fetchUrl,
@@ -58,9 +63,7 @@ const Datatable = ({
         }
     }
 
-
     // export method  
-
     const handleExport = async (selectedRows) => {
         setExportLoading(true)
         try {
@@ -98,9 +101,7 @@ const Datatable = ({
         }
     }
 
-
     // Data fetching logics 
-
     const {
         data: { data = [], meta } = {},
         isError,
@@ -110,27 +111,20 @@ const Datatable = ({
         queryKey: [queryKey, { columnFilters, globalFilter, pagination, sorting }],
         queryFn: async () => {
             const url = new URL(fetchUrl, process.env.NEXT_PUBLIC_BASE_URL)
-            url.searchParams.set(
-                'start',
-                `${pagination.pageIndex * pagination.pageSize}`,
-            );
-            url.searchParams.set('size', `${pagination.pageSize}`);
-            url.searchParams.set('filters', JSON.stringify(columnFilters ?? []));
-            url.searchParams.set('globalFilter', globalFilter ?? '');
-            url.searchParams.set('sorting', JSON.stringify(sorting ?? []));
-            url.searchParams.set('deleteType', deleteType);
+            url.searchParams.set('start', `${pagination.pageIndex * pagination.pageSize}`)
+            url.searchParams.set('size', `${pagination.pageSize}`)
+            url.searchParams.set('filters', JSON.stringify(columnFilters ?? []))
+            url.searchParams.set('globalFilter', globalFilter ?? '')
+            url.searchParams.set('sorting', JSON.stringify(sorting ?? []))
+            url.searchParams.set('deleteType', deleteType)
 
             const { data: response } = await axios.get(url.href)
             return response
         },
-
         placeholderData: keepPreviousData,
     })
 
-
-
-    // init table  
-
+    // init table 
     const table = useMaterialReactTable({
         columns: columnsConfig,
         data,
@@ -178,9 +172,8 @@ const Datatable = ({
                 <MRT_ToggleFullScreenButton table={table} />
                 <MRT_ToggleDensePaddingButton table={table} />
 
-                {deleteType !== 'PD'
-                    &&
-                    <Tooltip title="Recycle Bin" >
+                {deleteType !== 'PD' &&
+                    <Tooltip title="Recycle Bin">
                         <Link href={trashView}>
                             <IconButton>
                                 <RecyclingIcon />
@@ -189,11 +182,10 @@ const Datatable = ({
                     </Tooltip>
                 }
 
-
-                {deleteType === 'SD'
-                    &&
-                    <Tooltip title="Delete All" >
-                        <IconButton disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
+                {deleteType === 'SD' &&
+                    <Tooltip title="Delete All">
+                        <IconButton 
+                            disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
                             onClick={() => handleDelete(Object.keys(rowSelection), deleteType)}
                         >
                             <DeleteIcon />
@@ -201,19 +193,19 @@ const Datatable = ({
                     </Tooltip>
                 }
 
-                {deleteType === 'PD'
-                    &&
+                {deleteType === 'PD' &&
                     <>
-                        <Tooltip title="Restore Data" >
-                            <IconButton disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
-                                onClick={() => handleDelete(Object.keys(rowSelection), 'RSD')}
+                        <Tooltip title="Restore Data">
+                            <IconButton 
+                                disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
+                                onClick={() => handleDelete(Object.keys(rowSelection), 'RD')}
                             >
-
                                 <RestoreFromTrashIcon />
                             </IconButton>
                         </Tooltip>
-                        <Tooltip title="Permanently Delete Data" >
-                            <IconButton disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
+                        <Tooltip title="Permanently Delete Data">
+                            <IconButton 
+                                disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
                                 onClick={() => handleDelete(Object.keys(rowSelection), deleteType)}
                             >
                                 <DeleteForeverIcon />
@@ -221,7 +213,6 @@ const Datatable = ({
                         </Tooltip>
                     </>
                 }
-
             </>
         ),
 
@@ -230,21 +221,23 @@ const Datatable = ({
         renderRowActionMenuItems: ({ row }) => createAction(row, deleteType, handleDelete),
 
         renderTopToolbarCustomActions: ({ table }) => (
-            <Tooltip>
+            <Tooltip title="Export">
                 <ButtonLoading
                     type="button"
-                    text={<><SaveAltIcon fontSize='25' /> Export</>}
+                    text={<><SaveAltIcon fontSize="25" /> Export</>}
                     loading={exportLoading}
                     onClick={() => handleExport(table.getSelectedRowModel().rows)}
                     className="cursor-pointer"
                 />
             </Tooltip>
         )
-
     })
 
+    // Wrap the MaterialReactTable with ThemeProvider
     return (
-        <MaterialReactTable table={table} />
+        <ThemeProvider theme={theme}>
+            <MaterialReactTable table={table} />
+        </ThemeProvider>
     )
 }
 

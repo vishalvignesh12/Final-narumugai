@@ -1,10 +1,10 @@
 'use client'
 
-import { ThemeProvider } from "@mui/material"
-import Datatable from "./Datatable"
-import { useTheme } from "next-themes"
-import { useEffect, useState } from "react"
-import { darkTheme, lightTheme } from "@/lib/materialTheme"
+import { useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
+import { ThemeProvider } from '@mui/material/styles';
+import { lightTheme, darkTheme } from '@/lib/materialTheme';
+import Datatable from './Datatable';
 
 const DatatableWrapper = ({
     queryKey,
@@ -18,17 +18,20 @@ const DatatableWrapper = ({
     createAction
 }) => {
 
-    const { resolvedTheme } = useTheme()
-    const [mounted, setMounted] = useState(false)
+    const { resolvedTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
+    const [muiTheme, setMuiTheme] = useState(lightTheme);
 
+    // Set the proper Material-UI theme based on current theme
     useEffect(() => {
-        setMounted(true)
-    }, [])
+        setMuiTheme(resolvedTheme === 'dark' ? darkTheme : lightTheme);
+        setMounted(true);
+    }, [resolvedTheme]);
 
-    if (!mounted) return null
+    if (!mounted) return null;
 
     return (
-        <ThemeProvider theme={resolvedTheme === 'dark' ? darkTheme : lightTheme}>
+        <ThemeProvider theme={muiTheme}>
             <Datatable
                 queryKey={queryKey}
                 fetchUrl={fetchUrl}
@@ -41,7 +44,7 @@ const DatatableWrapper = ({
                 createAction={createAction}
             />
         </ThemeProvider>
-    )
-}
+    );
+};
 
 export default DatatableWrapper

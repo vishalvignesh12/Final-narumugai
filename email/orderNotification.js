@@ -194,7 +194,7 @@ export const orderNotification = (data) => {
 								<td>
 									<table align="center" border="0" cellpadding="0" cellspacing="0"
 										class="row-content stack" role="presentation"
-										style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #f7f1ed; border-radius: 0 0 20px 20px; color: #000000; width: 680px; margin: 0 auto;"
+										style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #fdf2f8; border-radius: 0 0 20px 20px; color: #000000; width: 680px; margin: 0 auto;"
 										width="680">
 										<tbody>
 											<tr>
@@ -246,9 +246,9 @@ export const orderNotification = (data) => {
 														<tr>
 															<td class="pad">
 																<h1
-																	style="margin: 0; color: #000000; direction: ltr; font-family: TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif; font-size: 40px; font-weight: 400; letter-spacing: -2px; line-height: 1.2; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 48px;">
+																	style="margin: 0; color: #374151; direction: ltr; font-family: TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif; font-size: 42px; font-weight: 700; letter-spacing: -2px; line-height: 1.2; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 48px;">
 																	<span class="tinyMce-placeholder"
-																		style="word-break: break-word;">YOUR ORDER WILL
+																		style="word-break: break-word; background: linear-gradient(135deg, #ec4899, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">YOUR ORDER WILL
 																		BE SHIPPED SOON!</span>
 																</h1>
 															</td>
@@ -442,7 +442,7 @@ export const orderNotification = (data) => {
 															<td class="pad"
 																style="padding-bottom:35px;padding-left:10px;padding-right:10px;padding-top:10px;text-align:center;width:100%;">
 																<h3
-																	style="margin: 0; color: #4400ff; direction: ltr; font-family: TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: normal; line-height: 1.2; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 29px;">
+																	style="margin: 0; color: #ec4899; direction: ltr; font-family: TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif; font-size: 24px; font-weight: 700; letter-spacing: normal; line-height: 1.2; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 29px;">
 																	<span class="tinyMce-placeholder"
 																		style="word-break: break-word;">Order Id:
 																		${data.order_id} </span>
@@ -460,7 +460,7 @@ export const orderNotification = (data) => {
 																		href="${data.orderDetailsUrl}"
 																		style="color:#ffffff;text-decoration:none;"
 																		target="_blank"> <span class="button"
-																			style="background-color: #9502f5; border-bottom: 0px solid #f65c03; border-left: 0px solid #f65c03; border-radius: 30px; border-right: 0px solid #f65c03; border-top: 0px solid #f65c03; color: #ffffff; display: inline-block; font-family: TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif; font-size: 16px; font-weight: 700; mso-border-alt: none; padding-bottom: 5px; padding-top: 5px; padding-left: 30px; padding-right: 30px; text-align: center; width: auto; word-break: keep-all; letter-spacing: 1px;"><span
+																			style="background: linear-gradient(135deg, #ec4899, #f472b6); border-bottom: 0px solid #f65c03; border-left: 0px solid #f65c03; border-radius: 30px; border-right: 0px solid #f65c03; border-top: 0px solid #f65c03; color: #ffffff; display: inline-block; font-family: TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif; font-size: 16px; font-weight: 700; mso-border-alt: none; padding-bottom: 12px; padding-top: 12px; padding-left: 30px; padding-right: 30px; text-align: center; width: auto; word-break: keep-all; letter-spacing: 1px; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);"><span
 																				style="word-break: break-word; line-height: 32px;">VIEW
 																				MY
 																				ORDER</span></span> </a>
@@ -483,7 +483,7 @@ export const orderNotification = (data) => {
 								<td>
 									<table align="center" border="0" cellpadding="0" cellspacing="0"
 										class="row-content stack" role="presentation"
-										style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background-color: #000000; border-radius: 20px 20px 0 0; color: #000000; padding-bottom: 20px; padding-left: 60px; padding-top: 20px; width: 680px; margin: 0 auto;"
+										style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; background: linear-gradient(135deg, #374151, #4b5563); border-radius: 20px 20px 0 0; color: #000000; padding-bottom: 20px; padding-left: 60px; padding-top: 20px; width: 680px; margin: 0 auto;"
 										width="680">
 										<tbody>
 											<tr>
@@ -498,8 +498,8 @@ export const orderNotification = (data) => {
 															<td class="pad"
 																style="padding-bottom:5px;padding-left:10px;padding-right:10px;padding-top:5px;">
 																<div
-																	style="color:#f7f1ed;direction:ltr;font-family:TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif;font-size:14px;font-weight:700;letter-spacing:3px;line-height:1.2;text-align:left;mso-line-height-alt:17px;">
-																	<p style="margin: 0;">FUEL FOR YOUR INNER GLOW</p>
+																	style="color:#fdf2f8;direction:ltr;font-family:TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif;font-size:14px;font-weight:700;letter-spacing:3px;line-height:1.2;text-align:left;mso-line-height-alt:17px;">
+																	<p style="margin: 0;">CRAFTED WITH LOVE - NARUMUGAI SAREES</p>
 																</div>
 															</td>
 														</tr>

@@ -3,7 +3,6 @@ import React from 'react'
 import { Heart } from 'lucide-react'
 import { useSelector, useDispatch } from 'react-redux'
 import { addToWishlist, removeFromWishlist } from '@/store/reducer/wishlistReducer'
-import { showToast } from '@/lib/showToast'
 
 const WishlistButton = ({ product, className = "w-10 h-10", iconSize = "w-5 h-5" }) => {
     const dispatch = useDispatch()
@@ -17,10 +16,8 @@ const WishlistButton = ({ product, className = "w-10 h-10", iconSize = "w-5 h-5"
         
         if (isInWishlist) {
             dispatch(removeFromWishlist(product._id))
-            showToast('Removed from wishlist', 'success')
         } else {
             dispatch(addToWishlist(product))
-            showToast('Added to wishlist', 'success')
         }
     }
     
