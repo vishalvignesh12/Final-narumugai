@@ -20,8 +20,6 @@ import { FaShippingFast } from "react-icons/fa"
 import { Textarea } from '@/components/ui/textarea'
 import { useRouter } from 'next/navigation'
 
-import loading from '@/public/assets/images/loading.svg'
-
 const breadCrumb = {
     title: 'Checkout',
     links: [
@@ -281,7 +279,7 @@ const Checkout = () => {
             {savingOrder && (
                 <div className='h-screen w-screen fixed top-0 left-0 z-50 bg-black/10 flex justify-center items-center'>
                     <div className='flex flex-col items-center'>
-                        <Image src={loading} height={80} width={80} alt='Loading' />
+                        <img src="/assets/images/loading.svg" width="80" height="80" alt='Loading' />
                         <h4 className='font-semibold mt-4'>Processing your order...</h4>
                     </div>
                 </div>
