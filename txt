@@ -1,1 +1,5 @@
-Failed to load resource: the server responded with a status of 404 ()
+final-narumugai-git-main-vishalvignesh12s-projects.vercel.app/:1 Manifest fetch from https://final-narumugai-git-main-vishalvignesh12s-projects.vercel.app/manifest.json failed, code 401
+
+/manifest.json:1  Failed to load resource: the server responded with a status of 401 ()
+
+manifest.json:1  Failed to load resource: the server responded with a status of 401 ()

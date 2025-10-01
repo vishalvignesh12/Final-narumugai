@@ -156,41 +156,93 @@ const ProductPage = async ({ params, searchParams }) => {
     const { slug } = await params
     const { color, size } = await searchParams
 
-    let url = `/api/product/details/${slug}`
-
-    if (color && size) {
-        url += `?color=${color}&size=${size}`
-    }
-
     try {
-        // Using fetch for internal API calls in Next.js App Router
-        // In Vercel, relative URLs should work fine for internal API routes
-        const response = await fetch(url, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            cache: 'no-store', // Don't cache for now to ensure fresh data
-            next: { revalidate: 300 } // Revalidate every 5 minutes
-        });
+        // Connect to DB and query directly instead of calling internal API
+        await connectDB();
 
-        // If response is not ok, try to get the error message
-        if (!response.ok) {
-            const errorText = await response.text();
-            console.error('API Error fetching product:', errorText, 'URL:', url);
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
-        }
+        const filter = {
+            deletedAt: null,
+            slug: slug
+        };
 
-        const getProduct = await response.json();
+        // Get product 
+        const product = await ProductModel.findOne(filter).populate('media', 'secure_url').lean();
 
-        if (!getProduct.success) {
+        if (!product) {
             return (
                 <div className='flex justify-center items-center py-10 h-[300px]'>
                     <h1 className='text-4xl font-semibold'>Product not found.</h1>
                 </div>
             )
-        } else {
-            const { product, variant } = getProduct.data
+        }
+
+        // Get product variant 
+        const variantFilter = {
+            product: product._id
+        };
+
+        if (size) {
+            variantFilter.size = size;
+        }
+        if (color) {
+            variantFilter.color = color;
+        }
+
+        let variant = await ProductVariantModel.findOne(variantFilter).populate('media', 'secure_url').lean();
+
+        // If no specific variant found, try to get the first available variant
+        if (!variant) {
+            variant = await ProductVariantModel.findOne({ product: product._id }).populate('media', 'secure_url').lean();
+        }
+
+        // If still no variant found, create a fallback variant from product data
+        if (!variant) {
+            variant = {
+                _id: null,
+                product: product._id,
+                color: 'Default',
+                size: 'Default',
+                mrp: product.mrp,
+                sellingPrice: product.sellingPrice,
+                discountPercentage: product.discountPercentage,
+                quantity: product.quantity || 0,
+                media: product.media || []
+            };
+        }
+
+        // get color and size 
+        const getColor = await ProductVariantModel.distinct('color', { product: product._id });
+
+        const getSize = await ProductVariantModel.aggregate([
+            { $match: { product: product._id } },
+            { $sort: { _id: 1 } },
+            {
+                $group: {
+                    _id: "$size",
+                    first: { $first: "$_id" }
+                }
+            },
+            { $sort: { first: 1 } },
+            { $project: { _id: 0, size: "$_id" } }
+        ]);
+
+        // If no variants exist, provide default options
+        const colors = getColor.length > 0 ? getColor : ['Default'];
+        const sizes = getSize.length > 0 ? getSize.map(item => item.size) : ['Default'];
+
+        // get review count 
+        const reviewCount = await ReviewModel.countDocuments({ product: product._id });
+
+        const productData = {
+            product: product,
+            variant: variant,
+            colors: colors,
+            sizes: sizes,
+            reviewCount: reviewCount
+        };
+        
+        // Destructure the data for use in the component
+        const { product: prod, variant: varnt } = productData;
             
             return (
                 <div>
@@ -201,18 +253,18 @@ const ProductPage = async ({ params, searchParams }) => {
                             __html: JSON.stringify({
                                 "@context": "https://schema.org",
                                 "@type": "Product",
-                                "name": product.name,
-                                "description": product.description?.replace(/<[^>]*>/g, '').substring(0, 200),
-                                "sku": variant._id || product._id,
+                                "name": prod.name,
+                                "description": prod.description?.replace(/<[^>]*>/g, '').substring(0, 200),
+                                "sku": varnt._id || prod._id,
                                 "brand": {
                                     "@type": "Brand",
                                     "name": "Narumugai"
                                 },
                                 "category": "Clothing > Women's Clothing > Sarees",
-                                "image": variant?.media?.map(img => img.secure_url) || product?.media?.map(img => img.secure_url) || [],
+                                "image": varnt?.media?.map(img => img.secure_url) || prod?.media?.map(img => img.secure_url) || [],
                                 "offers": {
                                     "@type": "Offer",
-                                    "price": variant.sellingPrice,
+                                    "price": varnt.sellingPrice,
                                     "priceCurrency": "INR",
                                     "availability": "https://schema.org/InStock",
                                     "seller": {
@@ -224,18 +276,18 @@ const ProductPage = async ({ params, searchParams }) => {
                                 "aggregateRating": {
                                     "@type": "AggregateRating",
                                     "ratingValue": "4.5",
-                                    "reviewCount": getProduct.data.reviewCount || 0
+                                    "reviewCount": productData.reviewCount || 0
                                 },
                                 "additionalProperty": [
                                     {
                                         "@type": "PropertyValue",
                                         "name": "Color",
-                                        "value": variant.color
+                                        "value": varnt.color
                                     },
                                     {
                                         "@type": "PropertyValue",
                                         "name": "Size",
-                                        "value": variant.size
+                                        "value": varnt.size
                                     },
                                     {
                                         "@type": "PropertyValue",
@@ -261,7 +313,7 @@ const ProductPage = async ({ params, searchParams }) => {
                                         {
                                             "@type": "ListItem",
                                             "position": 3,
-                                            "name": product.name,
+                                            "name": prod.name,
                                             "item": `https://narumugai.com/product/${slug}`
                                         }
                                     ]
@@ -271,11 +323,11 @@ const ProductPage = async ({ params, searchParams }) => {
                     />
                     
                     <ProductDetails
-                        product={getProduct?.data?.product}
-                        variant={getProduct?.data?.variant}
-                        colors={getProduct?.data?.colors}
-                        sizes={getProduct?.data?.sizes}
-                        reviewCount={getProduct?.data?.reviewCount}
+                        product={productData.product}
+                        variant={productData.variant}
+                        colors={productData.colors}
+                        sizes={productData.sizes}
+                        reviewCount={productData.reviewCount}
                     />
                 </div>
             )
