@@ -1,0 +1,17 @@
+Error occurred prerendering page "/_not-found". Read more: https://nextjs.org/docs/messages/prerender-error
+TypeError: f.getItem is not a function
+    at o (.next/server/chunks/7549.js:4:21470)
+    at <unknown> (.next/server/chunks/7549.js:4:24743)
+    at Object.r [as dispatch] (.next/server/chunks/7549.js:4:34942)
+    at dispatch (.next/server/chunks/7549.js:4:12740)
+    at <unknown> (.next/server/chunks/7063.js:1:9125)
+    at Object.dispatch (.next/server/chunks/7549.js:4:3366)
+    at Object.persist (.next/server/chunks/7549.js:4:27368)
+    at A (.next/server/chunks/7549.js:4:27442)
+    at 63946 (.next/server/chunks/7063.js:1:9471)
+    at Object.c [as require] (.next/server/webpack-runtime.js:1:143) {
+  digest: '1496325318'
+}
+Export encountered an error on /_not-found/page: /_not-found, exiting the build.
+ ⨯ Next.js build worker exited with code: 1 and signal: null
+Error: Command "npm run build" exited with 1

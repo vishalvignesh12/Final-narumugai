@@ -119,7 +119,7 @@ const Footer = () => {
                                         <MdOutlineMail className="text-blue-600" size={20} />
                                     </div>
                                     <Link href="mailto:hello@narumugai.com" className="text-gray-600 hover:text-blue-600 transition-colors truncate max-w-[150px]">
-                                        hello@narumugai.com
+                                        narumugaiambattur@gmail.com
                                     </Link>
                                 </div>
 

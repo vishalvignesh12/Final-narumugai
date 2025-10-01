@@ -211,7 +211,7 @@ export const adminOrderNotification = (data) => {
                                                                     This notification was sent automatically when a new order was placed.
                                                                 </p>
                                                                 <p style="margin: 10px 0 0 0; color: #d1d5db; font-size: 12px;">
-                                                                    <strong>Narumugai Sarees</strong> | <a href="https://narumugai.com" style="color: #ec4899; text-decoration: none;">www.narumugai.com</a>
+                                                                    <strong>Narumugai Sarees</strong> | <a href="http://www.narumugaibotique.com" style="color: #ec4899; text-decoration: none;">http://www.narumugaibotique.com/a>
                                                                 </p>
                                                             </div>
                                                         </td>
