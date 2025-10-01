@@ -177,30 +177,7 @@ const Checkout = () => {
 
             const order_id = generateOrderId.order_id
 
-            // Dynamically load Razorpay script if not already loaded
-            if (typeof window !== 'undefined' && !window.Razorpay) {
-                await new Promise((resolve, reject) => {
-                    if (document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
-                        // If script is already loading, wait for it to load
-                        if (window.Razorpay) {
-                            resolve();
-                        } else {
-                            const script = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
-                            script.onload = () => setTimeout(resolve, 500); // Small delay to ensure full initialization
-                            script.onerror = reject;
-                        }
-                    } else {
-                        // Load the script dynamically
-                        const script = document.createElement('script');
-                        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-                        script.onload = () => setTimeout(resolve, 500); // Small delay to ensure full initialization
-                        script.onerror = reject;
-                        document.body.appendChild(script);
-                    }
-                });
-            }
-
-            // Prepare Razorpay options
+            // Prepare Razorpay options first
             const razorpayOptions = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
                 amount: totalAmount * 100, // Razorpay expects amount in paise
@@ -257,14 +234,63 @@ const Checkout = () => {
                 }
             }
 
+            // Function to load Razorpay script
+            const loadRazorpayScript = () => {
+                return new Promise((resolve, reject) => {
+                    // Check if Razorpay is already available
+                    if (window.Razorpay) {
+                        resolve();
+                        return;
+                    }
+
+                    // Check if script element already exists
+                    let script = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+                    
+                    if (!script) {
+                        // Create script if it doesn't exist
+                        script = document.createElement('script');
+                        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                        script.async = true;
+                        script.onload = () => {
+                            // Wait a bit for Razorpay to initialize
+                            setTimeout(() => resolve(), 300);
+                        };
+                        script.onerror = () => reject(new Error('Failed to load Razorpay script'));
+                        document.body.appendChild(script);
+                    } else {
+                        // Script already exists, wait for it to load
+                        if (window.Razorpay) {
+                            resolve();
+                        } else {
+                            // Set up a way to detect when it loads
+                            const checkInterval = setInterval(() => {
+                                if (window.Razorpay) {
+                                    clearInterval(checkInterval);
+                                    resolve();
+                                }
+                            }, 100);
+                            
+                            // Reject after timeout
+                            setTimeout(() => {
+                                clearInterval(checkInterval);
+                                reject(new Error('Razorpay script loading timeout'));
+                            }, 10000);
+                        }
+                    }
+                });
+            };
+
+            // Load the script and then open the payment modal
+            await loadRazorpayScript();
+
             // Open Razorpay payment modal
-            const rzp = new window.Razorpay(razorpayOptions)
-            rzp.open()
+            const rzp = new window.Razorpay(razorpayOptions);
+            rzp.open();
 
             // Handle payment failure
             rzp.on('payment.failed', function (response) {
-                showToast('error', response.error.description || 'Payment failed')
-            })
+                showToast('error', response.error.description || 'Payment failed');
+            });
 
         } catch (error) {
             showToast('error', error.message)
