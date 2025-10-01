@@ -508,7 +508,14 @@ const Checkout = () => {
                                                 </td>
                                                 <td className='py-3 text-right'>
                                                     <p className='text-sm'>
-                                                        {product.qty} x <span className="font-medium">{product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                                        {product.qty} x {product.mrp > product.sellingPrice ? (
+                                                            <>
+                                                                <span className="line-through text-gray-400 text-sm">{product.mrp.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                                                <span className="font-medium ml-2">{product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                                            </>
+                                                        ) : (
+                                                            <span className="font-medium">{product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                                        )}
                                                     </p>
                                                 </td>
                                             </tr>
@@ -520,13 +527,13 @@ const Checkout = () => {
                             {/* Price Summary */}
                             <div className="border-t pt-4">
                                 <div className="flex justify-between mb-2">
-                                    <span>Subtotal</span>
-                                    <span>{subtotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                    <span>MRP Total</span>
+                                    <span>{(subtotal + discount).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                 </div>
                                 
                                 {discount > 0 && (
                                     <div className="flex justify-between mb-2">
-                                        <span>Discount</span>
+                                        <span>You Save</span>
                                         <span className="text-green-600">- {discount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                     </div>
                                 )}
@@ -539,7 +546,7 @@ const Checkout = () => {
                                 )}
                                 
                                 <div className="flex justify-between mt-4 pt-4 border-t font-bold text-lg">
-                                    <span>Total</span>
+                                    <span>You Pay</span>
                                     <span>{totalAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                 </div>
                             </div>

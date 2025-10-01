@@ -15,21 +15,21 @@ const Home = () => {
     const testimonials = [
         {
             name: "Priya Sharma",
-            location: "Mumbai",
+            location: "Chennai",
             rating: 5,
             text: "Absolutely gorgeous sarees! The quality is exceptional and the customer service is outstanding. My go-to place for traditional wear.",
             image: "/api/placeholder/60/60"
         },
         {
-            name: "Anita Gupta",
-            location: "Delhi",
+            name: "Nethra",
+            location: "Chennai",
             rating: 5,
             text: "Beautiful collection with authentic designs. Fast delivery and excellent packaging. Highly recommended for saree lovers!",
             image: "/api/placeholder/60/60"
         },
         {
             name: "Meera Reddy",
-            location: "Bangalore",
+            location: "Chennai",
             rating: 5,
             text: "The silk sarees are pure luxury! Perfect for weddings and festivals. The craftsmanship is truly remarkable.",
             image: "/api/placeholder/60/60"
@@ -64,7 +64,7 @@ const Home = () => {
         "@type": "WebPage",
         "name": "Narumugai - Premium Sarees Online",
         "description": "Shop exquisite collection of traditional and designer sarees",
-        "url": "https://narumugai.com"
+        "url": "https://narumugaiboutique.com"
     }
 
     return (
