@@ -18,7 +18,6 @@ import { useDispatch, useSelector } from 'react-redux'
 import { IoCloseCircleSharp } from "react-icons/io5"
 import { FaShippingFast } from "react-icons/fa"
 import { Textarea } from '@/components/ui/textarea'
-import Script from 'next/script'
 import { useRouter } from 'next/navigation'
 
 import loading from '@/public/assets/images/loading.svg'
@@ -179,6 +178,29 @@ const Checkout = () => {
             }
 
             const order_id = generateOrderId.order_id
+
+            // Dynamically load Razorpay script if not already loaded
+            if (typeof window !== 'undefined' && !window.Razorpay) {
+                await new Promise((resolve, reject) => {
+                    if (document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')) {
+                        // If script is already loading, wait for it to load
+                        if (window.Razorpay) {
+                            resolve();
+                        } else {
+                            const script = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
+                            script.onload = () => setTimeout(resolve, 500); // Small delay to ensure full initialization
+                            script.onerror = reject;
+                        }
+                    } else {
+                        // Load the script dynamically
+                        const script = document.createElement('script');
+                        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+                        script.onload = () => setTimeout(resolve, 500); // Small delay to ensure full initialization
+                        script.onerror = reject;
+                        document.body.appendChild(script);
+                    }
+                });
+            }
 
             // Prepare Razorpay options
             const razorpayOptions = {
@@ -544,11 +566,6 @@ const Checkout = () => {
                 </div>
             )}
 
-            {/* Razorpay Script - loaded only on client side */}
-            <Script 
-                src='https://checkout.razorpay.com/v1/checkout.js' 
-                strategy="beforeInteractive"
-            />
         </div>
     )
 }
