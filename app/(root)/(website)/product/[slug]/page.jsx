@@ -73,6 +73,9 @@ export async function generateMetadata({ params, searchParams }) {
             };
         }
 
+        // Get review count 
+        const reviewCount = await ReviewModel.countDocuments({ product: getProduct._id });
+
         // Return metadata based on direct DB query
         return {
             title: `${getProduct.name} | Premium Saree Online | Narumugai`,
@@ -143,12 +146,11 @@ export async function generateMetadata({ params, searchParams }) {
             }
         };
     } catch (error) {
-        console.error('Error generating metadata:', error)
-    }
-
-    return {
-        title: 'Product Details | Narumugai',
-        description: 'Premium saree collection at Narumugai'
+        console.error('Error generating metadata:', error);
+        return {
+            title: 'Product Details | Narumugai',
+            description: 'Premium saree collection at Narumugai'
+        };
     }
 }
 
@@ -243,95 +245,94 @@ const ProductPage = async ({ params, searchParams }) => {
         
         // Destructure the data for use in the component
         const { product: prod, variant: varnt } = productData;
-            
-            return (
-                <div>
-                    {/* Product Structured Data */}
-                    <script
-                        type="application/ld+json"
-                        dangerouslySetInnerHTML={{
-                            __html: JSON.stringify({
-                                "@context": "https://schema.org",
-                                "@type": "Product",
-                                "name": prod.name,
-                                "description": prod.description?.replace(/<[^>]*>/g, '').substring(0, 200),
-                                "sku": varnt._id || prod._id,
-                                "brand": {
-                                    "@type": "Brand",
+        
+        return (
+            <div>
+                {/* Product Structured Data */}
+                <script
+                    type="application/ld+json"
+                    dangerouslySetInnerHTML={{
+                        __html: JSON.stringify({
+                            "@context": "https://schema.org",
+                            "@type": "Product",
+                            "name": prod.name,
+                            "description": prod.description?.replace(/<[^>]*>/g, '').substring(0, 200),
+                            "sku": varnt._id || prod._id,
+                            "brand": {
+                                "@type": "Brand",
+                                "name": "Narumugai"
+                            },
+                            "category": "Clothing > Women's Clothing > Sarees",
+                            "image": varnt?.media?.map(img => img.secure_url) || prod?.media?.map(img => img.secure_url) || [],
+                            "offers": {
+                                "@type": "Offer",
+                                "price": varnt.sellingPrice,
+                                "priceCurrency": "INR",
+                                "availability": "https://schema.org/InStock",
+                                "seller": {
+                                    "@type": "Organization",
                                     "name": "Narumugai"
                                 },
-                                "category": "Clothing > Women's Clothing > Sarees",
-                                "image": varnt?.media?.map(img => img.secure_url) || prod?.media?.map(img => img.secure_url) || [],
-                                "offers": {
-                                    "@type": "Offer",
-                                    "price": varnt.sellingPrice,
-                                    "priceCurrency": "INR",
-                                    "availability": "https://schema.org/InStock",
-                                    "seller": {
-                                        "@type": "Organization",
-                                        "name": "Narumugai"
-                                    },
-                                    "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                                "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                            },
+                            "aggregateRating": {
+                                "@type": "AggregateRating",
+                                "ratingValue": "4.5",
+                                "reviewCount": productData.reviewCount || 0
+                            },
+                            "additionalProperty": [
+                                {
+                                    "@type": "PropertyValue",
+                                    "name": "Color",
+                                    "value": varnt.color
                                 },
-                                "aggregateRating": {
-                                    "@type": "AggregateRating",
-                                    "ratingValue": "4.5",
-                                    "reviewCount": productData.reviewCount || 0
+                                {
+                                    "@type": "PropertyValue",
+                                    "name": "Size",
+                                    "value": varnt.size
                                 },
-                                "additionalProperty": [
-                                    {
-                                        "@type": "PropertyValue",
-                                        "name": "Color",
-                                        "value": varnt.color
-                                    },
-                                    {
-                                        "@type": "PropertyValue",
-                                        "name": "Size",
-                                        "value": varnt.size
-                                    },
-                                    {
-                                        "@type": "PropertyValue",
-                                        "name": "Material",
-                                        "value": "Premium Fabric"
-                                    }
-                                ],
-                                "breadcrumb": {
-                                    "@type": "BreadcrumbList",
-                                    "itemListElement": [
-                                        {
-                                            "@type": "ListItem",
-                                            "position": 1,
-                                            "name": "Home",
-                                            "item": "https://narumugai.com"
-                                        },
-                                        {
-                                            "@type": "ListItem",
-                                            "position": 2,
-                                            "name": "Shop Sarees",
-                                            "item": "https://narumugai.com/shop"
-                                        },
-                                        {
-                                            "@type": "ListItem",
-                                            "position": 3,
-                                            "name": prod.name,
-                                            "item": `https://narumugai.com/product/${slug}`
-                                        }
-                                    ]
+                                {
+                                    "@type": "PropertyValue",
+                                    "name": "Material",
+                                    "value": "Premium Fabric"
                                 }
-                            })
-                        }}
-                    />
-                    
-                    <ProductDetails
-                        product={productData.product}
-                        variant={productData.variant}
-                        colors={productData.colors}
-                        sizes={productData.sizes}
-                        reviewCount={productData.reviewCount}
-                    />
-                </div>
-            )
-        }
+                            ],
+                            "breadcrumb": {
+                                "@type": "BreadcrumbList",
+                                "itemListElement": [
+                                    {
+                                        "@type": "ListItem",
+                                        "position": 1,
+                                        "name": "Home",
+                                        "item": "https://narumugai.com"
+                                    },
+                                    {
+                                        "@type": "ListItem",
+                                        "position": 2,
+                                        "name": "Shop Sarees",
+                                        "item": "https://narumugai.com/shop"
+                                    },
+                                    {
+                                        "@type": "ListItem",
+                                        "position": 3,
+                                        "name": prod.name,
+                                        "item": `https://narumugai.com/product/${slug}`
+                                    }
+                                ]
+                            }
+                        })
+                    }}
+                />
+                
+                <ProductDetails
+                    product={productData.product}
+                    variant={productData.variant}
+                    colors={productData.colors}
+                    sizes={productData.sizes}
+                    reviewCount={productData.reviewCount}
+                />
+            </div>
+        );
     } catch (error) {
         console.error('Error fetching product data:', error)
         return (
@@ -340,7 +341,6 @@ const ProductPage = async ({ params, searchParams }) => {
             </div>
         )
     }
-
 }
 
 export default ProductPage

@@ -1,5 +1,46 @@
-final-narumugai-git-main-vishalvignesh12s-projects.vercel.app/:1 Manifest fetch from https://final-narumugai-git-main-vishalvignesh12s-projects.vercel.app/manifest.json failed, code 401
-
-/manifest.json:1  Failed to load resource: the server responded with a status of 401 ()
-
-manifest.json:1  Failed to load resource: the server responded with a status of 401 ()
+Error:   x Expected a semicolon
+     ,-[/vercel/path0/app/(root)/(website)/product/[slug]/page.jsx:335:1]
+ 332 |                 </div>
+ 333 |             )
+ 334 |         }
+ 335 |     } catch (error) {
+     :     ^
+ 336 |         console.error('Error fetching product data:', error)
+ 337 |         return (
+ 338 |             <div className='flex justify-center items-center py-10 h-[300px]'>
+     `----
+  x Expected a semicolon
+     ,-[/vercel/path0/app/(root)/(website)/product/[slug]/page.jsx:335:1]
+ 332 |                 </div>
+ 333 |             )
+ 334 |         }
+ 335 |     } catch (error) {
+     :       ^^^^^
+ 336 |         console.error('Error fetching product data:', error)
+ 337 |         return (
+ 338 |             <div className='flex justify-center items-center py-10 h-[300px]'>
+     `----
+  x Return statement is not allowed here
+     ,-[/vercel/path0/app/(root)/(website)/product/[slug]/page.jsx:337:1]
+ 334 |             }
+ 335 |         } catch (error) {
+ 336 |             console.error('Error fetching product data:', error)
+ 337 | ,->         return (
+ 338 | |               <div className='flex justify-center items-center py-10 h-[300px]'>
+ 339 | |                   <h1 className='text-4xl font-semibold'>Product not found.</h1>
+ 340 | |               </div>
+ 341 | `->         )
+ 342 |         }
+ 343 |     
+ 344 |     }
+     `----
+  x Expression expected
+     ,-[/vercel/path0/app/(root)/(website)/product/[slug]/page.jsx:342:1]
+ 339 |                 <h1 className='text-4xl font-semibold'>Product not found.</h1>
+ 340 |             </div>
+ 341 |         )
+ 342 |     }
+     :     ^
+ 343 | 
+ 344 | }
+     `----
