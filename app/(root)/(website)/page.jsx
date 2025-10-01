@@ -377,33 +377,6 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Instagram Section */}
-            <section className="py-20 bg-gradient-to-br from-pink-50 to-purple-50">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                            Follow Our Journey
-                        </h2>
-                        <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-8">
-                            Stay connected with us on social media for the latest collections and styling tips
-                        </p>
-                        <div className="flex justify-center space-x-6">
-                            <a href="#" className="w-14 h-14 bg-gradient-to-br from-pink-500 to-purple-500 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform duration-300">
-                                <FaInstagram className="w-6 h-6" />
-                            </a>
-                            <a href="#" className="w-14 h-14 bg-gradient-to-br from-green-500 to-teal-500 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform duration-300">
-                                <FaWhatsapp className="w-6 h-6" />
-                            </a>
-                            <a href="#" className="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform duration-300">
-                                <FaFacebook className="w-6 h-6" />
-                            </a>
-                        </div>
-                    </div>
-                    
-
-                </div>
-            </section>
-
 
         </>
     )
