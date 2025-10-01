@@ -20,7 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { addIntoCart } from "@/store/reducer/cartReducer";
 import { showToast } from "@/lib/showToast";
 import { Button } from "@/components/ui/button";
-import loadingSvg from '@/public/assets/images/loading.svg'
+// For SVG files, use regular img tag instead of Next.js Image component
 import ProductReveiw from "@/components/Application/Website/ProductReveiw";
 const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
 
@@ -88,7 +88,7 @@ const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
 
             {isProductLoading &&
                 <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50">
-                    <Image src={loadingSvg} width={80} height={80} alt="Loading" />
+                    <img src="/assets/images/loading.svg" width="80" height="80" alt="Loading" />
                 </div>
             }
 

@@ -1,6 +1,4 @@
-Error fetching product data: MissingSchemaError: Schema hasn't been registered for model "Media".
-Use mongoose.model(name, schema)
-    at new Promise (<anonymous>)
-Error generating metadata: MissingSchemaError: Schema hasn't been registered for model "Media".
-Use mongoose.model(name, schema)
-    at new Promise (<anonymous>)
+ Error: <svg> attribute width: Expected length, "auto".
+m	@	v2-entry-app-edd60048.modern.js:1
+ Error: <svg> attribute height: Expected length, "auto".
+m	@	v2-entry-app-edd60048.modern.js:1
