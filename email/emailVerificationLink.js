@@ -4,7 +4,7 @@ export const emailVerificationLink = (link) => {
 <html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml">
 
 <head>
-    <title></title>
+    <title>Email Verification - Narumugai</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <style>
@@ -126,10 +126,10 @@ export const emailVerificationLink = (link) => {
                                                                 <div align="center" class="alignment"
                                                                     style="line-height:10px">
                                                                     <div style="max-width: 250px;"><img
-                                                                            alt="reset-password" height="auto"
+                                                                            alt="Email Verification" height="auto"
                                                                             src="https://res.cloudinary.com/dg7efdu9o/image/upload/v1747200655/otp-email_rsq47y.webp"
                                                                             style="display: block; height: auto; border: 0; width: 100%;"
-                                                                            title="reset-password" width="250" /></div>
+                                                                            title="Email Verification" width="250" /></div>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -141,7 +141,7 @@ export const emailVerificationLink = (link) => {
                                                         <tr>
                                                             <td class="pad" style="text-align:center;width:100%;">
                                                                 <h1
-                                                                    style="margin: 0; color: #393d47; direction: ltr; font-family: Tahoma, Verdana, Segoe, sans-serif; font-size: 25px; font-weight: normal; letter-spacing: normal; line-height: 120%; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 30px;">
+                                                                    style="margin: 0; color: #ec4899; direction: ltr; font-family: Tahoma, Verdana, Segoe, sans-serif; font-size: 28px; font-weight: bold; letter-spacing: normal; line-height: 120%; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 34px;">
                                                                     <strong>Email Verification</strong>
                                                                 </h1>
                                                             </td>
@@ -155,10 +155,8 @@ export const emailVerificationLink = (link) => {
                                                             <td class="pad">
                                                                 <div
                                                                     style="color:#374151;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:15px;line-height:150%;text-align:center;mso-line-height-alt:22px;">
-                                                                    <p style="margin: 0; word-break: break-word;">We
-                                                                        received a request to verify your identity. Use
-                                                                        the following link to
-                                                                        complete the verification process:</p>
+                                                                    <p style="margin: 0 0 10px 0; word-break: break-word;">Thank you for registering with Narumugai!</p>
+                                                                    <p style="margin: 0; word-break: break-word;">Please click the button below to verify your email address and activate your account:</p>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -168,14 +166,9 @@ export const emailVerificationLink = (link) => {
                                                         style="mso-table-lspace: 0pt; mso-table-rspace: 0pt;"
                                                         width="100%">
                                                         <tr>
-                                                            <td class="pad">
-                                                                <h4
-                                                                    style="margin: 0; color: #7747FF; direction: ltr; font-family: Arial, Helvetica Neue, Helvetica, sans-serif; font-size: 20px; font-weight: 700; letter-spacing: normal; line-height: 120%; text-align: center; margin-top: 0; margin-bottom: 0; mso-line-height-alt: 45.6px;">
-
-                                                                    <a href="${link}"
-                                                                        style="background-color: #7747FF;color:white;padding:10px 30px;text-decoration: none; border-radius: 50px;">Verify</a>
-                                                                </h4>
-                                                                
+                                                            <td class="pad" style="text-align: center;">
+                                                                <a href="${link}"
+                                                                    style="background: linear-gradient(135deg, #ec4899, #f472b6); color:white; padding:12px 35px; text-decoration: none; border-radius: 50px; font-weight: bold; display: inline-block; box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);">Verify Email</a>
                                                             </td>
                                                         </tr>
                                                     </table>
@@ -186,11 +179,9 @@ export const emailVerificationLink = (link) => {
                                                         <tr>
                                                             <td class="pad">
                                                                 <div
-                                                                    style="color:#393d47;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:14px;line-height:150%;text-align:center;mso-line-height-alt:21px;">
-                                                                    <p style="margin: 0; word-break: break-word;">If the button above doesn’t work, you can copy and
-                                                                        paste the following link into your browser:</p>
-                                                                      
-                                                                        <a href="${link}">${link}</a>
+                                                                    style="color:#374151;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:14px;line-height:150%;text-align:center;mso-line-height-alt:21px;">
+                                                                    <p style="margin: 10px 0 0 0; word-break: break-word;">If the button above doesn’t work, you can copy and paste the following link into your browser:</p>
+                                                                    <a href="${link}" style="color: #ec4899; text-decoration: none; word-break: break-word; display: inline-block; padding: 8px; background-color: #f8fafc; border-radius: 8px; margin: 5px 0;">${link}</a>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -203,13 +194,12 @@ export const emailVerificationLink = (link) => {
                                                             <td class="pad"
                                                                 style="padding-bottom:5px;padding-left:10px;padding-right:10px;padding-top:10px;">
                                                                 <div
-                                                                    style="color:#393d47;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:13px;line-height:150%;text-align:center;mso-line-height-alt:19.5px;">
-                                                                    <p style="margin: 10px;"><strong>Note:</strong> This link will expire in 1 hours. If you did not create an account, you can safely ignore this email.</p>
-                                                                         
-                                                                    <p style="margin: 0;">Thank you,<br />
-                                                                        <a href="https://www.youtube.com/@developergoswami"
-                                                                            target="_blank">Developer
-                                                                            Goswami</a>
+                                                                    style="color:#6b7280;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:13px;line-height:150%;text-align:center;mso-line-height-alt:19.5px;">
+                                                                    <p style="margin: 10px 0 0 0;"><strong>Note:</strong> This verification link will expire in 1 hour. If you did not create an account with Narumugai, you can safely ignore this email.</p>
+                                                                    <p style="margin: 15px 0 0 0; padding-top: 10px; border-top: 1px solid #e5e7eb;">
+                                                                        <strong style="color: #ec4899; font-size: 16px;">Welcome to Narumugai!</strong><br/>
+                                                                        <span style="color: #4b5563;">Your premier destination for exquisite sarees</span><br/>
+                                                                        <a href="https://narumugai.com" target="_blank" style="color: #ec4899; text-decoration: none; font-weight: bold;">www.narumugai.com</a>
                                                                     </p>
                                                                 </div>
                                                             </td>

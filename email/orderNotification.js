@@ -499,7 +499,21 @@ export const orderNotification = (data) => {
 																style="padding-bottom:5px;padding-left:10px;padding-right:10px;padding-top:5px;">
 																<div
 																	style="color:#fdf2f8;direction:ltr;font-family:TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif;font-size:14px;font-weight:700;letter-spacing:3px;line-height:1.2;text-align:left;mso-line-height-alt:17px;">
-																	<p style="margin: 0;">CRAFTED WITH LOVE - NARUMUGAI SAREES</p>
+																	<p style="margin: 0;"><strong>THANK YOU FOR CHOOSING NARUMUGAI</strong></p>
+																</div>
+															</td>
+														</tr>
+													</table>
+													<table border="0" cellpadding="0" cellspacing="0"
+														class="paragraph_block block-2" role="presentation"
+														style="mso-table-lspace: 0pt; mso-table-rspace: 0pt; word-break: break-word;"
+														width="100%">
+														<tr>
+															<td class="pad"
+																style="padding-bottom:5px;padding-left:10px;padding-right:10px;padding-top:5px;">
+																<div
+																	style="color:#d1d5db;direction:ltr;font-family:TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif;font-size:12px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:14px;">
+																	<p style="margin: 0;">We're honored to have you as our valued customer.</p>
 																</div>
 															</td>
 														</tr>
@@ -607,10 +621,10 @@ export const orderNotification = (data) => {
 																<div
 																	style="color:#ffffff;direction:ltr;font-family:TimesNewRoman, 'Times New Roman', Times, Baskerville, Georgia, serif;font-size:18px;font-weight:400;letter-spacing:0px;line-height:1.2;text-align:left;mso-line-height-alt:22px;">
 																	<p style="margin: 0;"><strong>Have a
-																			question?</strong> We love curiosity. <a
-																			href="contact-us.com" rel="noopener"
+																			question?</strong> We're here to help! <a
+																			href="mailto:narumugaiambattur@gmail.com" rel="noopener"
 																			style="text-decoration: underline; color: #ffffff;"
-																			target="_blank">contact us</a></p>
+																			target="_blank">Contact us</a></p>
 																</div>
 															</td>
 														</tr>

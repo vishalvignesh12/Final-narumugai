@@ -48,7 +48,9 @@ const Header = () => {
     }, [])
     
     return (
+        
         <div className='bg-white border-b lg:px-32 md:px-8 px-4'>
+            <meta name="google-site-verification" content="rlGxKPQZkMKBgxHtyZSOt9UAHlm1WQ9FbmEhAKrMo50" />
             <div className='flex justify-between items-center lg:py-5 py-3'>
                 <Link href={WEBSITE_HOME}>
                     <div className='text-center'>
