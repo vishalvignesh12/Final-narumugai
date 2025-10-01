@@ -19,6 +19,7 @@ export const WEBSITE_PRIVACY_POLICY = "/privacy-policy"
 export const WEBSITE_TERMS_CONDITIONS = "/terms-and-conditions"
 export const WEBSITE_SHIPPING_POLICY = "/shipping-policy"
 export const WEBSITE_REFUND_POLICY = "/refund-policy"
+export const WEBSITE_RETURN_POLICY = "/return-policy"
 
 // User routes 
 export const USER_DASHBOARD = "/my-account"

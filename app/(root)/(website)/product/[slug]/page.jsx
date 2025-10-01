@@ -1,27 +1,76 @@
-import axios from 'axios'
 import React from 'react'
 import ProductDetails from './ProductDetails'
 import { Metadata } from 'next'
 import { getBaseURL } from '@/lib/config'
 
+// Revalidate data to ensure fresh product info
+export const revalidate = 300 // Revalidate every 5 minutes
+
+// Generate static params to pre-build product pages
+export async function generateStaticParams() {
+  try {
+    // Use relative path for internal API call
+    const response = await fetch('/api/product?size=10000', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+      next: { revalidate: 3600 } // Cache for 1 hour
+    });
+
+    if (!response.ok) {
+      console.error(`Failed to fetch products for static generation: ${response.status}`);
+      return [];
+    }
+
+    const result = await response.json();
+    
+    if (result.success && result.data && Array.isArray(result.data.docs)) {
+      // Return array of params objects with slug for each product
+      return result.data.docs.map((product) => ({
+        slug: product.slug,
+      }));
+    }
+    
+    return [];
+  } catch (error) {
+    console.error('Error generating static params:', error);
+    return [];
+  }
+}
+
+// Enable dynamic params to handle cases where static generation misses some routes
+export const dynamicParams = true;
+
 export async function generateMetadata({ params, searchParams }) {
     const { slug } = await params
     const { color, size } = await searchParams
 
-    // Use absolute URL for server-side rendering
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    let url = `${baseUrl}/api/product/details/${slug}`
+    let url = `/api/product/details/${slug}`
     if (color && size) {
         url += `?color=${color}&size=${size}`
     }
 
     try {
-        const { data: getProduct } = await axios.get(url, {
-            timeout: 10000, // 10 second timeout
+        // Using fetch for internal API calls in Next.js App Router
+        const response = await fetch(url, {
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/json'
-            }
-        })
+                'Content-Type': 'application/json',
+            },
+            cache: 'no-store', // Don't cache for now to ensure fresh data
+            next: { revalidate: 300 } // Revalidate every 5 minutes
+        });
+        
+        // If response is not ok, try to get the error message
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+        
+        const getProduct = await response.json();
         
         if (getProduct.success) {
             const { product, variant } = getProduct.data
@@ -109,21 +158,31 @@ const ProductPage = async ({ params, searchParams }) => {
     const { slug } = await params
     const { color, size } = await searchParams
 
-    // Use absolute URL for server-side rendering
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'
-    let url = `${baseUrl}/api/product/details/${slug}`
+    let url = `/api/product/details/${slug}`
 
     if (color && size) {
         url += `?color=${color}&size=${size}`
     }
 
     try {
-        const { data: getProduct } = await axios.get(url, {
-            timeout: 10000, // 10 second timeout
+        // Using fetch for internal API calls in Next.js App Router
+        const response = await fetch(url, {
+            method: 'GET',
             headers: {
-                'Content-Type': 'application/json'
-            }
-        })
+                'Content-Type': 'application/json',
+            },
+            cache: 'no-store', // Don't cache for now to ensure fresh data
+            next: { revalidate: 300 } // Revalidate every 5 minutes
+        });
+
+        // If response is not ok, try to get the error message
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+        }
+
+        const getProduct = await response.json();
 
         if (!getProduct.success) {
             return (

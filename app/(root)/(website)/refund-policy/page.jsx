@@ -1,6 +1,6 @@
 import React from 'react'
 import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb'
-import { WEBSITE_REFUND_POLICY } from '@/routes/WebsiteRoute'
+import { WEBSITE_REFUND_POLICY, WEBSITE_RETURN_POLICY } from '@/routes/WebsiteRoute'
 
 const breadcrumb = {
     title: 'Refund Policy',
@@ -32,6 +32,11 @@ const RefundPolicy = () => {
                     <div className='bg-blue-50 border-l-4 border-blue-500 p-4 mb-6'>
                         <p className='text-blue-700'>
                             <strong>Important:</strong> For detailed refund terms and payment processing information, please also refer to our 
+                            <a href={WEBSITE_RETURN_POLICY} 
+                               className='text-blue-600 hover:text-blue-800 ml-1 underline'>
+                                Return & Exchange Policy
+                            </a>
+                            {' '}and{' '}
                             <a href="https://merchant.razorpay.com/policy/RIgEbrrWrD7Wl7/refund" 
                                target="_blank" 
                                rel="noopener noreferrer"

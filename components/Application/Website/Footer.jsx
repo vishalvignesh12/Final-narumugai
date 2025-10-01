@@ -7,7 +7,7 @@ import { FaInstagram } from "react-icons/fa";
 import { FaWhatsapp } from "react-icons/fa";
 import { TiSocialFacebookCircular } from "react-icons/ti";
 
-import { USER_DASHBOARD, WEBSITE_LOGIN, WEBSITE_REGISTER } from '@/routes/WebsiteRoute'
+import { USER_DASHBOARD, WEBSITE_LOGIN, WEBSITE_REGISTER, WEBSITE_RETURN_POLICY } from '@/routes/WebsiteRoute'
 
 const Footer = () => {
     return (
@@ -74,7 +74,7 @@ const Footer = () => {
                                     { name: 'Create Account', link: WEBSITE_REGISTER },
                                     { name: 'Login', link: WEBSITE_LOGIN },
                                     { name: 'My Account', link: USER_DASHBOARD },
-                                    { name: 'Return & Exchange', link: '/return-policy' },
+                                    { name: 'Return & Exchange', link: WEBSITE_RETURN_POLICY },
                                     { name: 'Refund Policy', link: '/refund-policy' }
                                 ].map((item, index) => (
                                     <li key={index}>
