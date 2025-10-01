@@ -9,6 +9,9 @@ import ProductModel from '@/models/Product.model'
 import ProductVariantModel from '@/models/ProductVariant.model'
 import ReviewModel from '@/models/Review.model'
 
+// Import Media model to ensure it's registered with Mongoose
+import MediaModel from '@/models/Media.model'
+
 // Revalidate data to ensure fresh product info
 export const revalidate = 300 // Revalidate every 5 minutes
 
@@ -32,7 +35,11 @@ export async function generateMetadata({ params }) {
         console.log('Metadata: Querying product with filter:', filter); // Debug log for Vercel
 
         // Get product 
-        const getProduct = await ProductModel.findOne(filter).populate('media', 'secure_url').lean();
+        const getProduct = await ProductModel.findOne(filter).populate({
+            path: 'media',
+            select: 'secure_url',
+            model: 'Media'
+        }).lean();
 
         console.log('Metadata: Product found:', !!getProduct); // Debug log for Vercel
 
@@ -45,7 +52,11 @@ export async function generateMetadata({ params }) {
         }
 
         // Get the first available product variant 
-        let variant = await ProductVariantModel.findOne({ product: getProduct._id }).populate('media', 'secure_url').lean();
+        let variant = await ProductVariantModel.findOne({ product: getProduct._id }).populate({
+            path: 'media',
+            select: 'secure_url',
+            model: 'Media'
+        }).lean();
 
         // If no variant found, create a fallback variant from product data
         if (!variant) {
@@ -160,7 +171,11 @@ const ProductPage = async ({ params }) => {
         console.log('Querying product with filter:', filter); // Debug log for Vercel
 
         // Get product 
-        const product = await ProductModel.findOne(filter).populate('media', 'secure_url').lean();
+        const product = await ProductModel.findOne(filter).populate({
+            path: 'media',
+            select: 'secure_url',
+            model: 'Media'
+        }).lean();
 
         console.log('Product found:', !!product); // Debug log for Vercel
 
@@ -174,7 +189,11 @@ const ProductPage = async ({ params }) => {
         }
 
         // Get the first available product variant 
-        let variant = await ProductVariantModel.findOne({ product: product._id }).populate('media', 'secure_url').lean();
+        let variant = await ProductVariantModel.findOne({ product: product._id }).populate({
+            path: 'media',
+            select: 'secure_url',
+            model: 'Media'
+        }).lean();
 
         // If no variant found, create a fallback variant from product data
         if (!variant) {
