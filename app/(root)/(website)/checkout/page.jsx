@@ -4,32 +4,32 @@ import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrum
 import { Button } from '@/components/ui/button'
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import useFetch from '@/hooks/useFetch'
 import { showToast } from '@/lib/showToast'
 import { zSchema } from '@/lib/zodSchema'
 import { WEBSITE_ORDER_DETAILS, WEBSITE_PRODUCT_DETAILS, WEBSITE_SHOP } from '@/routes/WebsiteRoute'
-import { addIntoCart, clearCart } from '@/store/reducer/cartReducer'
+import { clearCart } from '@/store/reducer/cartReducer'
 import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import Image from 'next/image'
 import Link from 'next/link'
-import React, { useActionState, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
-import { IoCloseCircleSharp } from "react-icons/io5";
-import { z } from 'zod'
-import { FaShippingFast } from "react-icons/fa";
+import { IoCloseCircleSharp } from "react-icons/io5"
+import { FaShippingFast } from "react-icons/fa"
 import { Textarea } from '@/components/ui/textarea'
 import Script from 'next/script'
 import { useRouter } from 'next/navigation'
 
 import loading from '@/public/assets/images/loading.svg'
+
 const breadCrumb = {
     title: 'Checkout',
     links: [
         { label: "Checkout" }
     ]
 }
+
 const Checkout = () => {
     const router = useRouter()
     const dispatch = useDispatch()
@@ -48,8 +48,9 @@ const Checkout = () => {
 
     const [placingOrder, setPlacingOrder] = useState(false)
     const [savingOrder, setSavingOrder] = useState(false)
+
     useEffect(() => {
-        // Simple cart data mapping without verification
+        // Map cart data for display
         if (cart.count > 0) {
             const cartData = cart.products.map(item => ({
                 productId: item.productId,
@@ -69,12 +70,10 @@ const Checkout = () => {
         }
     }, [cart.products, cart.count])
 
-
     useEffect(() => {
         const cartProducts = cart.products
 
         const subTotalAmount = cartProducts.reduce((sum, product) => sum + (product.sellingPrice * (product.qty || 1)), 0)
-
         const discount = cartProducts.reduce((sum, product) => sum + ((product.mrp - product.sellingPrice) * (product.qty || 1)), 0)
 
         setSubTotal(subTotalAmount)
@@ -82,13 +81,9 @@ const Checkout = () => {
         setTotalAmount(subTotalAmount)
 
         couponForm.setValue('minShoppingAmount', subTotalAmount)
-
     }, [cart])
 
-
-
-    // coupon form 
-
+    // Coupon form
     const couponFormSchema = zSchema.pick({
         code: true,
         minShoppingAmount: true
@@ -111,14 +106,14 @@ const Checkout = () => {
             }
 
             const discountPercentage = response.data.discountPercentage
-            // get coupon discount amount 
-            setCouponDiscountAmount((subtotal * discountPercentage) / 100)
-            setTotalAmount(subtotal - ((subtotal * discountPercentage) / 100))
+            const discountAmount = (subtotal * discountPercentage) / 100
+            
+            setCouponDiscountAmount(discountAmount)
+            setTotalAmount(subtotal - discountAmount)
             showToast('success', response.message)
             setCouponCode(couponForm.getValues('code'))
             setIsCouponApplied(true)
-
-            couponForm.resetField('code', '')
+            couponForm.resetField('code')
         } catch (error) {
             showToast('error', error.message)
         } finally {
@@ -130,11 +125,10 @@ const Checkout = () => {
         setIsCouponApplied(false)
         setCouponCode('')
         setCouponDiscountAmount(0)
-        setTotalAmount(subtotal)
+        setTotalAmount(subtotal - discount) // Reset to subtotal minus regular discount
     }
 
-
-    // place order 
+    // Order form
     const orderFormSchema = zSchema.pick({
         name: true,
         email: true,
@@ -145,52 +139,40 @@ const Checkout = () => {
         pincode: true,
         landmark: true,
         ordernote: true
-    }).extend({
-        userId: z.string().optional()
     })
 
     const orderForm = useForm({
         resolver: zodResolver(orderFormSchema),
         defaultValues: {
-            name: '',
-            email: '',
-            phone: '',
+            name: authStore?.auth?.name || '',
+            email: authStore?.auth?.email || '',
+            phone: authStore?.auth?.phone || '',
             country: '',
             state: '',
             city: '',
             pincode: '',
             landmark: '',
             ordernote: '',
-            userId: authStore?.auth?._id,
         }
     })
 
-
-    useEffect(() => {
-        if (authStore) {
-            orderForm.setValue('userId', authStore?.auth?._id)
-        }
-    }, [authStore])
-
-    // get order id 
+    // Get order ID for Razorpay
     const getOrderId = async (amount) => {
         try {
             const { data: orderIdData } = await axios.post('/api/payment/get-order-id', { amount })
             if (!orderIdData.success) {
                 throw new Error(orderIdData.message)
             }
-
             return { success: true, order_id: orderIdData.data }
-
         } catch (error) {
             return { success: false, message: error.message }
         }
     }
 
     const placeOrder = async (formData) => {
- 
         setPlacingOrder(true)
         try {
+            // Generate order ID from server
             const generateOrderId = await getOrderId(totalAmount)
             if (!generateOrderId.success) {
                 throw new Error(generateOrderId.message)
@@ -198,54 +180,28 @@ const Checkout = () => {
 
             const order_id = generateOrderId.order_id
 
-            const razOption = {
-                "key": process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-                "amount": totalAmount * 100,
-                "currency": "INR",
-                "name": "E-store",
-                "description": "Payment for order",
-                "image": "", // Remove image to avoid ad blocker issues
-                "order_id": order_id,
-                "handler": async function (response) {
+            // Prepare Razorpay options
+            const razorpayOptions = {
+                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+                amount: totalAmount * 100, // Razorpay expects amount in paise
+                currency: "INR",
+                name: "Narumugai",
+                description: "Payment for your order",
+                order_id: order_id,
+                handler: async function (response) {
                     setSavingOrder(true)
-                    
-                    // FIRST-TO-PAY-WINS: Atomic stock deduction only at payment success
-                    const stockLockItems = verifiedCartData.map(item => ({
-                        variantId: item.variantId,
-                        quantity: item.qty || 1
-                    }))
-
                     try {
-                        // Try atomic stock purchase immediately after payment
-                        console.log('Attempting stock purchase for items:', stockLockItems)
-                        
-                        const { data: stockPurchaseResponse } = await axios.post('/api/stock/atomic-purchase', {
-                            items: stockLockItems
-                        })
-                        
-                        console.log('Stock purchase response:', stockPurchaseResponse)
-                        
-                        if (!stockPurchaseResponse.success) {
-                            // Stock not available - payment succeeded but no stock
-                            const errorMessage = stockPurchaseResponse.message || 'Sorry, this product was just sold out to another customer. Your payment will be refunded.'
-                            console.log('Stock error message:', errorMessage)
-                            showToast('error', errorMessage)
-                            setSavingOrder(false)
-                            return
-                        }
+                        // Prepare cart products data
+                        const products = verifiedCartData.map((cartItem) => ({
+                            productId: cartItem.productId,
+                            variantId: cartItem.variantId,
+                            name: cartItem.name,
+                            qty: cartItem.qty || 1,
+                            mrp: cartItem.mrp,
+                            sellingPrice: cartItem.sellingPrice,
+                        }))
 
-                        // Stock purchased successfully, proceed with order
-                        const products = verifiedCartData.map((cartItem) => (
-                            {
-                                productId: cartItem.productId,
-                                variantId: cartItem.variantId,
-                                name: cartItem.name,
-                                qty: cartItem.qty || 1,
-                                mrp: cartItem.mrp,
-                                sellingPrice: cartItem.sellingPrice,
-                            }
-                        ))
-
+                        // Save the order after payment
                         const { data: paymentResponseData } = await axios.post('/api/payment/save-order', {
                             ...formData,
                             ...response,
@@ -254,187 +210,41 @@ const Checkout = () => {
                             discount: discount,
                             couponDiscountAmount: couponDiscountAmount,
                             totalAmount: totalAmount,
-                            stockLockItems: stockLockItems // Send original stock lock items for reference
                         })
 
                         if (paymentResponseData.success) {
                             showToast('success', paymentResponseData.message)
-                            dispatch(clearCart())
+                            dispatch(clearCart()) // Clear cart after successful order
                             orderForm.reset()
                             router.push(WEBSITE_ORDER_DETAILS(response.razorpay_order_id))
                         } else {
-                            // Note: Stock already deducted atomically, no rollback needed
                             showToast('error', paymentResponseData.message)
                         }
                     } catch (error) {
-                        console.error('Error in payment handler:', error)
-                        
-                        // More robust error handling to address 'missing files' and other issues
-                        let errorMessage = 'Error processing your order. Please check your order status.';
-                        
-                        if (error.response) {
-                            // Server responded with error status
-                            errorMessage = error.response.data?.message || 
-                                         error.response.data?.error || 
-                                         `Server error: ${error.response.status}`;
-                        } else if (error.request) {
-                            // Request was made but no response received (likely network/CORS issue)
-                            errorMessage = 'Network error. Please check your connection and try again. This could be due to ad blockers.';
-                        } else {
-                            // Something else happened in setting up the request
-                            errorMessage = error.message || 'An unexpected error occurred.';
-                        }
-                        
-                        showToast('error', errorMessage);
+                        console.error('Error saving order:', error)
+                        showToast('error', error.message || 'Error processing your order')
                     } finally {
                         setSavingOrder(false)
                     }
                 },
-                "prefill": {
-                    "name": formData.name,
-                    "email": formData.email,
-                    "contact": formData.phone
+                prefill: {
+                    name: formData.name,
+                    email: formData.email,
+                    contact: formData.phone
                 },
-
-                "theme": {
-                    "color": "#7c3aed"
+                theme: {
+                    color: "#7c3aed"
                 }
             }
 
-            const rzp = new Razorpay(razOption)
-            
-            // More comprehensive network/tracking error handling to avoid interfering with payment flow
-            const originalFetch = window.fetch;
-            
-            // Only modify fetch for tracking requests, not essential payment APIs
-            window.fetch = (...args) => {
-                try {
-                    const url = args[0];
-                    
-                    // Check if this is a tracking/analytics request that might be blocked
-                    const isTrackingRequest = [
-                        'sentry-cdn.com',
-                        'lumberjack.razorpay.com', 
-                        'track?key_id=',
-                        'browser.sentry-cdn.com',
-                        'logo-black.png'
-                    ].some(pattern => 
-                        typeof url === 'string' && url.includes(pattern)
-                    );
-                    
-                    if (isTrackingRequest) {
-                        // For tracking requests, handle blocked requests silently
-                        return originalFetch(...args).catch(error => {
-                            if (error.message?.includes('ERR_BLOCKED_BY_CLIENT') || 
-                                error.message?.includes('Failed to fetch')) {
-                                // Return a minimal response to avoid breaking the flow
-                                return Promise.resolve(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
-                            }
-                            throw error;
-                        });
-                    } else {
-                        // For all other requests (including payment APIs), let errors bubble up normally
-                        return originalFetch(...args);
-                    }
-                } catch (error) {
-                    // If there's an error in our fetch wrapper logic, return a safe response
-                    if (error.message?.includes('ERR_BLOCKED_BY_CLIENT')) {
-                        return Promise.resolve(new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } }));
-                    }
-                    throw error;
-                }
-            };
-            
-            // Enhanced image loading error suppression - only for specific known blocked images
-            const originalCreateElement = document.createElement;
-            document.createElement = function(tagName) {
-                const element = originalCreateElement.call(this, tagName);
-                if (tagName.toLowerCase() === 'img') {
-                    element.addEventListener('error', (e) => {
-                        // Only suppress errors for known tracking/logo images
-                        const blockedImages = [
-                            'logo-black.png',
-                            'sentry',
-                            'razorpay'
-                        ];
-                        
-                        const isBlockedImage = blockedImages.some(pattern => 
-                            e.target.src?.includes(pattern)
-                        );
-                        
-                        if (isBlockedImage) {
-                            // Prevent error from propagating for blocked tracking images
-                            e.preventDefault();
-                            e.stopPropagation();
-                            e.stopImmediatePropagation(); // Stop all event propagation
-                        }
-                    });
-                }
-                return element;
-            };
-            
-            // Suppress XMLHttpRequest errors specifically for tracking, not payment flow
-            const originalXHR = window.XMLHttpRequest;
-            window.XMLHttpRequest = function() {
-                const xhr = new originalXHR();
-                
-                // Wrap the open method as well to handle ad blockers
-                const originalOpen = xhr.open;
-                xhr.open = function(method, url) {
-                    // Check if this is a tracking request that might be blocked
-                    const isTrackingRequest = [
-                        'sentry',
-                        'lumberjack.razorpay.com',
-                        'track'
-                    ].some(pattern => String(url).includes(pattern));
-                    
-                    if (isTrackingRequest) {
-                        // For tracking requests, call original open but we'll handle errors in send
-                        try {
-                            return originalOpen.apply(this, arguments);
-                        } catch (error) {
-                            if (error.message?.includes('ERR_BLOCKED_BY_CLIENT')) {
-                                // Silently handle blocked requests
-                                return;
-                            }
-                            throw error;
-                        }
-                    } else {
-                        // For non-tracking requests, use original behavior
-                        return originalOpen.apply(this, arguments);
-                    }
-                };
-                
-                // Wrap the send method to handle errors
-                const originalSend = xhr.send;
-                xhr.send = function(...args) {
-                    try {
-                        return originalSend.apply(this, args);
-                    } catch (error) {
-                        if (error.message?.includes('ERR_BLOCKED_BY_CLIENT')) {
-                            // Silently fail for blocked tracking requests
-                            return;
-                        }
-                        throw error;
-                    }
-                };
-                
-                return xhr;
-            };
-
-            // Suppress Razorpay console errors
-            rzp.on('payment.failed', function (response) {
-                showToast('error', response.error.description)
-            });
-            
+            // Open Razorpay payment modal
+            const rzp = new window.Razorpay(razorpayOptions)
             rzp.open()
-            
-            // Restore original functions after a delay
-            setTimeout(() => {
-                window.fetch = originalFetch;
-                document.createElement = originalCreateElement;
-                window.XMLHttpRequest = originalXHR;
-            }, 10000); // Longer timeout for payment completion
+
+            // Handle payment failure
+            rzp.on('payment.failed', function (response) {
+                showToast('error', response.error.description || 'Payment failed')
+            })
 
         } catch (error) {
             showToast('error', error.message)
@@ -445,300 +255,300 @@ const Checkout = () => {
 
     return (
         <div>
-
-            {savingOrder &&
-                <div className='h-screen w-screen fixed top-0 left-0 z-50 bg-black/10'>
-                    <div className='h-screen flex justify-center items-center'>
-                        <Image src={loading.src} height={80} width={80} alt='Loading' />
-                        <h4 className='font-semibold'>Order Confirming...</h4>
+            {/* Order saving overlay */}
+            {savingOrder && (
+                <div className='h-screen w-screen fixed top-0 left-0 z-50 bg-black/10 flex justify-center items-center'>
+                    <div className='flex flex-col items-center'>
+                        <Image src={loading} height={80} width={80} alt='Loading' />
+                        <h4 className='font-semibold mt-4'>Processing your order...</h4>
                     </div>
                 </div>
-            }
+            )}
 
             <WebsiteBreadcrumb props={breadCrumb} />
-            {cart.count === 0
-                ?
+
+            {cart.count === 0 ? (
                 <div className='w-screen h-[500px] flex justify-center items-center py-32'>
                     <div className='text-center'>
                         <h4 className='text-4xl font-semibold mb-5'>Your cart is empty!</h4>
-
                         <Button type="button" asChild>
                             <Link href={WEBSITE_SHOP}>Continue Shopping</Link>
                         </Button>
-
                     </div>
                 </div>
-                :
+            ) : (
                 <div className='flex lg:flex-nowrap flex-wrap gap-10 my-20 lg:px-32 px-4'>
+                    {/* Shipping Address Form */}
                     <div className='lg:w-[60%] w-full'>
-                        <div className='flex font-semibold gap-2 items-center'>
+                        <div className='flex font-semibold gap-2 items-center mb-5'>
                             <FaShippingFast size={25} /> Shipping Address:
                         </div>
-                        <div className='mt-5'>
 
-                            <Form {...orderForm}>
-                                <form className='grid grid-cols-2 gap-5' onSubmit={orderForm.handleSubmit(placeOrder)}>
-                                    <div className='mb-3'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='name'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Full name*" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                        <Form {...orderForm}>
+                            <form onSubmit={orderForm.handleSubmit(placeOrder)} className='grid grid-cols-2 gap-5'>
+                                {/* Name Field */}
+                                <FormField
+                                    control={orderForm.control}
+                                    name='name'
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input placeholder="Full name*" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                        </FormField>
-                                    </div>
-                                    <div className='mb-3'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='email'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input type="email" placeholder="Email*" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                                {/* Email Field */}
+                                <FormField
+                                    control={orderForm.control}
+                                    name='email'
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input type="email" placeholder="Email*" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                        </FormField>
-                                    </div>
-                                    <div className='mb-3'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='phone'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Phone*" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                                {/* Phone Field */}
+                                <FormField
+                                    control={orderForm.control}
+                                    name='phone'
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input placeholder="Phone*" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                        </FormField>
-                                    </div>
-                                    <div className='mb-3'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='country'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Country*" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                                {/* Country Field */}
+                                <FormField
+                                    control={orderForm.control}
+                                    name='country'
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input placeholder="Country*" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                        </FormField>
-                                    </div>
-                                    <div className='mb-3'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='state'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="State*" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                                {/* State Field */}
+                                <FormField
+                                    control={orderForm.control}
+                                    name='state'
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input placeholder="State*" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                        </FormField>
-                                    </div>
-                                    <div className='mb-3'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='city'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="City*" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                                {/* City Field */}
+                                <FormField
+                                    control={orderForm.control}
+                                    name='city'
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input placeholder="City*" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                        </FormField>
-                                    </div>
-                                    <div className='mb-3'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='pincode'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Pincode*" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                                {/* Pincode Field */}
+                                <FormField
+                                    control={orderForm.control}
+                                    name='pincode'
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input placeholder="Pincode*" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                        </FormField>
-                                    </div>
-                                    <div className='mb-3'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='landmark'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Input placeholder="Landmark*" {...field} />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                                {/* Landmark Field */}
+                                <FormField
+                                    control={orderForm.control}
+                                    name='landmark'
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <Input placeholder="Landmark*" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                        </FormField>
-                                    </div>
-                                    <div className='mb-3 col-span-2'>
-                                        <FormField
-                                            control={orderForm.control}
-                                            name='ordernote'
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormControl>
-                                                        <Textarea placeholder="Enter order note" />
-                                                    </FormControl>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        >
+                                {/* Order Note Field */}
+                                <div className='mb-3 col-span-2'>
+                                    <FormField
+                                        control={orderForm.control}
+                                        name='ordernote'
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <Textarea placeholder="Enter order note (optional)" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
 
-                                        </FormField>
-                                    </div>
-
-                                    <div className='mb-3'>
-                                        <ButtonLoading type="submit" text="Place Order" loading={placingOrder} className="bg-black rounded-full px-5 cursor-pointer" />
-                                    </div>
-
-                                </form>
-                            </Form>
-                        </div>
-
+                                {/* Place Order Button */}
+                                <div className='mb-3'>
+                                    <ButtonLoading 
+                                        type="submit" 
+                                        text="Place Order" 
+                                        loading={placingOrder} 
+                                        className="bg-primary hover:bg-primary/90 rounded-full px-8 py-2 cursor-pointer" 
+                                    />
+                                </div>
+                            </form>
+                        </Form>
                     </div>
+
+                    {/* Order Summary */}
                     <div className='lg:w-[40%] w-full'>
                         <div className='rounded bg-gray-50 p-5 sticky top-5'>
                             <h4 className='text-lg font-semibold mb-5'>Order Summary</h4>
-                            <div>
-
-                                <table className='w-full border'>
+                            
+                            <div className="mb-6">
+                                <table className='w-full'>
                                     <tbody>
-                                        {verifiedCartData && verifiedCartData?.map(product => (
-                                            <tr key={product.variantId}>
-                                                <td className='p-3'>
-                                                    <div className='flex items-center gap-5'>
-                                                        <Image src={product.media} width={60} height={60} alt={product.name} className='rounded' />
-                                                        <div>
-                                                            <h4 className='font-medium line-clamp-1'>
-                                                                <Link href={WEBSITE_PRODUCT_DETAILS(product.url)}>{product.name}</Link>
+                                        {verifiedCartData.map(product => (
+                                            <tr key={product.variantId} className="border-b">
+                                                <td className='py-3'>
+                                                    <div className='flex items-center gap-3'>
+                                                        <div className="w-16 h-16">
+                                                            <Image 
+                                                                src={product.media} 
+                                                                width={64} 
+                                                                height={64} 
+                                                                alt={product.name} 
+                                                                className='rounded object-cover w-full h-full'
+                                                                unoptimized // For external images
+                                                            />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <h4 className='font-medium line-clamp-1 text-sm'>
+                                                                <Link href={WEBSITE_PRODUCT_DETAILS(product.url)}>
+                                                                    {product.name}
+                                                                </Link>
                                                             </h4>
-                                                            <p className='text-sm'>Color: {product.color}</p>
-                                                            <p className='text-sm'>Size: {product.size}</p>
-                                                            <p className='text-xs text-gray-500'>Variant ID: {product.variantId}</p>
+                                                            <p className='text-xs text-gray-600'>Color: {product.color}</p>
+                                                            <p className='text-xs text-gray-600'>Size: {product.size}</p>
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className='p-3 text-center'>
-                                                    <p className='text-nowrap text-sm'>
-                                                        {product.qty} x {product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                                <td className='py-3 text-right'>
+                                                    <p className='text-sm'>
+                                                        {product.qty} x <span className="font-medium">{product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                                     </p>
                                                 </td>
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
+                            </div>
 
-                                <table className='w-full'>
-                                    <tbody>
-                                        <tr>
-                                            <td className='font-medium py-2'>Subtotal</td>
-                                            <td className='text-end py-2'>
-                                                {subtotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className='font-medium py-2'>Discount</td>
-                                            <td className='text-end py-2'>
-                                                - {discount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className='font-medium py-2'>Coupon Discount</td>
-                                            <td className='text-end py-2'>
-                                                -  {couponDiscountAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className='font-medium py-2 text-xl'>Total</td>
-                                            <td className='text-end py-2'>
-                                                {totalAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-
-                                <div className='mt-2 mb-5'>
-                                    {!isCouponApplied
-                                        ?
-                                        <Form {...couponForm}>
-                                            <form className='flex justify-between gap-5' onSubmit={couponForm.handleSubmit(applyCoupon)}>
-                                                <div className='w-[calc(100%-100px)]'>
-                                                    <FormField
-                                                        control={couponForm.control}
-                                                        name='code'
-                                                        render={({ field }) => (
-                                                            <FormItem>
-                                                                <FormControl>
-                                                                    <Input placeholder="Enter coupon code" {...field} />
-                                                                </FormControl>
-                                                                <FormMessage />
-                                                            </FormItem>
-                                                        )}
-                                                    >
-
-                                                    </FormField>
-                                                </div>
-                                                <div className='w-[100px]'>
-                                                    <ButtonLoading type="submit" text="Apply" className="w-full cursor-pointer" loading={couponLoading} />
-                                                </div>
-                                            </form>
-                                        </Form>
-                                        :
-                                        <div className='flex justify-between py-1 px-5 rounded-lg bg-gray-200'>
-                                            <div>
-                                                <span className='text-xs'>Coupon:</span>
-                                                <p className='text-sm font-semibold'>{couponCode}</p>
-                                            </div>
-                                            <button type='button' onClick={removeCoupon} className='text-red-500 cursor-pointer'>
-                                                <IoCloseCircleSharp size={25} />
-                                            </button>
-                                        </div>
-                                    }
+                            {/* Price Summary */}
+                            <div className="border-t pt-4">
+                                <div className="flex justify-between mb-2">
+                                    <span>Subtotal</span>
+                                    <span>{subtotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                 </div>
+                                
+                                {discount > 0 && (
+                                    <div className="flex justify-between mb-2">
+                                        <span>Discount</span>
+                                        <span className="text-green-600">- {discount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                    </div>
+                                )}
+                                
+                                {isCouponApplied && couponDiscountAmount > 0 && (
+                                    <div className="flex justify-between mb-2">
+                                        <span>Coupon Discount</span>
+                                        <span className="text-green-600">- {couponDiscountAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                    </div>
+                                )}
+                                
+                                <div className="flex justify-between mt-4 pt-4 border-t font-bold text-lg">
+                                    <span>Total</span>
+                                    <span>{totalAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                </div>
+                            </div>
 
+                            {/* Coupon Section */}
+                            <div className='mt-6'>
+                                {!isCouponApplied ? (
+                                    <Form {...couponForm}>
+                                        <form onSubmit={couponForm.handleSubmit(applyCoupon)} className='flex gap-3'>
+                                            <FormField
+                                                control={couponForm.control}
+                                                name='code'
+                                                render={({ field }) => (
+                                                    <FormItem className="flex-1">
+                                                        <FormControl>
+                                                            <Input placeholder="Enter coupon code" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <ButtonLoading 
+                                                type="submit" 
+                                                text="Apply" 
+                                                className="bg-gray-800 hover:bg-gray-700" 
+                                                loading={couponLoading} 
+                                            />
+                                        </form>
+                                    </Form>
+                                ) : (
+                                    <div className='flex justify-between items-center p-3 rounded-lg bg-green-100'>
+                                        <div>
+                                            <span className='text-xs'>Coupon Applied:</span>
+                                            <p className='font-semibold'>{couponCode}</p>
+                                        </div>
+                                        <button 
+                                            type='button' 
+                                            onClick={removeCoupon} 
+                                            className='text-red-500 hover:text-red-700 cursor-pointer'
+                                        >
+                                            <IoCloseCircleSharp size={25} />
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
                 </div>
-            }
+            )}
 
-            <Script src='https://checkout.razorpay.com/v1/checkout.js' />
+            {/* Razorpay Script - loaded only on client side */}
+            <Script 
+                src='https://checkout.razorpay.com/v1/checkout.js' 
+                strategy="beforeInteractive"
+            />
         </div>
     )
 }
