@@ -9,34 +9,40 @@ export const revalidate = 300 // Revalidate every 5 minutes
 // Enable dynamic params for handling dynamic product routes
 export const dynamicParams = true;
 
+// Helper function to get the full base URL
+function getFullBaseURL() {
+    if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+    }
+    if (process.env.NEXT_PUBLIC_BASE_URL) {
+        return process.env.NEXT_PUBLIC_BASE_URL;
+    }
+    return 'http://localhost:3000';
+}
+
 export async function generateMetadata({ params, searchParams }) {
     const { slug } = params
     const { color, size } = searchParams || {}
 
-    let url = `${getBaseURL()}/api/product/details/${slug}`
+    let apiPath = `/api/product/details/${slug}`
 
     if (color && size) {
-        url += `?color=${color}&size=${size}`
+        apiPath += `?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`
     }
 
     try {
-        // For Vercel deployment, construct the full URL using environment variables
-        const baseUrl = process.env.VERCEL_URL 
-          ? `https://${process.env.VERCEL_URL}`
-          : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-          
-        const fullUrl = `${baseUrl}${url}`;
+        const baseUrl = getFullBaseURL();
+        const fullUrl = `${baseUrl}${apiPath}`;
         
         const response = await fetch(fullUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
             },
-            cache: 'no-store', // Don't cache for now to ensure fresh data
-            next: { revalidate: 300 } // Revalidate every 5 minutes
+            cache: 'no-store',
+            next: { revalidate: 300 }
         });
         
-        // If response is not ok, try to get the error message
         if (!response.ok) {
             const errorText = await response.text();
             console.error('API Error fetching metadata:', errorText, 'URL:', fullUrl);
@@ -67,7 +73,6 @@ export async function generateMetadata({ params, searchParams }) {
                             alt: `${product.name} - ${variant?.color || ''} ${variant?.size || ''} | Narumugai Sarees`.trim(),
                             type: 'image/jpeg'
                         },
-                        // Additional product images for better social media sharing
                         ...(variant?.media?.slice(1, 4) || product?.media?.slice(1, 4) || []).map(img => ({
                             url: img.secure_url,
                             width: 1200,
@@ -100,7 +105,6 @@ export async function generateMetadata({ params, searchParams }) {
                 alternates: {
                     canonical: `${getBaseURL()}/product/${slug}`
                 },
-                // Additional metadata for better SEO and social sharing
                 other: {
                     'product:price:amount': variant.sellingPrice,
                     'product:price:currency': 'INR',
@@ -131,27 +135,29 @@ const ProductPage = async ({ params, searchParams }) => {
     const { slug } = await params
     const { color, size } = await searchParams
 
-    let url = `/api/product/details/${slug}`
+    let apiPath = `/api/product/details/${slug}`
 
     if (color && size) {
-        url += `?color=${color}&size=${size}`
+        apiPath += `?color=${encodeURIComponent(color)}&size=${encodeURIComponent(size)}`
     }
 
     try {
-        // Using fetch for internal API calls in Next.js App Router
-        const response = await fetch(url, {
+        // Use full base URL for server-side fetch
+        const baseUrl = getFullBaseURL();
+        const fullUrl = `${baseUrl}${apiPath}`;
+        
+        const response = await fetch(fullUrl, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
             },
-            cache: 'no-store', // Don't cache for now to ensure fresh data
-            next: { revalidate: 300 } // Revalidate every 5 minutes
+            cache: 'no-store',
+            next: { revalidate: 300 }
         });
 
-        // If response is not ok, try to get the error message
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('API Error:', errorText);
+            console.error('API Error:', errorText, 'Full URL:', fullUrl);
             throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
         }
 
