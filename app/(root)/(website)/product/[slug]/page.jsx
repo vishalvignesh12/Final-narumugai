@@ -10,7 +10,7 @@ export const revalidate = 300 // Revalidate every 5 minutes
 export async function generateStaticParams() {
   try {
     // Use relative path for internal API call
-    const response = await fetch('/api/product?size=10000', {
+    const response = await fetch('/api/product?deleteType=SD&size=10000', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
