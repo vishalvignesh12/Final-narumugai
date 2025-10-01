@@ -34,7 +34,7 @@ const Footer = () => {
                             {/* Social Media */}
                             <div className='flex space-x-4 mt-6'>
                                 <Link 
-                                    href="https://instagram.com/txt" 
+                                    href="https://www.instagram.com/narumugai600053?igsh=MTI0eXFzbmZ5MHdtbg==" 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="p-3 bg-white rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border border-gray-100"
@@ -52,7 +52,7 @@ const Footer = () => {
                                     <FaWhatsapp className='text-green-500' size={20} />
                                 </Link>
                                 <Link 
-                                    href="https://facebook.com/txt" 
+                                    href="https://www.facebook.com/share/1VKumjM8fm/" 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="p-3 bg-white rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300 border border-gray-100"
