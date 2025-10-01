@@ -6,41 +6,7 @@ import { getBaseURL } from '@/lib/config'
 // Revalidate data to ensure fresh product info
 export const revalidate = 300 // Revalidate every 5 minutes
 
-// Generate static params to pre-build product pages
-export async function generateStaticParams() {
-  try {
-    // Use relative path for internal API call
-    const response = await fetch('/api/product?deleteType=SD&size=10000', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      cache: 'no-store',
-      next: { revalidate: 3600 } // Cache for 1 hour
-    });
-
-    if (!response.ok) {
-      console.error(`Failed to fetch products for static generation: ${response.status}`);
-      return [];
-    }
-
-    const result = await response.json();
-    
-    if (result.success && result.data && Array.isArray(result.data.docs)) {
-      // Return array of params objects with slug for each product
-      return result.data.docs.map((product) => ({
-        slug: product.slug,
-      }));
-    }
-    
-    return [];
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return [];
-  }
-}
-
-// Enable dynamic params to handle cases where static generation misses some routes
+// Enable dynamic params for handling dynamic product routes
 export const dynamicParams = true;
 
 export async function generateMetadata({ params, searchParams }) {
