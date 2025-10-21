@@ -12,11 +12,11 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoCloseCircleSharp } from "react-icons/io5"
-import { FaShippingFast } from "react-icons/fa"
+import { FaShippingFast, FaClock } from "react-icons/fa"
 import { Textarea } from '@/components/ui/textarea'
 import { useRouter } from 'next/navigation'
 
@@ -33,7 +33,18 @@ const Checkout = () => {
     const cart = useSelector(store => store.cartStore)
     const authStore = useSelector(store => store.authStore)
     const [verifiedCartData, setVerifiedCartData] = useState([])
-    const [loadingCart, setLoadingCart] = useState(false)
+
+    // Checkout session state
+    const [checkoutSession, setCheckoutSession] = useState(null)
+    const [csrfToken, setCsrfToken] = useState(null)
+    const [sessionLoading, setSessionLoading] = useState(false)
+
+    // Stock lock state
+    const [stockLockId, setStockLockId] = useState(null)
+    const [lockExpiresAt, setLockExpiresAt] = useState(null)
+    const [lockTimeRemaining, setLockTimeRemaining] = useState(null)
+    const [isStockLocked, setIsStockLocked] = useState(false)
+    const [lockingStock, setLockingStock] = useState(false)
 
     const [isCouponApplied, setIsCouponApplied] = useState(false)
     const [subtotal, setSubTotal] = useState(0)
@@ -46,8 +57,34 @@ const Checkout = () => {
     const [placingOrder, setPlacingOrder] = useState(false)
     const [savingOrder, setSavingOrder] = useState(false)
 
+    const countdownIntervalRef = useRef(null)
+
+    // Configure axios to include CSRF token in all requests
     useEffect(() => {
-        // Map cart data for display
+        const requestInterceptor = axios.interceptors.request.use(
+            (config) => {
+                if (csrfToken && ['post', 'put', 'patch', 'delete'].includes(config.method?.toLowerCase())) {
+                    config.headers['X-CSRF-Token'] = csrfToken
+                }
+                return config
+            },
+            (error) => Promise.reject(error)
+        )
+
+        return () => {
+            axios.interceptors.request.eject(requestInterceptor)
+        }
+    }, [csrfToken])
+
+    // Create checkout session on mount
+    useEffect(() => {
+        if (cart.count > 0 && !checkoutSession) {
+            createCheckoutSession()
+        }
+    }, [cart.count])
+
+    // Map cart data for display
+    useEffect(() => {
         if (cart.count > 0) {
             const cartData = cart.products.map(item => ({
                 productId: item.productId,
@@ -59,7 +96,8 @@ const Checkout = () => {
                 mrp: item.mrp,
                 sellingPrice: item.sellingPrice,
                 media: item.media,
-                qty: item.qty || 1
+                qty: item.qty || 1,
+                quantity: item.qty || 1
             }))
             setVerifiedCartData(cartData)
         } else {
@@ -67,18 +105,179 @@ const Checkout = () => {
         }
     }, [cart.products, cart.count])
 
+    // Calculate totals
     useEffect(() => {
         const cartProducts = cart.products
-
         const subTotalAmount = cartProducts.reduce((sum, product) => sum + (product.sellingPrice * (product.qty || 1)), 0)
         const discount = cartProducts.reduce((sum, product) => sum + ((product.mrp - product.sellingPrice) * (product.qty || 1)), 0)
 
         setSubTotal(subTotalAmount)
         setDiscount(discount)
-        setTotalAmount(subTotalAmount)
+        setTotalAmount(subTotalAmount - couponDiscountAmount)
 
         couponForm.setValue('minShoppingAmount', subTotalAmount)
-    }, [cart])
+    }, [cart, couponDiscountAmount])
+
+    // Countdown timer for stock lock
+    useEffect(() => {
+        if (lockExpiresAt && isStockLocked) {
+            // Clear any existing interval
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current)
+            }
+
+            // Update countdown every second
+            countdownIntervalRef.current = setInterval(() => {
+                const now = new Date().getTime()
+                const expiryTime = new Date(lockExpiresAt).getTime()
+                const timeLeft = expiryTime - now
+
+                if (timeLeft <= 0) {
+                    // Lock expired
+                    clearInterval(countdownIntervalRef.current)
+                    handleLockExpiration()
+                } else {
+                    setLockTimeRemaining(timeLeft)
+                }
+            }, 1000)
+
+            return () => {
+                if (countdownIntervalRef.current) {
+                    clearInterval(countdownIntervalRef.current)
+                }
+            }
+        }
+    }, [lockExpiresAt, isStockLocked])
+
+    /**
+     * Create checkout session
+     */
+    const createCheckoutSession = async () => {
+        setSessionLoading(true)
+        try {
+            const cartItems = cart.products.map(item => ({
+                productId: item.productId,
+                variantId: item.variantId,
+                quantity: item.qty || 1,
+                name: item.name,
+                price: item.sellingPrice
+            }))
+
+            const { data: response } = await axios.post('/api/checkout/session', {
+                cartItems
+            })
+
+            if (!response.success) {
+                throw new Error(response.message)
+            }
+
+            setCheckoutSession(response.data.sessionToken)
+            setCsrfToken(response.data.csrfToken)
+
+            console.log('✅ Checkout session created')
+        } catch (error) {
+            showToast('error', error.response?.data?.message || error.message || 'Failed to create checkout session')
+            console.error('Session creation error:', error)
+        } finally {
+            setSessionLoading(false)
+        }
+    }
+
+    /**
+     * Lock stock before payment
+     */
+    const lockStock = async () => {
+        if (!checkoutSession) {
+            showToast('error', 'Please refresh the page and try again')
+            return false
+        }
+
+        setLockingStock(true)
+        try {
+            const items = cart.products.map(item => ({
+                variantId: item.variantId,
+                quantity: item.qty || 1
+            }))
+
+            const { data: response } = await axios.post('/api/stock/lock', {
+                items,
+                sessionToken: checkoutSession
+            })
+
+            if (!response.success) {
+                throw new Error(response.message)
+            }
+
+            setStockLockId(response.data.lockId)
+            setLockExpiresAt(response.data.expiresAt)
+            setIsStockLocked(true)
+
+            showToast('success', 'Stock reserved! Complete payment to confirm order')
+            console.log('✅ Stock locked:', response.data.lockId)
+
+            return true
+        } catch (error) {
+            const errorMessage = error.response?.data?.message || error.message
+            showToast('error', errorMessage)
+            console.error('Stock lock error:', error)
+            return false
+        } finally {
+            setLockingStock(false)
+        }
+    }
+
+    /**
+     * Unlock stock on payment failure or cancellation
+     */
+    const unlockStock = async () => {
+        if (!stockLockId) return
+
+        try {
+            const items = cart.products.map(item => ({
+                variantId: item.variantId,
+                quantity: item.qty || 1
+            }))
+
+            await axios.post('/api/stock/unlock', {
+                items,
+                sessionToken: checkoutSession
+            })
+
+            console.log('✅ Stock unlocked')
+        } catch (error) {
+            console.error('Stock unlock error:', error)
+            // Don't show error to user - cleanup job will handle it
+        }
+    }
+
+    /**
+     * Handle lock expiration
+     */
+    const handleLockExpiration = () => {
+        setIsStockLocked(false)
+        setStockLockId(null)
+        setLockExpiresAt(null)
+        setLockTimeRemaining(null)
+
+        showToast('error', 'Stock reservation expired. Please checkout again.', {
+            duration: 5000
+        })
+
+        // Reset form but keep data
+        // User can resubmit to lock again
+    }
+
+    /**
+     * Format countdown timer
+     */
+    const formatTimeRemaining = (milliseconds) => {
+        if (!milliseconds) return '0:00'
+
+        const minutes = Math.floor(milliseconds / 60000)
+        const seconds = Math.floor((milliseconds % 60000) / 1000)
+
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`
+    }
 
     // Coupon form
     const couponFormSchema = zSchema.pick({
@@ -104,7 +303,7 @@ const Checkout = () => {
 
             const discountPercentage = response.data.discountPercentage
             const discountAmount = (subtotal * discountPercentage) / 100
-            
+
             setCouponDiscountAmount(discountAmount)
             setTotalAmount(subtotal - discountAmount)
             showToast('success', response.message)
@@ -122,7 +321,7 @@ const Checkout = () => {
         setIsCouponApplied(false)
         setCouponCode('')
         setCouponDiscountAmount(0)
-        setTotalAmount(subtotal - discount) // Reset to subtotal minus regular discount
+        setTotalAmount(subtotal - discount)
     }
 
     // Order form
@@ -154,33 +353,73 @@ const Checkout = () => {
     })
 
     // Get order ID for Razorpay
-    const getOrderId = async (amount) => {
+    const getOrderId = async (amount, formData) => {
         try {
-            const { data: orderIdData } = await axios.post('/api/payment/get-order-id', { amount })
+            const cartItems = verifiedCartData.map(item => ({
+                productId: item.productId,
+                variantId: item.variantId,
+                quantity: item.qty,
+                name: item.name,
+                price: item.sellingPrice
+            }))
+
+            const { data: orderIdData } = await axios.post('/api/payment/get-order-id', {
+                amount,
+                sessionToken: checkoutSession,
+                cartItems,
+                lockId: stockLockId,
+                shippingAddress: {
+                    name: formData.name,
+                    email: formData.email,
+                    phone: formData.phone,
+                    city: formData.city,
+                    state: formData.state,
+                    country: formData.country,
+                    pincode: formData.pincode
+                }
+            })
+
             if (!orderIdData.success) {
                 throw new Error(orderIdData.message)
             }
+
             return { success: true, order_id: orderIdData.data }
         } catch (error) {
-            return { success: false, message: error.message }
+            return { success: false, message: error.response?.data?.message || error.message }
         }
     }
 
     const placeOrder = async (formData) => {
+        // Prevent submission if session not ready
+        if (!checkoutSession || sessionLoading) {
+            showToast('error', 'Please wait for the page to load completely')
+            return
+        }
+
         setPlacingOrder(true)
+
         try {
-            // Generate order ID from server
-            const generateOrderId = await getOrderId(totalAmount)
+            // Step 1: Lock stock BEFORE payment
+            if (!isStockLocked) {
+                const lockSuccess = await lockStock()
+                if (!lockSuccess) {
+                    setPlacingOrder(false)
+                    return
+                }
+            }
+
+            // Step 2: Generate order ID from server
+            const generateOrderId = await getOrderId(totalAmount, formData)
             if (!generateOrderId.success) {
                 throw new Error(generateOrderId.message)
             }
 
             const order_id = generateOrderId.order_id
 
-            // Prepare Razorpay options first
+            // Step 3: Prepare Razorpay options
             const razorpayOptions = {
                 key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-                amount: totalAmount * 100, // Razorpay expects amount in paise
+                amount: totalAmount * 100,
                 currency: "INR",
                 name: "Narumugai",
                 description: "Payment for your order",
@@ -188,7 +427,6 @@ const Checkout = () => {
                 handler: async function (response) {
                     setSavingOrder(true)
                     try {
-                        // Prepare cart products data
                         const products = verifiedCartData.map((cartItem) => ({
                             productId: cartItem.productId,
                             variantId: cartItem.variantId,
@@ -198,11 +436,18 @@ const Checkout = () => {
                             sellingPrice: cartItem.sellingPrice,
                         }))
 
+                        const stockLockItems = cart.products.map(item => ({
+                            variantId: item.variantId,
+                            quantity: item.qty || 1
+                        }))
+
                         // Save the order after payment
                         const { data: paymentResponseData } = await axios.post('/api/payment/save-order', {
                             ...formData,
                             ...response,
                             products: products,
+                            stockLockItems: stockLockItems,
+                            userId: authStore?.auth?._id || undefined,
                             subtotal: subtotal,
                             discount: discount,
                             couponDiscountAmount: couponDiscountAmount,
@@ -211,17 +456,34 @@ const Checkout = () => {
 
                         if (paymentResponseData.success) {
                             showToast('success', paymentResponseData.message)
-                            dispatch(clearCart()) // Clear cart after successful order
+                            dispatch(clearCart())
                             orderForm.reset()
+
+                            // Clear stock lock state (successfully used)
+                            setIsStockLocked(false)
+                            setStockLockId(null)
+                            setLockExpiresAt(null)
+
                             router.push(WEBSITE_ORDER_DETAILS(response.razorpay_order_id))
                         } else {
                             showToast('error', paymentResponseData.message)
                         }
                     } catch (error) {
                         console.error('Error saving order:', error)
-                        showToast('error', error.message || 'Error processing your order')
+                        showToast('error', error.response?.data?.message || error.message || 'Error processing your order')
                     } finally {
                         setSavingOrder(false)
+                    }
+                },
+                modal: {
+                    ondismiss: async function() {
+                        // User closed modal without payment - unlock stock
+                        await unlockStock()
+                        setIsStockLocked(false)
+                        setStockLockId(null)
+                        setLockExpiresAt(null)
+                        showToast('info', 'Payment cancelled. Stock has been released.')
+                        setPlacingOrder(false)
                     }
                 },
                 prefill: {
@@ -234,68 +496,74 @@ const Checkout = () => {
                 }
             }
 
-            // Function to load Razorpay script
+            // Step 4: Load Razorpay script
             const loadRazorpayScript = () => {
                 return new Promise((resolve, reject) => {
-                    // Check if Razorpay is already available
                     if (window.Razorpay) {
-                        resolve();
-                        return;
+                        resolve()
+                        return
                     }
 
-                    // Check if script element already exists
-                    let script = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
-                    
+                    let script = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]')
+
                     if (!script) {
-                        // Create script if it doesn't exist
-                        script = document.createElement('script');
-                        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-                        script.async = true;
-                        script.onload = () => {
-                            // Wait a bit for Razorpay to initialize
-                            setTimeout(() => resolve(), 300);
-                        };
-                        script.onerror = () => reject(new Error('Failed to load Razorpay script'));
-                        document.body.appendChild(script);
+                        script = document.createElement('script')
+                        script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+                        script.async = true
+                        script.onload = () => setTimeout(() => resolve(), 300)
+                        script.onerror = () => reject(new Error('Failed to load Razorpay script'))
+                        document.body.appendChild(script)
                     } else {
-                        // Script already exists, wait for it to load
                         if (window.Razorpay) {
-                            resolve();
+                            resolve()
                         } else {
-                            // Set up a way to detect when it loads
                             const checkInterval = setInterval(() => {
                                 if (window.Razorpay) {
-                                    clearInterval(checkInterval);
-                                    resolve();
+                                    clearInterval(checkInterval)
+                                    resolve()
                                 }
-                            }, 100);
-                            
-                            // Reject after timeout
+                            }, 100)
+
                             setTimeout(() => {
-                                clearInterval(checkInterval);
-                                reject(new Error('Razorpay script loading timeout'));
-                            }, 10000);
+                                clearInterval(checkInterval)
+                                reject(new Error('Razorpay script loading timeout'))
+                            }, 10000)
                         }
                     }
-                });
-            };
+                })
+            }
 
-            // Load the script and then open the payment modal
-            await loadRazorpayScript();
+            await loadRazorpayScript()
 
-            // Open Razorpay payment modal
-            const rzp = new window.Razorpay(razorpayOptions);
-            rzp.open();
+            // Step 5: Open Razorpay payment modal
+            const rzp = new window.Razorpay(razorpayOptions)
 
             // Handle payment failure
-            rzp.on('payment.failed', function (response) {
-                showToast('error', response.error.description || 'Payment failed');
-            });
+            rzp.on('payment.failed', async function (response) {
+                // Unlock stock on payment failure
+                await unlockStock()
+                setIsStockLocked(false)
+                setStockLockId(null)
+                setLockExpiresAt(null)
+
+                showToast('error', response.error.description || 'Payment failed')
+                setPlacingOrder(false)
+            })
+
+            rzp.open()
 
         } catch (error) {
             showToast('error', error.message)
+
+            // Unlock stock on error
+            if (isStockLocked) {
+                await unlockStock()
+                setIsStockLocked(false)
+                setStockLockId(null)
+                setLockExpiresAt(null)
+            }
         } finally {
-            setPlacingOrder(false)
+            // Don't set placingOrder to false here - modal ondismiss handles it
         }
     }
 
@@ -307,6 +575,16 @@ const Checkout = () => {
                     <div className='flex flex-col items-center'>
                         <img src="/assets/images/loading.svg" width="80" height="80" alt='Loading' />
                         <h4 className='font-semibold mt-4'>Processing your order...</h4>
+                    </div>
+                </div>
+            )}
+
+            {/* Session loading overlay */}
+            {sessionLoading && (
+                <div className='h-screen w-screen fixed top-0 left-0 z-40 bg-black/5 flex justify-center items-center'>
+                    <div className='flex flex-col items-center'>
+                        <img src="/assets/images/loading.svg" width="60" height="60" alt='Loading' />
+                        <h4 className='font-medium mt-4'>Preparing checkout...</h4>
                     </div>
                 </div>
             )}
@@ -326,6 +604,19 @@ const Checkout = () => {
                 <div className='flex lg:flex-nowrap flex-wrap gap-10 my-20 lg:px-32 px-4'>
                     {/* Shipping Address Form */}
                     <div className='lg:w-[60%] w-full'>
+                        {/* Stock Lock Status */}
+                        {isStockLocked && lockTimeRemaining && (
+                            <div className='mb-6 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center justify-between'>
+                                <div className='flex items-center gap-2 text-green-700'>
+                                    <FaClock size={20} />
+                                    <span className='font-medium'>Stock reserved for</span>
+                                </div>
+                                <div className={`text-2xl font-bold ${lockTimeRemaining < 60000 ? 'text-red-600' : 'text-green-700'}`}>
+                                    {formatTimeRemaining(lockTimeRemaining)}
+                                </div>
+                            </div>
+                        )}
+
                         <div className='flex font-semibold gap-2 items-center mb-5'>
                             <FaShippingFast size={25} /> Shipping Address:
                         </div>
@@ -462,11 +753,12 @@ const Checkout = () => {
 
                                 {/* Place Order Button */}
                                 <div className='mb-3'>
-                                    <ButtonLoading 
-                                        type="submit" 
-                                        text="Place Order" 
-                                        loading={placingOrder} 
-                                        className="bg-primary hover:bg-primary/90 rounded-full px-8 py-2 cursor-pointer" 
+                                    <ButtonLoading
+                                        type="submit"
+                                        text={isStockLocked ? "Proceed to Payment" : "Reserve Stock & Pay"}
+                                        loading={placingOrder || lockingStock}
+                                        disabled={sessionLoading || placingOrder || lockingStock}
+                                        className="bg-primary hover:bg-primary/90 rounded-full px-8 py-2 cursor-pointer"
                                     />
                                 </div>
                             </form>
@@ -477,7 +769,7 @@ const Checkout = () => {
                     <div className='lg:w-[40%] w-full'>
                         <div className='rounded bg-gray-50 p-5 sticky top-5'>
                             <h4 className='text-lg font-semibold mb-5'>Order Summary</h4>
-                            
+
                             <div className="mb-6">
                                 <table className='w-full'>
                                     <tbody>
@@ -486,13 +778,13 @@ const Checkout = () => {
                                                 <td className='py-3'>
                                                     <div className='flex items-center gap-3'>
                                                         <div className="w-16 h-16">
-                                                            <Image 
-                                                                src={product.media} 
-                                                                width={64} 
-                                                                height={64} 
-                                                                alt={product.name} 
+                                                            <Image
+                                                                src={product.media}
+                                                                width={64}
+                                                                height={64}
+                                                                alt={product.name}
                                                                 className='rounded object-cover w-full h-full'
-                                                                unoptimized // For external images
+                                                                unoptimized
                                                             />
                                                         </div>
                                                         <div className="min-w-0">
@@ -530,21 +822,21 @@ const Checkout = () => {
                                     <span>MRP Total</span>
                                     <span>{(subtotal + discount).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                 </div>
-                                
+
                                 {discount > 0 && (
                                     <div className="flex justify-between mb-2">
                                         <span>You Save</span>
                                         <span className="text-green-600">- {discount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                     </div>
                                 )}
-                                
+
                                 {isCouponApplied && couponDiscountAmount > 0 && (
                                     <div className="flex justify-between mb-2">
                                         <span>Coupon Discount</span>
                                         <span className="text-green-600">- {couponDiscountAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                     </div>
                                 )}
-                                
+
                                 <div className="flex justify-between mt-4 pt-4 border-t font-bold text-lg">
                                     <span>You Pay</span>
                                     <span>{totalAmount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
@@ -568,11 +860,11 @@ const Checkout = () => {
                                                     </FormItem>
                                                 )}
                                             />
-                                            <ButtonLoading 
-                                                type="submit" 
-                                                text="Apply" 
-                                                className="bg-gray-800 hover:bg-gray-700" 
-                                                loading={couponLoading} 
+                                            <ButtonLoading
+                                                type="submit"
+                                                text="Apply"
+                                                className="bg-gray-800 hover:bg-gray-700"
+                                                loading={couponLoading}
                                             />
                                         </form>
                                     </Form>
@@ -582,9 +874,9 @@ const Checkout = () => {
                                             <span className='text-xs'>Coupon Applied:</span>
                                             <p className='font-semibold'>{couponCode}</p>
                                         </div>
-                                        <button 
-                                            type='button' 
-                                            onClick={removeCoupon} 
+                                        <button
+                                            type='button'
+                                            onClick={removeCoupon}
                                             className='text-red-500 hover:text-red-700 cursor-pointer'
                                         >
                                             <IoCloseCircleSharp size={25} />
@@ -596,7 +888,6 @@ const Checkout = () => {
                     </div>
                 </div>
             )}
-
         </div>
     )
 }
