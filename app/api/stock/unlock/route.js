@@ -1,19 +1,31 @@
-import { isAuthenticated } from "@/lib/authentication";
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
 import { z } from "zod";
+import { applyRateLimit, stockLockRateLimiter } from "@/lib/rateLimiter";
+import { validateCheckoutSession } from "@/lib/sessionManager";
+import { validateCsrfMiddleware } from "@/lib/csrfProtection";
+import logger from "@/lib/logger";
 
 const stockUnlockSchema = z.object({
     items: z.array(z.object({
         variantId: z.string().length(24, 'Invalid variant id format'),
         quantity: z.number().min(1, 'Quantity must be at least 1').default(1)
-    }))
+    })),
+    sessionToken: z.string().min(1, 'Session token required'),
 });
 
 export async function POST(request) {
     try {
+        // Apply rate limiting
+        const rateLimitResult = await applyRateLimit(request, stockLockRateLimiter);
+        if (rateLimitResult) return rateLimitResult;
+
+        // Validate CSRF token
+        const csrfValidation = await validateCsrfMiddleware(request);
+        if (!csrfValidation.valid) return csrfValidation.response;
+
         await connectDB()
         
         const payload = await request.json()
@@ -23,13 +35,20 @@ export async function POST(request) {
             return response(false, 400, 'Invalid or missing fields.', validate.error)
         }
 
-        const { items } = validate.data
+        const { items, sessionToken } = validate.data
+
+        // Validate checkout session
+        const session = await validateCheckoutSession(sessionToken, null);
+        if (!session) {
+            logger.warn({ itemCount: items.length }, 'Stock unlock failed: Invalid session');
+            return response(false, 401, 'Invalid or expired checkout session');
+        }
         
         // Use session for transaction to ensure atomicity
-        const session = await ProductVariantModel.startSession()
+        const dbSession = await ProductVariantModel.startSession()
         
         try {
-            session.startTransaction()
+            dbSession.startTransaction()
             
             const unlockResults = []
             
@@ -48,11 +67,12 @@ export async function POST(request) {
                             lockedQuantity: { $gte: item.quantity }
                         },
                         {
-                            $inc: { lockedQuantity: -item.quantity }
+                            $inc: { lockedQuantity: -item.quantity },
+                            $set: { lockExpiresAt: null }
                         },
                         {
                             new: true,
-                            session
+                            session: dbSession
                         }
                     ).lean()
                     
@@ -77,11 +97,12 @@ export async function POST(request) {
                         lockedQuantity: { $gte: item.quantity }
                     },
                     {
-                        $inc: { lockedQuantity: -item.quantity }
+                        $inc: { lockedQuantity: -item.quantity },
+                        $set: { lockExpiresAt: null }
                     },
                     {
                         new: true,
-                        session
+                        session: dbSession
                     }
                 ).populate('product', 'name').lean()
                 
@@ -96,17 +117,28 @@ export async function POST(request) {
                 }
             }
             
-            await session.commitTransaction()
+            await dbSession.commitTransaction()
+
+            logger.info({
+                sessionId: session.sessionId,
+                itemCount: items.length,
+                unlockedCount: unlockResults.length,
+            }, 'Stock unlocked successfully');
             
             return response(true, 200, 'Stock unlocked successfully', {
                 unlockResults
             })
             
         } catch (error) {
-            await session.abortTransaction()
+            await dbSession.abortTransaction()
+            logger.error({
+                sessionId: session.sessionId,
+                error: (error as any).message,
+                itemCount: items.length,
+            }, 'Stock unlock failed');
             throw error
         } finally {
-            session.endSession()
+            dbSession.endSession()
         }
         
     } catch (error) {
