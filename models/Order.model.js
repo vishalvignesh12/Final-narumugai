@@ -81,7 +81,9 @@ const orderSchema = new mongoose.Schema({
     },
     order_id: {
         type: String,
-        required: true
+        required: true,
+        unique: true,
+        index: true
     },
     cancellationReason: {
         type: String,
