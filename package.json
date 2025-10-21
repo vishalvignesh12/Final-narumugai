@@ -14,7 +14,13 @@
     "network": "node scripts/set-network-access.js",
     "localhost": "node scripts/set-network-access.js localhost",
     "populate-db": "node scripts/populate-database.js",
-    "populate-via-api": "node scripts/populate-via-api.js"
+    "populate-via-api": "node scripts/populate-via-api.js",
+    "build:production": "NODE_ENV=production next build",
+    "start:production": "NODE_ENV=production next start",
+    "verify:production": "node scripts/verify-production.js",
+    "health:check": "curl http://localhost:3000/api/health || echo 'Server not running'",
+    "logs:production": "NODE_ENV=production pino-pretty",
+    "analyze": "ANALYZE=true next build"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-react": "^9.5.0",
