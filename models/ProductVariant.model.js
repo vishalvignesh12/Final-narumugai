@@ -45,6 +45,11 @@ const ProductVariantSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    lockExpiresAt: {
+        type: Date,
+        default: null,
+        index: true
+    },
     media: [
         {
             type: mongoose.Schema.Types.ObjectId,
