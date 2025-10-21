@@ -61,6 +61,24 @@ export async function POST(request) {
             paymentVerification = true
         }
 
+        // IDEMPOTENCY CHECK: Prevent duplicate order creation
+        // Check if order with this order_id already exists
+        const existingOrder = await OrderModel.findOne({ 
+            order_id: validatedData.razorpay_order_id 
+        }).lean();
+
+        if (existingOrder) {
+            logger.info({
+                orderId: validatedData.razorpay_order_id,
+                existingOrderId: existingOrder._id,
+            }, 'Order already exists - returning existing order (idempotency)');
+
+            return response(true, 200, 'Order already exists', {
+                order: existingOrder,
+                note: 'Order was already created'
+            });
+        }
+
         // Start database session for transaction
         const session = await OrderModel.startSession()
         
