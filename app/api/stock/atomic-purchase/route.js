@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
+import logger from "@/lib/logger";
 import { z } from "zod";
 
 const atomicPurchaseSchema = z.object({
@@ -121,12 +122,15 @@ export async function POST(request) {
         await connectDB();
         
         const payload = await request.json();
-        console.log('Received payload:', JSON.stringify(payload, null, 2));
+        logger.debug({ payload }, 'Atomic purchase request received');
         
         const validate = atomicPurchaseSchema.safeParse(payload);
         
         if (!validate.success) {
-            console.error('Validation error:', validate.error.issues);
+            logger.warn({
+                validationErrors: validate.error.issues,
+                payload,
+            }, 'Atomic purchase validation failed');
             
             // Create more detailed error message
             const errorMessages = validate.error.issues.map(issue => 
@@ -158,13 +162,22 @@ export async function POST(request) {
             
             await session.commitTransaction();
             
+            logger.info({
+                itemCount: items.length,
+                results: purchaseResults,
+            }, 'Atomic stock purchase successful');
+            
             return response(true, 200, 'Stock purchased successfully', {
                 purchaseResults
             });
             
         } catch (error) {
             await session.abortTransaction();
-            console.error('Atomic purchase error:', error);
+            logger.error({
+                error: error.message,
+                stack: error.stack,
+                items,
+            }, 'Atomic purchase transaction failed');
             
             // Return proper error response structure
             return response(false, 400, error.message || 'Stock purchase failed');
