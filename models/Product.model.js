@@ -52,6 +52,11 @@ const productSchema = new mongoose.Schema({
         default: 0,
         min: 0
     },
+    lockExpiresAt: {
+        type: Date,
+        default: null,
+        index: true
+    },
     isAvailable: {
         type: Boolean,
         default: true,
