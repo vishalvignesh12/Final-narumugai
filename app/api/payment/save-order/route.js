@@ -8,6 +8,7 @@ import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
 import { validatePaymentVerification } from "razorpay/dist/utils/razorpay-utils";
 import { z } from "zod";
+import logger, { logPayment } from "@/lib/logger.js";
 
 export async function POST(request) {
     try {
@@ -208,9 +209,14 @@ export async function POST(request) {
                 }
 
                 await sendMail('Order placed successfully.', validatedData.email, orderNotification(mailData))
+                logger.info({ orderId: validatedData.razorpay_order_id, email: validatedData.email }, 'Order confirmation email sent');
 
             } catch (error) {
-                console.log(error)
+                logger.warn({ 
+                    orderId: validatedData.razorpay_order_id, 
+                    email: validatedData.email,
+                    error: error.message 
+                }, 'Failed to send order confirmation email');
             }
 
             return response(true, 200, 'Order placed successfully.')
