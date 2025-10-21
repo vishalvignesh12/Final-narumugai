@@ -35,8 +35,14 @@ export async function register() {
     }
 
     // Step 3: Start background jobs
-    // Stock cleanup job will be started here once created
-    // Note: We'll update this in Phase 4 when creating the cleanup job
+    try {
+      const { startStockCleanupJob } = await import('./lib/stockCleanupJob.js');
+      startStockCleanupJob();
+      console.log('✅ Stock cleanup job started');
+    } catch (error) {
+      console.error('❌ Failed to start stock cleanup job:', error.message);
+    }
+
     console.log('✅ Application initialized successfully');
   }
 }
