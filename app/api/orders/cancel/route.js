@@ -5,6 +5,7 @@ import OrderModel from "@/models/Order.model";
 import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
 import { z } from "zod";
+import logger from "@/lib/logger";
 
 const cancelOrderSchema = z.object({
     orderId: z.string().length(24, 'Invalid order ID format'),
@@ -54,29 +55,81 @@ export async function PUT(request) {
 
             // Restore stock for cancelled order
             for (const product of order.products) {
-                // Add back the quantity to the product variant
-                const result = await ProductVariantModel.findByIdAndUpdate(
-                    product.variantId,
-                    {
-                        $inc: { quantity: product.qty }
-                    },
-                    {
-                        session,
-                        new: true
-                    }
-                ).populate('product')
+                // Detect fallback variants (products without real variants)
+                const variantIdStr = product.variantId ? product.variantId.toString() : null;
+                const isFallbackVariant = !variantIdStr || 
+                                         variantIdStr === 'null' || 
+                                         variantIdStr.startsWith('fallback-');
 
-                if (result) {
-                    // If product was marked as sold out, make it available again
-                    if (!result.product.isAvailable && result.quantity > 0) {
-                        await ProductModel.findByIdAndUpdate(
-                            result.product._id,
-                            {
-                                isAvailable: true,
-                                $unset: { soldAt: 1 } // Remove soldAt timestamp
-                            },
-                            { session }
-                        )
+                if (isFallbackVariant) {
+                    // Handle fallback variants: restore stock to Product model
+                    const productId = variantIdStr?.startsWith('fallback-')
+                        ? variantIdStr.replace('fallback-', '')
+                        : product.productId;
+
+                    const result = await ProductModel.findByIdAndUpdate(
+                        productId,
+                        {
+                            $inc: { quantity: product.qty }
+                        },
+                        {
+                            session,
+                            new: true
+                        }
+                    );
+
+                    if (result) {
+                        // If product was marked as sold out, make it available again
+                        if (!result.isAvailable && result.quantity > 0) {
+                            await ProductModel.findByIdAndUpdate(
+                                result._id,
+                                {
+                                    isAvailable: true,
+                                    $unset: { soldAt: 1 } // Remove soldAt timestamp
+                                },
+                                { session }
+                            );
+                        }
+
+                        logger.info({
+                            productId: result._id,
+                            productName: result.name,
+                            quantityRestored: product.qty,
+                            type: 'product-level'
+                        }, 'Stock restored for fallback variant');
+                    }
+                } else {
+                    // Handle real variants: restore stock to ProductVariant model
+                    const result = await ProductVariantModel.findByIdAndUpdate(
+                        product.variantId,
+                        {
+                            $inc: { quantity: product.qty }
+                        },
+                        {
+                            session,
+                            new: true
+                        }
+                    ).populate('product');
+
+                    if (result) {
+                        // If product was marked as sold out, make it available again
+                        if (!result.product.isAvailable && result.quantity > 0) {
+                            await ProductModel.findByIdAndUpdate(
+                                result.product._id,
+                                {
+                                    isAvailable: true,
+                                    $unset: { soldAt: 1 } // Remove soldAt timestamp
+                                },
+                                { session }
+                            );
+                        }
+
+                        logger.info({
+                            variantId: result._id,
+                            productName: result.product.name,
+                            quantityRestored: product.qty,
+                            type: 'variant-level'
+                        }, 'Stock restored for real variant');
                     }
                 }
             }
