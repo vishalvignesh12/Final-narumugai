@@ -1,23 +1,34 @@
-import { isAuthenticated } from "@/lib/authentication";
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
 import { z } from "zod";
+import { applyRateLimit, stockLockRateLimiter } from "@/lib/rateLimiter";
+import { validateCheckoutSession } from "@/lib/sessionManager";
+import { validateCsrfMiddleware } from "@/lib/csrfProtection";
+import { config } from "@/lib/envConfig";
+import logger from "@/lib/logger";
+import crypto from "crypto";
 
 const stockLockSchema = z.object({
     items: z.array(z.object({
         variantId: z.string().length(24, 'Invalid variant id format'),
         quantity: z.number().min(1, 'Quantity must be at least 1').default(1)
-    }))
+    })),
+    sessionToken: z.string().min(1, 'Session token required'),
 });
 
 export async function POST(request) {
     try {
+        // Apply rate limiting
+        const rateLimitResult = await applyRateLimit(request, stockLockRateLimiter);
+        if (rateLimitResult) return rateLimitResult;
+
+        // Validate CSRF token
+        const csrfValidation = await validateCsrfMiddleware(request);
+        if (!csrfValidation.valid) return csrfValidation.response;
+
         await connectDB()
-        
-        // Optional authentication - can work for both authenticated and guest users
-        const auth = await isAuthenticated('user')
         
         const payload = await request.json()
         const validate = stockLockSchema.safeParse(payload)
@@ -26,13 +37,25 @@ export async function POST(request) {
             return response(false, 400, 'Invalid or missing fields.', validate.error)
         }
 
-        const { items } = validate.data
+        const { items, sessionToken } = validate.data
+
+        // Validate checkout session
+        const session = await validateCheckoutSession(sessionToken, null);
+        if (!session) {
+            logger.warn({ itemCount: items.length }, 'Stock lock failed: Invalid session');
+            return response(false, 401, 'Invalid or expired checkout session');
+        }
+
+        // Generate lock ID for tracking
+        const lockId = crypto.randomUUID();
+        const lockDurationMs = config.STOCK_LOCK_EXPIRY_MINUTES * 60 * 1000;
+        const lockExpiresAt = new Date(Date.now() + lockDurationMs);
         
         // Use session for transaction to ensure atomicity
-        const session = await ProductVariantModel.startSession()
+        const dbSession = await ProductVariantModel.startSession()
         
         try {
-            session.startTransaction()
+            dbSession.startTransaction()
             
             const lockResults = []
             
@@ -61,15 +84,16 @@ export async function POST(request) {
                         throw new Error(`Sorry, ${product.name} was just sold out to another customer`)
                     }
                     
-                    // Lock stock at product level
+                    // Lock stock at product level and set expiration
                     const result = await ProductModel.findByIdAndUpdate(
                         productId,
                         {
-                            $inc: { lockedQuantity: item.quantity }
+                            $inc: { lockedQuantity: item.quantity },
+                            $set: { lockExpiresAt: lockExpiresAt }
                         },
                         {
                             new: true,
-                            session
+                            session: dbSession
                         }
                     )
                     
@@ -98,7 +122,7 @@ export async function POST(request) {
                     },
                     {
                         upsert: false,
-                        session
+                        session: dbSession
                     }
                 )
 
@@ -120,7 +144,7 @@ export async function POST(request) {
                         }
                     },
                     {
-                        session
+                        session: dbSession
                     }
                 )
 
@@ -136,11 +160,12 @@ export async function POST(request) {
                         }
                     },
                     {
-                        $inc: { lockedQuantity: item.quantity }
+                        $inc: { lockedQuantity: item.quantity },
+                        $set: { lockExpiresAt: lockExpiresAt }
                     },
                     {
                         new: true,
-                        session
+                        session: dbSession
                     }
                 ).populate('product', 'name isAvailable').lean()
                 
@@ -148,7 +173,7 @@ export async function POST(request) {
                     // Stock locking failed - check why
                     const variant = await ProductVariantModel.findById(item.variantId)
                         .populate('product', 'name isAvailable')
-                        .session(session)
+                        .session(dbSession)
                         .lean()
                     
                     if (!variant) {
@@ -177,18 +202,31 @@ export async function POST(request) {
                 })
             }
             
-            await session.commitTransaction()
+            await dbSession.commitTransaction()
+
+            logger.info({
+                lockId,
+                sessionId: session.sessionId,
+                itemCount: items.length,
+                expiresAt: lockExpiresAt.toISOString(),
+            }, 'Stock locked successfully');
             
             return response(true, 200, 'Stock locked successfully', {
+                lockId,
                 lockResults,
-                lockExpiry: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes from now
+                expiresAt: lockExpiresAt.toISOString()
             })
             
         } catch (error) {
-            await session.abortTransaction()
+            await dbSession.abortTransaction()
+            logger.error({
+                sessionId: session.sessionId,
+                error: (error as any).message,
+                itemCount: items.length,
+            }, 'Stock lock failed');
             throw error
         } finally {
-            session.endSession()
+            dbSession.endSession()
         }
         
     } catch (error) {
