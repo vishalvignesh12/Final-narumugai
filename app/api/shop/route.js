@@ -1,181 +1,233 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
-import CategoryModel from "@/models/Category.model";
 import ProductModel from "@/models/Product.model";
+import ProductVariantModel from "@/models/ProductVariant.model";
+import { NextResponse } from "next/server";
+
+// Cache this route for 60 seconds
+export const revalidate = 60;
+
+export async function POST(request) {
+    try {
+        await connectDB()
+        const payload = await request.json()
+
+        const {
+            start = 0,
+            size = 10,
+            filters = [],
+            sorting = [],
+            globalFilter = "",
+            categoryFilter = [],
+            colorFilter = [],
+            sizeFilter = [],
+            priceFilter = [],
+            slug
+        } = payload;
+
+
+        const matchQuery = { deletedAt: null, isAvailable: true };
+
+        // Handle slug
+        if (slug) {
+            matchQuery.slug = slug
+        }
+
+
+        // Global search
+        if (globalFilter) {
+            matchQuery["$or"] = [
+                { name: { $regex: globalFilter, $options: 'i' } },
+                { description: { $regex: globalFilter, $options: 'i' } },
+            ];
+        }
+
+        // Column filters
+        filters.forEach(filter => {
+            matchQuery[filter.id] = { $regex: filter.value, $options: 'i' };
+        });
+
+        // Category filter
+        if (categoryFilter.length > 0) {
+            matchQuery['category.slug'] = { $in: categoryFilter };
+        }
+
+        // Price filter
+        if (priceFilter.length === 2) {
+            matchQuery.sellingPrice = { $gte: priceFilter[0], $lte: priceFilter[1] };
+        }
+
+
+        // Sorting
+        const sortQuery = sorting.length > 0
+            ? sorting.reduce((acc, sort) => {
+                acc[sort.id] = sort.desc ? -1 : 1;
+                return acc;
+            }, {})
+            : { createdAt: -1 };
+
+
+        // Base aggregation pipeline
+        const pipeline = [
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "category",
+                    foreignField: "_id",
+                    as: "category"
+                }
+            },
+            { $unwind: "$category" },
+            { $match: matchQuery },
+        ];
+
+
+        // Check if color or size filters are applied
+        const hasVariantFilters = colorFilter.length > 0 || sizeFilter.length > 0;
+
+        if (hasVariantFilters) {
+            const variantMatchQuery = {
+                'variants.deletedAt': null
+            };
+            if (colorFilter.length > 0) {
+                variantMatchQuery['variants.color'] = { $in: colorFilter };
+            }
+            if (sizeFilter.length > 0) {
+                variantMatchQuery['variants.size'] = { $in: sizeFilter };
+            }
+
+            pipeline.push(
+                {
+                    $lookup: {
+                        from: "productvariants",
+                        localField: "_id",
+                        foreignField: "product",
+                        as: "variants"
+                    }
+                },
+                {
+                    $match: {
+                        ...variantMatchQuery,
+                        'variants': { $ne: [] } // Ensure product has variants matching the filter
+                    }
+                }
+            );
+        }
+
+        // Add sorting, skipping, and limiting
+        pipeline.push(
+            { $sort: sortQuery },
+            { $skip: start },
+            { $limit: size },
+            {
+                $lookup: {
+                    from: "media",
+                    localField: "media",
+                    foreignField: "_id",
+                    as: "media"
+                }
+            }
+        );
+
+
+        // Execute pipeline
+        const products = await ProductModel.aggregate(pipeline);
+
+        // Get total count for pagination
+        // We need a separate pipeline for count that stops before $skip and $limit
+        const countPipeline = [
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "category",
+                    foreignField: "_id",
+                    as: "category"
+                }
+            },
+            { $unwind: "$category" },
+            { $match: matchQuery }
+        ];
+
+        if (hasVariantFilters) {
+            const variantMatchQuery = {
+                'variants.deletedAt': null
+            };
+            if (colorFilter.length > 0) {
+                variantMatchQuery['variants.color'] = { $in: colorFilter };
+            }
+            if (sizeFilter.length > 0) {
+                variantMatchQuery['variants.size'] = { $in: sizeFilter };
+            }
+            countPipeline.push(
+                {
+                    $lookup: {
+                        from: "productvariants",
+                        localField: "_id",
+                        foreignField: "product",
+                        as: "variants"
+                    }
+                },
+                { $match: { ...variantMatchQuery, 'variants': { $ne: [] } } }
+            );
+        }
+
+        countPipeline.push({ $count: 'totalCount' });
+        const countResult = await ProductModel.aggregate(countPipeline);
+        const totalRowCount = countResult[0]?.totalCount || 0;
+
+
+        return NextResponse.json({
+            success: true,
+            data: products,
+            meta: { totalRowCount }
+        });
+
+    } catch (error) {
+        return catchError(error)
+    }
+}
 
 export async function GET(request) {
     try {
-
         await connectDB()
-
         const searchParams = request.nextUrl.searchParams
+        const query = searchParams.get('q')
 
-        // get filters from query params  
-        const size = searchParams.get('size')
-        const color = searchParams.get('color')
-        const categorySlug = searchParams.get('category')
-        const search = searchParams.get('q')
-
-
-
-        // pagination 
-        const limit = parseInt(searchParams.get('limit')) || 9
-        const page = parseInt(searchParams.get('page')) || 0
-        const skip = page * limit
-
-
-        // sorting 
-        const sortOption = searchParams.get('sort') || 'category_sorting'
-        let sortquery = {}
-        if (sortOption === 'default_sorting') sortquery = { createdAt: -1 }
-        if (sortOption === 'category_sorting') sortquery = { 'categoryData.name': 1, createdAt: -1 }
-        if (sortOption === 'asc') sortquery = { name: 1 }
-        if (sortOption === 'desc') sortquery = { name: -1 }
-        if (sortOption === 'price_low_high') sortquery = { sellingPrice: 1 }
-        if (sortOption === 'price_high_low') sortquery = { sellingPrice: -1 }
-
-
-        // find category by slug 
-        let categoryId = []
-        if (categorySlug) {
-            const slugs = categorySlug.split(',')
-            const categoryData = await CategoryModel.find({ deletedAt: null, slug: { $in: slugs } }).select('_id').lean()
-            categoryId = categoryData.map(category => category._id)
+        if (!query) {
+            return response(false, 400, 'Search query is required.')
         }
 
-        // match stage  
-        let matchStage = { deletedAt: null }  // Add deletedAt filter for products
-        if (categoryId.length > 0) matchStage.category = { $in: categoryId }  // filter by category   
+        // Find product ids that match variants
+        const matchingVariants = await ProductVariantModel.find({
+            $or: [
+                { color: { $regex: query, $options: 'i' } },
+                { size: { $regex: query, $options: 'i' } },
+                { sku: { $regex: query, $options: 'i' } },
+            ],
+            deletedAt: null
+        }).select('product');
 
-        if (search) {
-            matchStage.name = { $regex: search, $options: 'i' }
-        }
+        const productIdsFromVariants = matchingVariants.map(v => v.product);
 
+        // Main search query
+        const matchQuery = {
+            deletedAt: null,
+            isAvailable: true,
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { description: { $regex: query, $options: 'i' } },
+                { _id: { $in: productIdsFromVariants } } // Add matching product ids
+            ]
+        };
 
-        // aggregation pipeline  
-        const products = await ProductModel.aggregate([
-            { $match: matchStage },
-            {
-                $lookup: {
-                    from: 'categories',
-                    localField: 'category',
-                    foreignField: '_id',
-                    as: 'categoryData'
-                }
-            },
-            {
-                $unwind: {
-                    path: "$categoryData", 
-                    preserveNullAndEmptyArrays: true
-                }
-            },
-            { $sort: sortquery },
-            { $skip: skip },
-            { $limit: limit + 1 },
-            {
-                $lookup: {
-                    from: 'productvariants',
-                    localField: '_id',
-                    foreignField: 'product',
-                    as: 'variants'
-                }
-            },
-            {
-                $addFields: {
-                    variants: {
-                        $filter: {
-                            input: "$variants",
-                            as: 'variant',
-                            cond: {
-                                $and: [
-                                    { $eq: ["$$variant.deletedAt", null] }, // Only non-deleted variants
-                                    size ? { $in: ["$$variant.size", size.split(',')] } : { $literal: true },
-                                    color ? { $in: ["$$variant.color", color.split(',')] } : { $literal: true }
-                                ]
-                            }
-                        }
-                    }
-                }
-            },
-            // Optional: Only include products with variants (commented out to allow products without variants)
-            // {
-            //     $match: {
-            //         variants: { $ne: [] }
-            //     }
-            // },
-            {
-                $lookup: {
-                    from: 'medias',
-                    localField: 'media',
-                    foreignField: '_id',
-                    as: 'media'
-                }
-            },
-            {
-                $addFields: {
-                    // If no variants exist, use product data as default variant
-                    effectiveVariants: {
-                        $cond: {
-                            if: { $eq: [{ $size: "$variants" }, 0] },
-                            then: [{
-                                _id: "$_id",
-                                color: "Default",
-                                size: "One Size",
-                                mrp: "$mrp",
-                                sellingPrice: "$sellingPrice",
-                                discountPercentage: "$discountPercentage"
-                            }],
-                            else: "$variants"
-                        }
-                    }
-                }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    name: 1,
-                    slug: 1,
-                    mrp: 1,
-                    sellingPrice: 1,
-                    discountPercentage: 1,
-                    isAvailable: 1,
-                    soldAt: 1,
-                    quantity: 1,
-                    category: {
-                        _id: "$categoryData._id",
-                        name: "$categoryData.name",
-                        slug: "$categoryData.slug"
-                    },
-                    media: {
-                        _id: 1,
-                        secure_url: 1,
-                        alt: 1
-                    },
-                    variants: "$effectiveVariants"
-                }
-            }
-        ])
+        const products = await ProductModel.find(matchQuery)
+            .populate('category', 'name slug')
+            .populate('media', 'secure_url')
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .lean();
 
-        // Debug: Log the query and results
-        console.log('Shop API Debug:');
-        console.log('Match Stage:', JSON.stringify(matchStage));
-        console.log('Products found:', products.length);
-        if (products.length === 0) {
-            // Let's check if there are any products at all
-            const totalProducts = await ProductModel.countDocuments({ deletedAt: null });
-            console.log('Total products in DB:', totalProducts);
-        }
-
-
-
-        // check if more data exists 
-        let nextPage = null
-        if (products.length > limit) {
-            nextPage = page + 1
-            products.pop() // remove extra item
-        }
-
-        return response(true, 200, 'Product data found.', { products, nextPage })
+        return response(true, 200, 'Search results', products);
 
     } catch (error) {
         return catchError(error)

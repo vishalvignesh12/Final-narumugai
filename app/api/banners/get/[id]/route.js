@@ -1,32 +1,16 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import BannerModel from "@/models/Banner.model";
-import { isAuthenticated } from "@/lib/authentication";
-import { isValidObjectId } from "mongoose";
 
-export async function GET(request, { params }) {
+// Cache banners for 1 day (86400 seconds)
+export const revalidate = 86400;
+
+export async function GET(request) {
     try {
-        await connectDB()
-
-        const getParams = await params
-        const id = getParams.id
-
-        if (!isValidObjectId(id)) {
-            return response(false, 400, 'Invalid banner ID.')
-        }
-
-        const banner = await BannerModel.findOne({ 
-            _id: id,
-            deletedAt: null 
-        }).populate('mediaId').lean()
-
-        if (!banner) {
-            return response(false, 404, 'Banner not found.')
-        }
-
-        return response(true, 200, 'Banner retrieved successfully.', banner)
-
+        await connectDB();
+        const banners = await BannerModel.find({ deletedAt: null }).sort({ createdAt: -1 }).lean();
+        return response(true, 200, 'Banners retrieved successfully.', banners);
     } catch (error) {
-        return catchError(error)
+        return catchError(error);
     }
 }

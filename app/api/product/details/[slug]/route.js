@@ -1,110 +1,108 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductModel from "@/models/Product.model";
-import MediaModel from "@/models/Media.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
 import ReviewModel from "@/models/Review.model";
 
+// Cache product details for 1 hour (3600 seconds)
+export const revalidate = 3600;
+
 export async function GET(request, { params }) {
     try {
-
-        await connectDB()
-
+        await connectDB();
         const { slug } = params;
-
-        const searchParams = request.nextUrl.searchParams
-        const size = searchParams.get('size')
-        const color = searchParams.get('color')
-
-
-        const filter = {
-            deletedAt: null
-        }
+        const searchParams = request.nextUrl.searchParams;
+        const color = searchParams.get('color');
+        const size = searchParams.get('size');
 
         if (!slug) {
-            return response(false, 404, 'Product not found.')
+            return response(false, 400, "Product slug is required");
         }
 
-        filter.slug = slug
+        // 1. Find the product
+        const product = await ProductModel.findOne({ slug, deletedAt: null, isAvailable: true })
+            .populate('media')
+            .populate('category', 'name slug')
+            .lean();
 
-        // get product 
-        const getProduct = await ProductModel.findOne(filter).populate('media', 'secure_url').lean()
-
-        if (!getProduct) {
-            return response(false, 404, 'Product not found.')
+        if (!product) {
+            return response(false, 404, "Product not found");
         }
 
-        // get product variant 
-        const variantFilter = {
-            product: getProduct._id
+        // 2. Find all available variants for this product
+        const allVariants = await ProductVariantModel.find({
+            product: product._id,
+            deletedAt: null
+        })
+            .populate('media')
+            .lean();
+
+        if (allVariants.length === 0) {
+            // Handle products with no variants (using base product details)
+            const reviewCount = await ReviewModel.countDocuments({ product: product._id });
+
+            // Create a "fallback" variant from the product itself
+            const fallbackVariant = {
+                _id: `fallback-${product._id}`, // Create a unique fallback ID
+                product: product._id,
+                color: "Default",
+                size: "One Size",
+                mrp: product.mrp,
+                sellingPrice: product.sellingPrice,
+                discountPercentage: product.discountPercentage,
+                sku: product.sku || `fallback-${product._id}`,
+                quantity: product.quantity,
+                media: product.media,
+            };
+
+            return response(true, 200, "Product details retrieved", {
+                product,
+                variant: fallbackVariant,
+                colors: ["Default"],
+                sizes: ["One Size"],
+                reviewCount: reviewCount
+            });
         }
 
-        if (size) {
-            variantFilter.size = size
-        }
-        if (color) {
-            variantFilter.color = color
-        }
+        // 3. Determine unique colors and sizes
+        const colors = [...new Set(allVariants.map(v => v.color))];
+        const sizes = [...new Set(allVariants.map(v => v.size))];
 
-        let variant = await ProductVariantModel.findOne(variantFilter).populate('media', 'secure_url').lean()
+        // 4. Find the variant to display
+        let variantToDisplay;
 
-        // If no specific variant found, try to get the first available variant
-        if (!variant) {
-            variant = await ProductVariantModel.findOne({ product: getProduct._id }).populate('media', 'secure_url').lean()
+        if (color && size) {
+            // Try to find exact match
+            variantToDisplay = allVariants.find(v => v.color === color && v.size === size);
         }
 
-        // If still no variant found, create a fallback variant from product data
-        if (!variant) {
-            variant = {
-                _id: null,
-                product: getProduct._id,
-                color: 'Default',
-                size: 'Default',
-                mrp: getProduct.mrp,
-                sellingPrice: getProduct.sellingPrice,
-                discountPercentage: getProduct.discountPercentage,
-                quantity: getProduct.quantity || 0,
-                media: getProduct.media || []
-            }
+        if (!variantToDisplay && color) {
+            // If no exact match, find first variant with the specified color
+            variantToDisplay = allVariants.find(v => v.color === color);
         }
 
-        // get color and size 
-        const getColor = await ProductVariantModel.distinct('color', { product: getProduct._id })
-
-        const getSize = await ProductVariantModel.aggregate([
-            { $match: { product: getProduct._id } },
-            { $sort: { _id: 1 } },
-            {
-                $group: {
-                    _id: "$size",
-                    first: { $first: "$_id" }
-                }
-            },
-            { $sort: { first: 1 } },
-            { $project: { _id: 0, size: "$_id" } }
-        ])
-
-        // If no variants exist, provide default options
-        const colors = getColor.length > 0 ? getColor : ['Default']
-        const sizes = getSize.length > 0 ? getSize.map(item => item.size) : ['Default']
-
-
-        // get review  
-
-        const review = await ReviewModel.countDocuments({ product: getProduct._id })
-
-
-        const productData = {
-            product: getProduct,
-            variant: variant,
-            colors: colors,
-            sizes: sizes,
-            reviewCount: review
+        if (!variantToDisplay && size) {
+            // If still no match, find first variant with the specified size
+            variantToDisplay = allVariants.find(v => v.size === size);
         }
 
-        return response(true, 200, 'Product data found.', productData)
+        if (!variantToDisplay) {
+            // If no query params or no match, default to the first variant
+            variantToDisplay = allVariants[0];
+        }
+
+        // 5. Get review count
+        const reviewCount = await ReviewModel.countDocuments({ product: product._id });
+
+        return response(true, 200, "Product details retrieved", {
+            product,
+            variant: variantToDisplay,
+            colors,
+            sizes,
+            reviewCount
+        });
 
     } catch (error) {
-        return catchError(error)
+        return catchError(error);
     }
 }

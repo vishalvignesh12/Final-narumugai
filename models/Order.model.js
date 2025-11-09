@@ -1,5 +1,6 @@
 import { orderStatus } from "@/lib/utils"
 import mongoose from "mongoose"
+
 const orderSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -72,17 +73,27 @@ const orderSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: orderStatus,
-        default: 'pending'
+        enum: [...orderStatus, 'pending-payment', 'failed'], // Added new statuses
+        default: 'pending-payment'
     },
-    payment_id: {
+    // REPLACED Razorpay fields with PayU fields
+    payment_gateway_id: { // Will store PayU's mihpayid
         type: String,
-        required: true
+        required: false,
+        index: true
     },
-    order_id: {
+    transaction_id: { // Will store our unique txnid
         type: String,
-        required: true
+        required: true,
+        unique: true,
+        index: true
     },
+    order_id: { // This is your internal order ID, keeping as is
+        type: String,
+        required: true,
+        unique: true,
+    },
+    // END OF CHANGES
     cancellationReason: {
         type: String,
         required: false
@@ -102,6 +113,12 @@ const orderSchema = new mongoose.Schema({
         index: true
     },
 }, { timestamps: true })
+
+// Add indexes for faster lookups
+orderSchema.index({ user: 1 });
+orderSchema.index({ email: 1 });
+orderSchema.index({ phone: 1 });
+
 
 const OrderModel = mongoose.models.Order || mongoose.model('Order', orderSchema, 'orders')
 export default OrderModel

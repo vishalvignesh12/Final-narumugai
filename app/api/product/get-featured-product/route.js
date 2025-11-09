@@ -1,19 +1,22 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductModel from "@/models/Product.model";
-import MediaModel from "@/models/Media.model";
 
-export async function GET() {
+// Cache featured products for 5 minutes (300 seconds)
+export const revalidate = 300;
+
+export async function GET(request) {
     try {
         await connectDB()
 
-        const getProduct = await ProductModel.find({ deletedAt: null }).populate('media').limit(8).select('name slug mrp sellingPrice discountPercentage isAvailable soldAt quantity media').lean()
+        const products = await ProductModel.find({ deletedAt: null, isAvailable: true })
+            .populate('media')
+            .populate('category', 'name slug')
+            .sort({ createdAt: -1 })
+            .limit(10)
+            .lean(); // Use .lean() for faster read-only queries
 
-        if (!getProduct) {
-            return response(false, 404, 'Product not found.')
-        }
-
-        return response(true, 200, 'Product found.', getProduct)
+        return response(true, 200, "Featured products fetched", products)
 
     } catch (error) {
         return catchError(error)

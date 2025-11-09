@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react' // Import useRef
 import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoCloseCircleSharp } from "react-icons/io5"
@@ -44,7 +44,10 @@ const Checkout = () => {
     const [couponCode, setCouponCode] = useState('')
 
     const [placingOrder, setPlacingOrder] = useState(false)
-    const [savingOrder, setSavingOrder] = useState(false)
+    
+    // Create a ref for the auto-submitting form
+    const payuFormRef = useRef(null)
+    const [payuData, setPayuData] = useState(null)
 
     useEffect(() => {
         // Map cart data for display
@@ -153,167 +156,97 @@ const Checkout = () => {
         }
     })
 
-    // Get order ID for Razorpay
-    const getOrderId = async (amount) => {
-        try {
-            const { data: orderIdData } = await axios.post('/api/payment/get-order-id', { amount })
-            if (!orderIdData.success) {
-                throw new Error(orderIdData.message)
-            }
-            return { success: true, order_id: orderIdData.data }
-        } catch (error) {
-            return { success: false, message: error.message }
+    // NEW: Function to submit the hidden PayU form
+    useEffect(() => {
+        if (payuData && payuFormRef.current) {
+            payuFormRef.current.submit();
+            // Clear cart from Redux immediately after getting redirect data
+            dispatch(clearCart());
         }
-    }
+    }, [payuData, dispatch]);
 
+    // MODIFIED: placeOrder function for PayU
     const placeOrder = async (formData) => {
-        setPlacingOrder(true)
+        setPlacingOrder(true);
         try {
-            // Generate order ID from server
-            const generateOrderId = await getOrderId(totalAmount)
-            if (!generateOrderId.success) {
-                throw new Error(generateOrderId.message)
-            }
+            // Prepare cart products data
+            const products = verifiedCartData.map((cartItem) => ({
+                productId: cartItem.productId,
+                variantId: cartItem.variantId,
+                name: cartItem.name,
+                qty: cartItem.qty || 1,
+                mrp: cartItem.mrp,
+                sellingPrice: cartItem.sellingPrice,
+            }));
 
-            const order_id = generateOrderId.order_id
-
-            // Prepare Razorpay options first
-            const razorpayOptions = {
-                key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-                amount: totalAmount * 100, // Razorpay expects amount in paise
-                currency: "INR",
-                name: "Narumugai",
-                description: "Payment for your order",
-                order_id: order_id,
-                handler: async function (response) {
-                    setSavingOrder(true)
-                    try {
-                        // Prepare cart products data
-                        const products = verifiedCartData.map((cartItem) => ({
-                            productId: cartItem.productId,
-                            variantId: cartItem.variantId,
-                            name: cartItem.name,
-                            qty: cartItem.qty || 1,
-                            mrp: cartItem.mrp,
-                            sellingPrice: cartItem.sellingPrice,
-                        }))
-
-                        // Save the order after payment
-                        const { data: paymentResponseData } = await axios.post('/api/payment/save-order', {
-                            ...formData,
-                            ...response,
-                            products: products,
-                            subtotal: subtotal,
-                            discount: discount,
-                            couponDiscountAmount: couponDiscountAmount,
-                            totalAmount: totalAmount,
-                        })
-
-                        if (paymentResponseData.success) {
-                            showToast('success', paymentResponseData.message)
-                            dispatch(clearCart()) // Clear cart after successful order
-                            orderForm.reset()
-                            router.push(WEBSITE_ORDER_DETAILS(response.razorpay_order_id))
-                        } else {
-                            showToast('error', paymentResponseData.message)
-                        }
-                    } catch (error) {
-                        console.error('Error saving order:', error)
-                        showToast('error', error.message || 'Error processing your order')
-                    } finally {
-                        setSavingOrder(false)
-                    }
-                },
-                prefill: {
-                    name: formData.name,
-                    email: formData.email,
-                    contact: formData.phone
-                },
-                theme: {
-                    color: "#7c3aed"
-                }
-            }
-
-            // Function to load Razorpay script
-            const loadRazorpayScript = () => {
-                return new Promise((resolve, reject) => {
-                    // Check if Razorpay is already available
-                    if (window.Razorpay) {
-                        resolve();
-                        return;
-                    }
-
-                    // Check if script element already exists
-                    let script = document.querySelector('script[src="https://checkout.razorpay.com/v1/checkout.js"]');
-                    
-                    if (!script) {
-                        // Create script if it doesn't exist
-                        script = document.createElement('script');
-                        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-                        script.async = true;
-                        script.onload = () => {
-                            // Wait a bit for Razorpay to initialize
-                            setTimeout(() => resolve(), 300);
-                        };
-                        script.onerror = () => reject(new Error('Failed to load Razorpay script'));
-                        document.body.appendChild(script);
-                    } else {
-                        // Script already exists, wait for it to load
-                        if (window.Razorpay) {
-                            resolve();
-                        } else {
-                            // Set up a way to detect when it loads
-                            const checkInterval = setInterval(() => {
-                                if (window.Razorpay) {
-                                    clearInterval(checkInterval);
-                                    resolve();
-                                }
-                            }, 100);
-                            
-                            // Reject after timeout
-                            setTimeout(() => {
-                                clearInterval(checkInterval);
-                                reject(new Error('Razorpay script loading timeout'));
-                            }, 10000);
-                        }
-                    }
-                });
-            };
-
-            // Load the script and then open the payment modal
-            await loadRazorpayScript();
-
-            // Open Razorpay payment modal
-            const rzp = new window.Razorpay(razorpayOptions);
-            rzp.open();
-
-            // Handle payment failure
-            rzp.on('payment.failed', function (response) {
-                showToast('error', response.error.description || 'Payment failed');
+            // Call our new API to create a pending order and get PayU details
+            const { data: response } = await axios.post('/api/payment/initiate-payment', {
+                ...formData,
+                products: products,
+                subtotal: subtotal,
+                discount: discount,
+                couponDiscountAmount: couponDiscountAmount,
+                totalAmount: totalAmount,
             });
 
+            if (!response.success) {
+                throw new Error(response.message || 'Failed to initiate payment');
+            }
+            
+            // Set the PayU data, which will trigger the useEffect to submit the form
+            setPayuData(response.data);
+
+            // Note: We don't clear cart or reset form here anymore.
+            // The useEffect will submit the form, and the user will be redirected.
+            // Cart is cleared in the useEffect.
+
         } catch (error) {
-            showToast('error', error.message)
-        } finally {
-            setPlacingOrder(false)
+            console.error('Error placing order:', error);
+            showToast('error', error.message || 'Error processing your order');
+            setPlacingOrder(false);
         }
+        // No finally block to set placingOrder(false) because the user is being redirected
+    }
+
+    // NEW: Render a hidden form for PayU
+    const renderPayUForm = () => {
+        if (!payuData) return null;
+        
+        return (
+            <form ref={payuFormRef} action={payuData.endpoint} method="POST" className="hidden">
+                <input type="hidden" name="key" value={payuData.key} />
+                <input type="hidden" name="txnid" value={payuData.txnid} />
+                <input type="hidden" name="productinfo" value={payuData.productinfo} />
+                <input type="hidden" name="amount" value={payuData.amount} />
+                <input type="hidden" name="email" value={payuData.email} />
+                <input type="hidden" name="firstname" value={payuData.firstname} />
+                <input type="hidden" name="surl" value={payuData.surl} />
+                <input type="hidden" name="furl" value={payuData.furl} />
+                <input type="hidden" name="phone" value={payuData.phone} />
+                <input type="hidden" name="hash" value={payuData.hash} />
+                {/* Optional fields can be added here if needed, e.g., address */}
+            </form>
+        );
     }
 
     return (
         <div>
-            {/* Order saving overlay */}
-            {savingOrder && (
+            {/* Show a message while redirecting */}
+            {placingOrder && (
                 <div className='h-screen w-screen fixed top-0 left-0 z-50 bg-black/10 flex justify-center items-center'>
                     <div className='flex flex-col items-center'>
                         <img src="/assets/images/loading.svg" width="80" height="80" alt='Loading' />
-                        <h4 className='font-semibold mt-4'>Processing your order...</h4>
+                        <h4 className='font-semibold mt-4'>Redirecting to payment gateway...</h4>
                     </div>
                 </div>
             )}
+            
+            {/* Hidden PayU form */}
+            {renderPayUForm()}
 
             <WebsiteBreadcrumb props={breadCrumb} />
 
-            {cart.count === 0 ? (
+            {cart.count === 0 && !placingOrder ? (
                 <div className='w-screen h-[500px] flex justify-center items-center py-32'>
                     <div className='text-center'>
                         <h4 className='text-4xl font-semibold mb-5'>Your cart is empty!</h4>
@@ -332,6 +265,7 @@ const Checkout = () => {
 
                         <Form {...orderForm}>
                             <form onSubmit={orderForm.handleSubmit(placeOrder)} className='grid grid-cols-2 gap-5'>
+                                {/* ... (All your FormField components for name, email, phone, etc. remain UNCHANGED) ... */}
                                 {/* Name Field */}
                                 <FormField
                                     control={orderForm.control}
@@ -460,11 +394,12 @@ const Checkout = () => {
                                     />
                                 </div>
 
+
                                 {/* Place Order Button */}
                                 <div className='mb-3'>
                                     <ButtonLoading 
                                         type="submit" 
-                                        text="Place Order" 
+                                        text="Place Order & Proceed to Pay" 
                                         loading={placingOrder} 
                                         className="bg-primary hover:bg-primary/90 rounded-full px-8 py-2 cursor-pointer" 
                                     />
@@ -473,7 +408,7 @@ const Checkout = () => {
                         </Form>
                     </div>
 
-                    {/* Order Summary */}
+                    {/* Order Summary (UNCHANGED) */}
                     <div className='lg:w-[40%] w-full'>
                         <div className='rounded bg-gray-50 p-5 sticky top-5'>
                             <h4 className='text-lg font-semibold mb-5'>Order Summary</h4>
@@ -524,7 +459,7 @@ const Checkout = () => {
                                 </table>
                             </div>
 
-                            {/* Price Summary */}
+                            {/* Price Summary (UNCHANGED) */}
                             <div className="border-t pt-4">
                                 <div className="flex justify-between mb-2">
                                     <span>MRP Total</span>
@@ -551,7 +486,7 @@ const Checkout = () => {
                                 </div>
                             </div>
 
-                            {/* Coupon Section */}
+                            {/* Coupon Section (UNCHANGED) */}
                             <div className='mt-6'>
                                 {!isCouponApplied ? (
                                     <Form {...couponForm}>
