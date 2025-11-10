@@ -8,18 +8,48 @@ import { sendMail } from "@/lib/sendMail";
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 
-// Function to verify PayU hash
+// --- (verifyHash function remains the same) ---
 const verifyHash = (data, salt) => {
-    // The hash string sequence for response is different!
-    // salt|status|||||||||||email|firstname|productinfo|amount|txnid|key
     const hashString = `${salt}|${data.status}|||||||||||${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
     const calculatedHash = crypto.createHash('sha512').update(hashString).digest('hex');
     return calculatedHash === data.hash;
 };
 
-// This route handles BOTH success and failure callbacks from PayU
+
+// --- FIX: NEW HELPER FUNCTION TO UNLOCK STOCK ---
+async function unlockStock(order, session = null) {
+    console.log(`Unlocking stock for failed order ${order.order_id}`);
+    for (const item of order.products) {
+        try {
+            if (!item.variantId || item.variantId.toString().includes('fallback-')) {
+                // Handle fallback variants
+                const productId = item.productId;
+                await ProductModel.findOneAndUpdate(
+                    { _id: productId },
+                    { $inc: { quantity: item.qty }, isAvailable: true }, // Increment quantity back
+                    { session }
+                );
+            } else {
+                // Handle real variants
+                await ProductVariantModel.findOneAndUpdate(
+                    { _id: item.variantId },
+                    { $inc: { quantity: item.qty } }, // Increment quantity back
+                    { session }
+                );
+            }
+        } catch (error) {
+            // Log error but don't stop the redirect.
+            // This needs monitoring.
+            console.error(`CRITICAL: Failed to unlock stock for item ${item.variantId || item.productId} in order ${order.order_id}`, error);
+        }
+    }
+}
+
+
 export async function POST(request) {
     let session;
+    let order; // --- Define order in outer scope ---
+
     try {
         const formData = await request.formData();
         const data = Object.fromEntries(formData);
@@ -29,25 +59,24 @@ export async function POST(request) {
         const salt = process.env.PAYU_SALT;
         const key = process.env.PAYU_KEY;
 
-        // 1. Verify the hash to ensure the request is from PayU
+        // 1. Verify the hash
         const isHashValid = verifyHash({ ...data, key }, salt);
-
         if (!isHashValid) {
-            // Hash mismatch, potential tampering
             return NextResponse.redirect(new URL('/payment-failed?error=invalid_hash', process.env.NEXT_PUBLIC_BASE_URL));
         }
 
-        // 2. Find the order in our database
-        const order = await OrderModel.findOne({ transaction_id: data.txnid });
-
+        // 2. Find the order
+        order = await OrderModel.findOne({ transaction_id: data.txnid });
         if (!order) {
-            // Order not found
             return NextResponse.redirect(new URL('/payment-failed?error=order_not_found', process.env.NEXT_PUBLIC_BASE_URL));
         }
         
         // If order is already processed, just redirect
         if (order.status !== 'pending-payment') {
-             return NextResponse.redirect(new URL(`/order-details/${order.order_id}`, process.env.NEXT_PUBLIC_BASE_URL));
+             const redirectURL = data.status === 'success' 
+                ? `/order-details/${order.order_id}` 
+                : '/payment-failed?error=payment_failed_or_cancelled';
+             return NextResponse.redirect(new URL(redirectURL, process.env.NEXT_PUBLIC_BASE_URL));
         }
 
         // 3. Handle payment status
@@ -58,42 +87,14 @@ export async function POST(request) {
 
             try {
                 // 4. PAYMENT SUCCESS: Update order status
-                order.status = 'pending'; // Or "processing"
+                order.status = 'processing'; // Or 'pending'
                 order.payment_gateway_id = data.mihpayid;
                 await order.save({ session });
 
-                // 5. Deduct stock (using your logic from the original save-order route)
-                // ** NOTE: This logic assumes 'stockLockItems' is not used, and deducts from 'products' array **
-                for (const item of order.products) {
-                    
-                    // Handle fallback variants (products without real variants)
-                    if (!item.variantId || item.variantId.toString().includes('fallback-')) {
-                        const productId = item.productId;
-                        const result = await ProductModel.findOneAndUpdate(
-                            { _id: productId, quantity: { $gte: item.qty } },
-                            { $inc: { quantity: -item.qty } },
-                            { session, new: true }
-                        );
-                        if (!result) throw new Error(`Stock deduction failed for product ${productId}`);
-                        if (result.quantity === 0) {
-                            await ProductModel.findByIdAndUpdate(result._id, { isAvailable: false, soldAt: new Date() }, { session });
-                        }
-                    } else {
-                        // Handle real variants
-                        const result = await ProductVariantModel.findOneAndUpdate(
-                            { _id: item.variantId, quantity: { $gte: item.qty } },
-                            { $inc: { quantity: -item.qty } },
-                            { session, new: true }
-                        );
-                        if (!result) throw new Error(`Stock deduction failed for variant ${item.variantId}`);
-                        
-                        // This part was missing in your original code, might be needed
-                        // if (result.quantity === 0) {
-                        //    await ProductVariantModel.findByIdAndUpdate(result._id, { isAvailable: false }, { session });
-                        // }
-                    }
-                }
-                
+                // --- 5. (CRITICAL FIX) STOCK DEDUCTION IS REMOVED ---
+                // The stock was already deducted by /api/stock/atomic-purchase
+                // We no longer need to do it here. This fixes the race condition.
+
                 // Commit transaction
                 await session.commitTransaction();
                 
@@ -112,23 +113,35 @@ export async function POST(request) {
                 return NextResponse.redirect(new URL(`/order-details/${order.order_id}?status=success`, process.env.NEXT_PUBLIC_BASE_URL));
 
             } catch (error) {
-                // If stock deduction or order update fails, roll back
+                // If DB save fails, roll back
                 await session.abortTransaction();
-                order.status = 'failed'; // Mark as failed if transaction failed
+                
+                // --- FIX: ROLLBACK STOCK ---
+                // If the final order save fails, we must also unlock the stock.
+                await unlockStock(order); // Pass the full order object
+
+                order.status = 'failed'; 
                 order.ordernote = `Payment successful but order failed: ${error.message}`;
-                await order.save();
+                await order.save(); // Save failure status outside transaction
                 return NextResponse.redirect(new URL(`/payment-failed?error=order_processing_failed&txnid=${data.txnid}`, process.env.NEXT_PUBLIC_BASE_URL));
             } finally {
                 session.endSession();
             }
 
         } else {
-            // 4. PAYMENT FAILURE: Update order status
+            // 4. PAYMENT FAILURE
+            
+            // --- 5. (CRITICAL FIX) UNLOCK STOCK ---
+            // Payment failed or was cancelled, so we must
+            // return the items to the inventory.
+            await unlockStock(order); // Pass the full order object
+            
+            // 6. Update order status to 'failed'
             order.status = 'failed';
             order.ordernote = `Payment failed or cancelled. Reason: ${data.error_Message || 'Unknown'}`;
             await order.save();
             
-            // 5. Redirect user to failure page
+            // 7. Redirect user to failure page
             return NextResponse.redirect(new URL(`/payment-failed?error=${data.error_Message || 'payment_failed'}&txnid=${data.txnid}`, process.env.NEXT_PUBLIC_BASE_URL));
         }
 
@@ -137,6 +150,12 @@ export async function POST(request) {
             await session.abortTransaction();
             session.endSession();
         }
+        
+        // --- FIX: Safety net to unlock stock on catastrophic error ---
+        if (order) {
+            await unlockStock(order);
+        }
+
         console.error("Critical error in PayU verify route:", error);
         return NextResponse.redirect(new URL('/payment-failed?error=server_error', process.env.NEXT_PUBLIC_BASE_URL));
     }

@@ -39,7 +39,7 @@ export async function POST(request) {
             const token = await new SignJWT({ userId: getUser._id.toString() })
                 .setIssuedAt()
                 .setExpirationTime('1h')
-                .setProtectedHeader({ alg: 'HS256' })
+                .setProtectedHeader({ alg: 'HS26' })
                 .sign(secret)
 
 
@@ -59,21 +59,25 @@ export async function POST(request) {
         // otp generation 
         await OTPModel.deleteMany({ email })  // deleting old otps 
 
-        let OTP = 123456
-        if (email !== 'admin@gmail.com') {
-            OTP = generateOTP()
+        // --- (CRITICAL SECURITY FIX) ---
+        // Removed the hardcoded '123456' OTP for 'admin@gmail.com'.
+        // All users, including admin, will now receive a generated OTP.
+        
+        const OTP = generateOTP()
 
-            const OTPEmailTemplate = otpEmail(OTP)
+        const OTPEmailTemplate = otpEmail(OTP)
 
-            const otpEmailStatus = await sendMail("Your login verification code.", email, OTPEmailTemplate)
-            if (!otpEmailStatus.success) {
-                return response(false, 500, 'Something went wrong.')
-            }
-
+        const otpEmailStatus = await sendMail("Your login verification code.", email, OTPEmailTemplate)
+        
+        if (!otpEmailStatus.success) {
+            // Log this error, as the user won't be able to log in
+            console.error(`Failed to send OTP email to ${email}:`, otpEmailStatus.error)
+            return response(false, 500, 'Failed to send OTP. Please try again.')
         }
+        // --- (End of Security Fix) ---
+
 
         // storing otp into database 
-
         const newOtpData = new OTPModel({
             email, otp: OTP
         })

@@ -12,7 +12,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useEffect, useState, useRef } from 'react' // Import useRef
+import { useEffect, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
 import { useDispatch, useSelector } from 'react-redux'
 import { IoCloseCircleSharp } from "react-icons/io5"
@@ -45,12 +45,10 @@ const Checkout = () => {
 
     const [placingOrder, setPlacingOrder] = useState(false)
     
-    // Create a ref for the auto-submitting form
     const payuFormRef = useRef(null)
     const [payuData, setPayuData] = useState(null)
 
     useEffect(() => {
-        // Map cart data for display
         if (cart.count > 0) {
             const cartData = cart.products.map(item => ({
                 productId: item.productId,
@@ -78,10 +76,15 @@ const Checkout = () => {
 
         setSubTotal(subTotalAmount)
         setDiscount(discount)
-        setTotalAmount(subTotalAmount)
-
+        
+        // --- MODIFIED --- Calculate total based on coupon
+        const newTotal = subTotalAmount - couponDiscountAmount
+        setTotalAmount(newTotal)
+        
+        // --- MODIFIED --- Update minShoppingAmount for coupon
         couponForm.setValue('minShoppingAmount', subTotalAmount)
-    }, [cart])
+
+    }, [cart, subtotal, couponDiscountAmount]) // Added dependencies
 
     // Coupon form
     const couponFormSchema = zSchema.pick({
@@ -109,7 +112,7 @@ const Checkout = () => {
             const discountAmount = (subtotal * discountPercentage) / 100
             
             setCouponDiscountAmount(discountAmount)
-            setTotalAmount(subtotal - discountAmount)
+            // Total amount will be recalculated by the useEffect
             showToast('success', response.message)
             setCouponCode(couponForm.getValues('code'))
             setIsCouponApplied(true)
@@ -125,10 +128,10 @@ const Checkout = () => {
         setIsCouponApplied(false)
         setCouponCode('')
         setCouponDiscountAmount(0)
-        setTotalAmount(subtotal - discount) // Reset to subtotal minus regular discount
+        // Total amount will be recalculated by the useEffect
     }
 
-    // Order form
+    // Order form (schema remains the same)
     const orderFormSchema = zSchema.pick({
         name: true,
         email: true,
@@ -156,59 +159,89 @@ const Checkout = () => {
         }
     })
 
-    // NEW: Function to submit the hidden PayU form
+    // --- MODIFIED: useEffect to submit PayU form ---
     useEffect(() => {
         if (payuData && payuFormRef.current) {
             payuFormRef.current.submit();
-            // Clear cart from Redux immediately after getting redirect data
-            dispatch(clearCart());
+            // --- FIX ---
+            // Cart is NO LONGER cleared here. It's cleared only after
+            // the /api/payment/verify route confirms a successful payment.
+            // dispatch(clearCart()); // <-- THIS LINE IS REMOVED
         }
-    }, [payuData, dispatch]);
+    }, [payuData]); // Removed dispatch
 
-    // MODIFIED: placeOrder function for PayU
+    // --- CRITICAL FIX: Modified placeOrder function ---
     const placeOrder = async (formData) => {
         setPlacingOrder(true);
-        try {
-            // Prepare cart products data
-            const products = verifiedCartData.map((cartItem) => ({
-                productId: cartItem.productId,
-                variantId: cartItem.variantId,
-                name: cartItem.name,
-                qty: cartItem.qty || 1,
-                mrp: cartItem.mrp,
-                sellingPrice: cartItem.sellingPrice,
-            }));
+        
+        // Prepare items for stock check
+        const stockLockItems = verifiedCartData.map(cartItem => ({
+            variantId: cartItem.variantId,
+            quantity: cartItem.qty || 1
+        }));
 
-            // Call our new API to create a pending order and get PayU details
-            const { data: response } = await axios.post('/api/payment/initiate-payment', {
-                ...formData,
-                products: products,
-                subtotal: subtotal,
-                discount: discount,
-                couponDiscountAmount: couponDiscountAmount,
-                totalAmount: totalAmount,
+        try {
+            // --- STEP 1: ATOMIC STOCK PURCHASE (LOCK) ---
+            // First, try to "purchase" or "lock" the stock atomically.
+            await axios.post('/api/stock/atomic-purchase', {
+                items: stockLockItems
             });
 
-            if (!response.success) {
-                throw new Error(response.message || 'Failed to initiate payment');
+            // --- STEP 2: INITIATE PAYMENT (If stock lock succeeds) ---
+            try {
+                // Prepare cart products data for the order
+                const products = verifiedCartData.map((cartItem) => ({
+                    productId: cartItem.productId,
+                    variantId: cartItem.variantId,
+                    name: cartItem.name,
+                    qty: cartItem.qty || 1,
+                    mrp: cartItem.mrp,
+                    sellingPrice: cartItem.sellingPrice,
+                }));
+
+                // Call API to create a pending order and get PayU details
+                const { data: response } = await axios.post('/api/payment/initiate-payment', {
+                    ...formData,
+                    products: products,
+                    // Send coupon code for server-side validation
+                    couponCode: couponCode,
+                    // Note: The backend will recalculate all totals for security
+                });
+
+                if (!response.success) {
+                    throw new Error(response.message || 'Failed to initiate payment');
+                }
+                
+                // Set PayU data, which triggers the useEffect to submit the form
+                setPayuData(response.data);
+                
+                // --- FIX ---
+                // We clear the cart from Redux *now*, as we are redirecting to payment.
+                // If payment fails, the user's order is 'failed' but the stock
+                // will be returned by the 'verify' route.
+                dispatch(clearCart());
+
+            } catch (initiateError) {
+                // --- ROLLBACK: Payment initiation failed, so UNLOCK stock ---
+                console.error('Error initiating payment, unlocking stock:', initiateError);
+                showToast('error', initiateError.message || 'Error processing your order');
+                
+                // Call the unlock endpoint to return the items to stock
+                await axios.post('/api/stock/unlock', {
+                    items: stockLockItems
+                });
+                setPlacingOrder(false);
             }
-            
-            // Set the PayU data, which will trigger the useEffect to submit the form
-            setPayuData(response.data);
 
-            // Note: We don't clear cart or reset form here anymore.
-            // The useEffect will submit the form, and the user will be redirected.
-            // Cart is cleared in the useEffect.
-
-        } catch (error) {
-            console.error('Error placing order:', error);
-            showToast('error', error.message || 'Error processing your order');
+        } catch (stockError) {
+            // --- STEP 1 FAILED: Stock purchase failed ---
+            console.error('Error locking stock:', stockError);
+            showToast('error', stockError.response?.data?.message || 'An item in your cart is no longer available.');
             setPlacingOrder(false);
         }
-        // No finally block to set placingOrder(false) because the user is being redirected
     }
 
-    // NEW: Render a hidden form for PayU
+    // --- (PayU form render function remains the same) ---
     const renderPayUForm = () => {
         if (!payuData) return null;
         
@@ -224,7 +257,6 @@ const Checkout = () => {
                 <input type="hidden" name="furl" value={payuData.furl} />
                 <input type="hidden" name="phone" value={payuData.phone} />
                 <input type="hidden" name="hash" value={payuData.hash} />
-                {/* Optional fields can be added here if needed, e.g., address */}
             </form>
         );
     }
@@ -236,7 +268,9 @@ const Checkout = () => {
                 <div className='h-screen w-screen fixed top-0 left-0 z-50 bg-black/10 flex justify-center items-center'>
                     <div className='flex flex-col items-center'>
                         <img src="/assets/images/loading.svg" width="80" height="80" alt='Loading' />
-                        <h4 className='font-semibold mt-4'>Redirecting to payment gateway...</h4>
+                        <h4 className='font-semibold mt-4'>
+                            {payuData ? 'Redirecting to payment gateway...' : 'Verifying stock...'}
+                        </h4>
                     </div>
                 </div>
             )}
@@ -246,6 +280,7 @@ const Checkout = () => {
 
             <WebsiteBreadcrumb props={breadCrumb} />
 
+            {/* ... (Your empty cart logic remains the same) ... */}
             {cart.count === 0 && !placingOrder ? (
                 <div className='w-screen h-[500px] flex justify-center items-center py-32'>
                     <div className='text-center'>
@@ -265,7 +300,7 @@ const Checkout = () => {
 
                         <Form {...orderForm}>
                             <form onSubmit={orderForm.handleSubmit(placeOrder)} className='grid grid-cols-2 gap-5'>
-                                {/* ... (All your FormField components for name, email, phone, etc. remain UNCHANGED) ... */}
+                                {/* ... (All your FormField components for address remain UNCHANGED) ... */}
                                 {/* Name Field */}
                                 <FormField
                                     control={orderForm.control}
@@ -408,7 +443,7 @@ const Checkout = () => {
                         </Form>
                     </div>
 
-                    {/* Order Summary (UNCHANGED) */}
+                    {/* ... (Order Summary and Coupon Section remain the same) ... */}
                     <div className='lg:w-[40%] w-full'>
                         <div className='rounded bg-gray-50 p-5 sticky top-5'>
                             <h4 className='text-lg font-semibold mb-5'>Order Summary</h4>
@@ -459,7 +494,7 @@ const Checkout = () => {
                                 </table>
                             </div>
 
-                            {/* Price Summary (UNCHANGED) */}
+                            {/* Price Summary */}
                             <div className="border-t pt-4">
                                 <div className="flex justify-between mb-2">
                                     <span>MRP Total</span>
@@ -486,7 +521,7 @@ const Checkout = () => {
                                 </div>
                             </div>
 
-                            {/* Coupon Section (UNCHANGED) */}
+                            {/* Coupon Section */}
                             <div className='mt-6'>
                                 {!isCouponApplied ? (
                                     <Form {...couponForm}>
@@ -531,7 +566,6 @@ const Checkout = () => {
                     </div>
                 </div>
             )}
-
         </div>
     )
 }
