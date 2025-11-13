@@ -1,6 +1,6 @@
 'use client'
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Card, CardContent } from '@/components/ui/card'
 import { zodResolver } from "@hookform/resolvers/zod"
 import { zSchema } from '@/lib/zodSchema'
@@ -206,6 +206,11 @@ const LoginModal = () => {
                     <DialogTitle>
                         {!otpEmail ? "Login to Narumugai" : "Email Verification"}
                     </DialogTitle>
+                    <DialogDescription>
+                        {!otpEmail 
+                            ? "Log in or sign up to access your account." 
+                            : "Enter the verification code sent to your email."}
+                    </DialogDescription>
                 </VisuallyHidden>
 
                 <Card className="w-full border-2 border-pink-100 shadow-2xl">

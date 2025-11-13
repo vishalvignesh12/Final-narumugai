@@ -1,237 +1,396 @@
 'use client'
+import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb'
+import Loading from '@/components/Application/Loading'
+import { Button } from '@/components/ui/button'
+import { WEBSITE_CHECKOUT, WEBSITE_LOGIN, WEBSITE_SHOP } from '@/routes/WebsiteRoute'
+import { addProduct } from '@/store/reducer/cartReducer'
+import axios from 'axios'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import React, { useEffect, useState, useMemo } from 'react'
+import { useDispatch, useSelector } from 'react-redux'
+import { showToast } from '@/lib/showToast'
+import ProductReveiw from '@/components/Application/Website/ProductReveiw'
+import ReviewList from '@/components/Application/Website/ReviewList'
+import WishlistButton from '@/components/Application/Website/WishlistButton'
 
-import {
-    Breadcrumb,
-    BreadcrumbItem,
-    BreadcrumbLink,
-    BreadcrumbList,
-    BreadcrumbPage,
-    BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb"
-import { IoStar } from "react-icons/io5";
-import { WEBSITE_CART, WEBSITE_PRODUCT_DETAILS, WEBSITE_SHOP } from "@/routes/WebsiteRoute"
-import Image from "next/image"
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import imgPlaceholder from '@/public/assets/images/img-placeholder.webp'
-import { decode, encode } from "entities";
-import ButtonLoading from "@/components/Application/ButtonLoading";
-import { useDispatch, useSelector } from "react-redux";
-import { addIntoCart } from "@/store/reducer/cartReducer";
-import { showToast } from "@/lib/showToast";
-import { Button } from "@/components/ui/button";
-// For SVG files, use regular img tag instead of Next.js Image component
-import ProductReveiw from "@/components/Application/Website/ProductReveiw";
-const ProductDetails = ({ product, variant, colors, sizes, reviewCount }) => {
+// --- HELPER FUNCTION to find a variant ---
+const findVariant = (variants, color, size) => {
+    if (!color || !size || !variants) return null;
+    return variants.find(v => v.color === color && v.size === size);
+};
 
+const ProductDetails = ({ slug }) => {
+    const router = useRouter()
     const dispatch = useDispatch()
-    const cartStore = useSelector(store => store.cartStore)
+    const auth = useSelector(store => store.authStore.auth)
+    const cart = useSelector(store => store.cartStore)
+    const [loading, setLoading] = useState(true)
+    const [product, setProduct] = useState(null)
+    const [variants, setVariants] = useState([])
+
+    // --- STATES FOR SELECTION ---
+    const [isVariantProduct, setIsVariantProduct] = useState(false);
+    const [selectedColor, setSelectedColor] = useState(null);
+    const [selectedSize, setSelectedSize] = useState(null);
+    const [selectedVariant, setSelectedVariant] = useState(null);
+    const [availableSizes, setAvailableSizes] = useState([]);
     
-    const [activeThumb, setActiveThumb] = useState()
-    const [isAddedIntoCart, setIsAddedIntoCart] = useState(false)
-    const [isProductLoading, setIsProductLoading] = useState(false)
-    useEffect(() => {
-        if (variant?.media && variant.media.length > 0) {
-            setActiveThumb(variant.media[0]?.secure_url)
-        } else if (product?.media && product.media.length > 0) {
-            // Fallback to product media if variant has no media
-            setActiveThumb(product.media[0]?.secure_url)
-        }
-    }, [variant, product])
+    // --- STATES FOR DISPLAY ---
+    const [displayPrice, setDisplayPrice] = useState({ mrp: 0, sellingPrice: 0 });
+    const [displayMedia, setDisplayMedia] = useState([]);
+    const [displayStock, setDisplayStock] = useState(0);
 
+    // Fetch product details
     useEffect(() => {
-        if (cartStore.count > 0) {
-            // Handle null variant._id for fallback variants
-            const variantIdToCheck = variant._id || `fallback-${product._id}`
-            const existingProduct = cartStore.products.findIndex((cartProduct) => {
-                const cartVariantId = cartProduct.variantId || `fallback-${cartProduct.productId}`
-                return cartProduct.productId === product._id && cartVariantId === variantIdToCheck
-            })
+        const fetchProduct = async () => {
+            setLoading(true)
+            try {
+                const { data } = await axios.get(`/api/product/details/${slug}`)
+                
+                if (!data.success || !data.product) {
+                    throw new Error("Product not found");
+                }
+                
+                const fetchedProduct = data.product;
+                const fetchedVariants = data.variants || [];
 
-            if (existingProduct >= 0) {
-                setIsAddedIntoCart(true)
-            } else {
-                setIsAddedIntoCart(false)
+                setProduct(fetchedProduct);
+                setVariants(fetchedVariants);
+
+                // --- Price fallbacks ---
+                const baseMrp = fetchedProduct.mrp || 0;
+                const baseSellingPrice = fetchedProduct.sellingPrice || 0;
+
+                if (fetchedVariants.length === 1) {
+                    const singleVariant = fetchedVariants[0];
+                    setSelectedColor(singleVariant.color);
+                    setSelectedSize(singleVariant.size);
+                    setSelectedVariant(singleVariant);
+                    
+                    setDisplayPrice({ 
+                        mrp: singleVariant.mrp || baseMrp, 
+                        sellingPrice: singleVariant.sellingPrice || baseSellingPrice 
+                    });
+                    setDisplayMedia(singleVariant.media.length > 0 ? singleVariant.media : (fetchedProduct.media || []));
+                    setDisplayStock(singleVariant.quantity || 0);
+                    setIsVariantProduct(true);
+
+                } else if (fetchedVariants.length > 1) {
+                    const defaultColor = fetchedVariants[0].color;
+                    setSelectedColor(defaultColor);
+                    setIsVariantProduct(true);
+                    
+                    setDisplayPrice({ mrp: baseMrp, sellingPrice: baseSellingPrice });
+                    setDisplayMedia(fetchedProduct.media || []);
+                    setDisplayStock(0);
+
+                } else {
+                    setDisplayPrice({ mrp: baseMrp, sellingPrice: baseSellingPrice });
+                    setDisplayMedia(fetchedProduct.media || []);
+                    setDisplayStock(fetchedProduct.quantity || 0);
+                    setIsVariantProduct(false);
+                }
+
+            } catch (error) {
+                setProduct(null)
+                showToast('error', error.message || 'Failed to fetch product details')
+            } finally {
+                setLoading(false)
             }
         }
+        if (slug) {
+            fetchProduct()
+        }
+    }, [slug])
 
-        setIsProductLoading(false)
+    // --- UNIQUE COLORS (Memoized) ---
+    const uniqueColors = useMemo(() => {
+        if (!variants) return [];
+        return [...new Set(variants.map(v => v.color))];
+    }, [variants]);
 
-    }, [variant, product, cartStore])
+    // --- UPDATE AVAILABLE SIZES when color changes ---
+    useEffect(() => {
+        if (!product) return;
 
-    const handleThumb = (thumbUrl) => {
-        setActiveThumb(thumbUrl)
-    }
+        const baseMrp = product.mrp || 0;
+        const baseSellingPrice = product.sellingPrice || 0;
+
+        if (selectedColor && variants.length > 1) {
+            const sizesForColor = variants
+                .filter(v => v.color === selectedColor)
+                .map(v => v.size);
+            setAvailableSizes(sizesForColor);
+            
+            setSelectedSize(null);
+            setSelectedVariant(null);
+            
+            setDisplayPrice({ mrp: baseMrp, sellingPrice: baseSellingPrice });
+            setDisplayStock(0);
+        } else if (selectedColor && variants.length === 1) {
+             setAvailableSizes(variants[0] ? [variants[0].size] : []);
+        }
+    }, [selectedColor, variants, product]);
+
+    // --- UPDATE SELECTED VARIANT when color or size changes ---
+    useEffect(() => {
+        if (!product) return;
+
+        if (variants.length > 1) {
+            const variant = findVariant(variants, selectedColor, selectedSize);
+            setSelectedVariant(variant);
+
+            if (variant) {
+                setDisplayPrice({ 
+                    mrp: variant.mrp || product.mrp || 0, 
+                    sellingPrice: variant.sellingPrice || product.sellingPrice || 0
+                });
+                setDisplayMedia(variant.media.length > 0 ? variant.media : product.media);
+                setDisplayStock(variant.quantity || 0);
+            }
+        }
+    }, [selectedColor, selectedSize, variants, product]);
 
 
+    // --- Add to Cart Handler ---
     const handleAddToCart = () => {
-        const cartProduct = {
-            productId: product._id,
-            variantId: variant._id || `fallback-${product._id}`, // Use fallback ID for products without variants
-            name: product.name,
-            url: product.slug,
-            size: variant.size,
-            color: variant.color,
-            mrp: variant.mrp,
-            sellingPrice: variant.sellingPrice,
-            media: variant?.media[0]?.secure_url || product?.media[0]?.secure_url,
-            qty: 1
+        if (!auth) {
+            router.push(WEBSITE_LOGIN)
+            return
         }
 
-        dispatch(addIntoCart(cartProduct))
-        setIsAddedIntoCart(true)
-        showToast('success', 'Product added into cart.')
+        if (!selectedVariant || !selectedVariant._id) {
+            showToast('error', 'Please select from the available options');
+            return;
+        }
+
+        if (displayStock <= 0) {
+            showToast('error', 'This item is currently out of stock');
+            return;
+        }
+
+        const itemToAdd = {
+            productId: product._id,
+            variantId: selectedVariant._id,
+            name: product.name || 'Product',
+            url: product.slug,
+            size: selectedVariant.size,
+            color: selectedVariant.color,
+            mrp: selectedVariant.mrp || 0,
+            sellingPrice: selectedVariant.sellingPrice || 0,
+            media: selectedVariant.media && selectedVariant.media.length > 0 ? selectedVariant.media[0] : (product.media && product.media.length > 0 ? product.media[0] : '/assets/images/img-placeholder.webp'),
+            qty: 1
+        };
+        
+        dispatch(addProduct(itemToAdd));
+        showToast('success', 'Product added to cart!');
+    };
+
+    // Check if item is already in cart
+    const isItemInCart = useMemo(() => {
+        if (!selectedVariant) return false;
+        return cart.products.some(p => p.variantId === selectedVariant._id);
+    }, [cart.products, selectedVariant]);
+
+
+    // --- RENDER LOGIC ---
+
+    if (loading) {
+        return <Loading />
     }
+
+    if (!product) {
+        return (
+            <div className='h-[60vh] flex flex-col justify-center items-center gap-4'>
+                <h2 className='text-3xl font-semibold'>Product not found!</h2>
+                <p className='text-gray-600'>The product you are looking for does not exist.</p>
+                <Button asChild>
+                    <Link href={WEBSITE_SHOP}>Continue Shopping</Link>
+                </Button>
+            </div>
+        )
+    }
+
+    // --- *** CRASH FIX: Define category parts safely *** ---
+    // This explicitly checks if product.category exists BEFORE trying to access its properties.
+    const categoryName = (product.category && product.category.name) ? product.category.name : 'Uncategorized';
+    const categorySlug = (product.category && product.category.slug) ? product.category.slug : 'uncategorized';
+    // --- *** END OF FIX *** ---
+
+    const breadCrumb = {
+        title: product.name || "Product",
+        links: [
+            { label: "Shop", href: "/shop" },
+            { label: categoryName, href: `/categories/${categorySlug}` },
+            { label: product.name || "Product" },
+        ],
+    };
 
     return (
-        <div className="lg:px-32 px-4">
-
-            {isProductLoading &&
-                <div className="fixed top-10 left-1/2 -translate-x-1/2 z-50">
-                    <img src="/assets/images/loading.svg" width="80" height="80" alt="Loading" />
-                </div>
-            }
-
-            <div className="my-10">
-                <Breadcrumb>
-                    <BreadcrumbList>
-                        <BreadcrumbItem>
-                            <BreadcrumbLink href="/">Home</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                            <BreadcrumbLink href={WEBSITE_SHOP}>Product</BreadcrumbLink>
-                        </BreadcrumbItem>
-                        <BreadcrumbSeparator />
-                        <BreadcrumbItem>
-                            <BreadcrumbLink asChild>
-                                <Link href={WEBSITE_PRODUCT_DETAILS(product?.slug)}>{product?.name} </Link>
-                            </BreadcrumbLink>
-                        </BreadcrumbItem>
-                    </BreadcrumbList>
-                </Breadcrumb>
-            </div>
-
-            <div className="md:flex justify-between items-start lg:gap-10 gap-5 mb-20">
-                <div className="md:w-1/2 xl:flex xl:justify-center xl:gap-5 md:sticky md:top-0">
-                    <div className="xl:order-last xl:mb-0 mb-5 xl:w-[calc(100%-144px)]">
-                        <Image
-                            src={activeThumb || imgPlaceholder.src}
-                            width={650}
-                            height={650}
-                            alt="product"
-                            className="border rounded max-w-full"
-                        />
-                    </div>
-                    <div className="flex xl:flex-col items-center xl:gap-5 gap-3 xl:w-36 overflow-auto xl:pb-0 pb-2 max-h-[600px]">
-                        {/* Use variant media first, fallback to product media */}
-                        {(variant?.media && variant.media.length > 0 ? variant.media : product?.media || []).map((thumb, index) => (
-                            <Image
-                                key={thumb._id || `thumb-${index}`}
-                                src={thumb?.secure_url || imgPlaceholder.src}
-                                width={100}
-                                height={100}
-                                alt="product thumbnail"
-                                className={`md:max-w-full max-w-16 rounded cursor-pointer ${thumb.secure_url === activeThumb ? 'border-2 border-primary' : 'border'}`}
-                                onClick={() => handleThumb(thumb.secure_url)}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                <div className="md:w-1/2 md:mt-0 mt-5">
-                    <h1 className="text-3xl font-semibold mb-2">{product.name}</h1>
-                    <div className="flex items-center gap-1 mb-5">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <IoStar key={i} />
-                        ))}
-                        <span className="text-sm ps-2">({reviewCount} Reviews)</span>
-                    </div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <span className="text-xl font-semibold">{variant.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
-                        <span className="text-sm line-through text-gray-500">{variant.mrp.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
-
-
-                        <span className="bg-red-500 rounded-2xl px-3 py-1 text-white text-xs ms-5">-{variant.discountPercentage}%</span>
-
-
-                    </div>
-
-                    <div className="line-clamp-3" dangerouslySetInnerHTML={{ __html: decode(product.description) }}></div>
-
-
-                    <div className="mt-5">
-                        <p className="mb-2">
-                            <span className="font-semibold">Color: </span> {variant?.color}
-                        </p>
-                        <div className="flex gap-5">
-                            {colors.map(color => (
-                                <Link onClick={() => setIsProductLoading(true)} href={`${WEBSITE_PRODUCT_DETAILS(product.slug)}?color=${color}&size=${variant.size}`}
-                                    key={color}
-                                    className={`border py-1 px-3 rounded-lg cursor-pointer hover:bg-primary hover:text-white ${color === variant.color ? 'bg-primary text-white' : ''}`}
-                                >
-                                    {color}
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="mt-5">
-                        <p className="mb-2">
-                            <span className="font-semibold">Size: </span> {variant?.size}
-                        </p>
-                        <div className="flex gap-5">
-                            {sizes.map(size => (
-                                <Link onClick={() => setIsProductLoading(true)} href={`${WEBSITE_PRODUCT_DETAILS(product.slug)}?color=${variant.color}&size=${size}`}
-                                    key={size}
-                                    className={`border py-1 px-3 rounded-lg cursor-pointer hover:bg-primary hover:text-white ${size === variant.size ? 'bg-primary text-white' : ''}`}
-                                >
-                                    {size}
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-
-
-                    <div className="mt-5">
-                        {(!product.isAvailable || (product.quantity !== undefined && product.quantity <= 0)) ? (
-                            <Button 
-                                disabled 
-                                className="w-full rounded-full py-6 text-md bg-gray-400 hover:bg-gray-400 cursor-not-allowed" 
-                                type="button"
-                            >
-                                Sold Out
-                            </Button>
-                        ) : !isAddedIntoCart ? (
-                            <ButtonLoading 
-                                type="button" 
-                                text="Add To Cart" 
-                                className="w-full rounded-full py-6 text-md cursor-pointer" 
-                                onClick={handleAddToCart} 
-                            />
+        <div>
+            <WebsiteBreadcrumb props={breadCrumb} />
+            <div className="flex lg:flex-nowrap flex-wrap gap-10 my-20 lg:px-32 px-4">
+                {/* Image Gallery */}
+                <div className="lg:w-1/2 w-full">
+                    <div className="grid grid-cols-2 gap-4">
+                        {displayMedia && displayMedia.length > 0 ? (
+                            displayMedia.map((imgUrl, index) => (
+                                <div key={index} className="w-full h-auto bg-gray-100 rounded-lg overflow-hidden">
+                                    <Image
+                                        src={imgUrl}
+                                        width={400}
+                                        height={500}
+                                        alt={`${product.name} ${index + 1}`}
+                                        className="w-full h-full object-cover aspect-[4/5]"
+                                        unoptimized
+                                    />
+                                </div>
+                            ))
                         ) : (
-                            <Button className="w-full rounded-full py-6 text-md cursor-pointer" type="button" asChild>
-                                <Link href={WEBSITE_CART}>Go To Cart</Link>
-                            </Button>
+                            <div className="w-full h-auto bg-gray-100 rounded-lg overflow-hidden col-span-2">
+                                <Image
+                                    src="/assets/images/img-placeholder.webp"
+                                    width={800}
+                                    height={1000}
+                                    alt="Placeholder"
+                                    className="w-full h-full object-cover aspect-[4/5]"
+                                />
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Product Details */}
+                <div className="lg:w-1/2 w-full sticky top-24 h-fit">
+                    <h2 className="text-3xl font-bold mb-3">{product.name || 'No Name'}</h2>
+                    
+                    <div className="mb-4">
+                        <span className="text-2xl font-bold text-primary">
+                            {(displayPrice.sellingPrice || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                        </span>
+                        {(displayPrice.mrp || 0) > (displayPrice.sellingPrice || 0) && (
+                            <span className="text-lg text-gray-500 line-through ml-2">
+                                {(displayPrice.mrp || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                            </span>
+                        )}
+                    </div>
+                    
+                    <p className="text-gray-600 mb-6">{product.shortDescription || ''}</p>
+
+                    {variants && variants.length > 1 && (
+                        <>
+                            {/* Colors */}
+                            <div className="mb-6">
+                                <h4 className="font-semibold mb-3">Color: <span className='font-normal'>{selectedColor || 'Select'}</span></h4>
+                                <div className="flex flex-wrap gap-3">
+                                    {uniqueColors.map((color) => (
+                                        <button
+                                            key={color}
+                                            onClick={() => setSelectedColor(color)}
+                                            className={`w-10 h-10 rounded-full border-2 transition-all ${selectedColor === color ? 'border-primary scale-110' : 'border-gray-300'}`}
+                                            style={{ backgroundColor: color, opacity: 0.8 }}
+                                            title={color}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Sizes */}
+                            <div className="mb-6">
+                                <h4 className="font-semibold mb-3">Size: <span className='font-normal'>{selectedSize || 'Select'}</span></h4>
+                                <div className="flex flex-wrap gap-3">
+                                    {availableSizes.length > 0 ? availableSizes.map((size) => {
+                                        const variant = findVariant(variants, selectedColor, size);
+                                        const isStockAvailable = variant && variant.quantity > 0;
+                                        
+                                        return (
+                                            <button
+                                                key={size}
+                                                onClick={() => setSelectedSize(size)}
+                                                disabled={!isStockAvailable}
+                                                className={`px-4 py-2 rounded-lg border transition-all ${selectedSize === size ? 'bg-primary text-white border-primary' : 'bg-white text-gray-800 border-gray-300'} ${!isStockAvailable ? 'opacity-50 cursor-not-allowed line-through' : 'hover:border-gray-800'}`}
+                                            >
+                                                {size}
+                                            </button>
+                                        );
+                                    }) : (
+                                        <p className='text-sm text-gray-500'>
+                                            {selectedColor ? 'No sizes available for this color' : 'Please select a color first'}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        </>
+                    )}
+
+                    {/* Stock Status */}
+                    <div className="mb-6">
+                        {(selectedVariant) && (
+                            <p className={`font-semibold ${displayStock > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                                {displayStock > 0 ? `In Stock (${displayStock} available)` : 'Out of Stock'}
+                            </p>
+                        )}
+                        {isVariantProduct && !selectedVariant && variants && variants.length > 1 && (
+                             <p className='font-semibold text-red-500'>
+                                Please select options to view stock
+                             </p>
                         )}
                     </div>
 
+                    {/* Actions */}
+                    <div className="flex items-center gap-4 mb-6">
+                        {isItemInCart ? (
+                            <Button 
+                                className="flex-1 text-lg" 
+                                size="lg" 
+                                asChild
+                            >
+                                <Link href={WEBSITE_CHECKOUT}>Go to Cart</Link>
+                            </Button>
+                        ) : (
+                            <Button 
+                                className="flex-1 text-lg" 
+                                size="lg"
+                                onClick={handleAddToCart}
+                                disabled={!selectedVariant || displayStock <= 0}
+                            >
+                                {displayStock <= 0 ? 'Out of Stock' : 'Add to Cart'}
+                            </Button>
+                        )}
+                        <WishlistButton 
+                            productId={product._id} 
+                            variantId={selectedVariant ? selectedVariant._id : null}
+                        />
+                    </div>
+                    
+                    <div className='text-sm text-gray-500'>
+                        <p><span className='font-semibold text-gray-700'>SKU:</span> {selectedVariant ? selectedVariant.sku : (product.sku || 'N/A')}</p>
+                        <p><span className='font-semibold text-gray-700'>Category:</span> {categoryName}</p>
+                    </div>
+
                 </div>
             </div>
 
+            {/* Description & Reviews */}
+            <div className='lg:px-32 px-4 my-20'>
+                <h3 className='text-2xl font-semibold mb-4'>Description</h3>
+                <div 
+                    className='prose prose-lg max-w-none' 
+                    dangerouslySetInnerHTML={{ __html: product.description || '' }} 
+                />
 
-            <div className="mb-10">
-                <div className="shadow rounded border">
-                    <div className="p-3 bg-gray-50 border-b">
-                        <h2 className="font-semibold text-2xl">Product Description</h2>
-                    </div>
-                    <div className="p-3">
-                        <div dangerouslySetInnerHTML={{ __html: encode(product.description) }}></div>
-                    </div>
+                <div className="mt-20">
+                    <h3 className='text-2xl font-semibold mb-4'>Reviews</h3>
+                    {auth ? (
+                        <ProductReveiw productId={product._id} />
+                    ) : (
+                        <p>Please <Link href={WEBSITE_LOGIN} className="text-primary underline">login</Link> to write a review.</p>
+                    )}
+                    <ReviewList productId={product._id} />
                 </div>
             </div>
-
-            <ProductReveiw productId={product._id} />
-
         </div>
     )
 }

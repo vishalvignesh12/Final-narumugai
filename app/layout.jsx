@@ -120,6 +120,7 @@ export default function RootLayout({ children }) {
       </head>
       <body
         className={`${assistantFont.className} antialiased`}
+        suppressHydrationWarning={true}
       >
         <GlobalProvider>
           <AutoCookieGuardian />

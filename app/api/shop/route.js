@@ -65,8 +65,8 @@ export async function POST(request) {
         // --- (Add Color/Size filters if needed) ---
         
         // --- THIS IS THE FIX ---
-        // We must use an aggregate pipeline to $lookup (join)
-        // the category and media data, just like your working product details page.
+        // Use an aggregate pipeline to $lookup (join)
+        // the category and media data.
         
         const aggregatePipeline = [
             { $match: matchQuery },

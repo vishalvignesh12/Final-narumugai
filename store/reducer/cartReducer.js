@@ -1,128 +1,111 @@
-import { createSlice } from "@reduxjs/toolkit";
-const initialState = {
-    count: 0,
-    products: [],
-    loading: false,
-    error: null
+import { createSlice } from "@reduxjs/toolkit"
+
+// Helper function to safely parse from localStorage
+const getInitialState = () => {
+    let cart = {
+        products: [],
+        count: 0
+    };
+    try {
+        if (typeof window !== 'undefined') {
+            const persistedCart = localStorage.getItem('cart');
+            if (persistedCart) {
+                const parsed = JSON.parse(persistedCart);
+                // Basic validation
+                if (parsed && Array.isArray(parsed.products) && typeof parsed.count === 'number') {
+                    cart = parsed;
+                }
+            }
+        }
+    } catch (e) {
+        console.error("Failed to parse cart from localStorage", e);
+    }
+    
+    // Return the full initial state including API states
+    return {
+        ...cart,
+        loading: false,
+        error: null,
+    }
 }
 
-export const cartReducer = createSlice({
-    name: 'cartStore',
+const initialState = getInitialState();
+
+export const cartSlice = createSlice({
+    name: 'cart',
     initialState,
     reducers: {
+        // --- NEW ACTIONS to handle API state ---
+        setCart: (state, action) => {
+            const cartData = action.payload;
+            state.products = cartData.products;
+            state.count = cartData.count;
+            state.loading = false;
+            state.error = null;
+        },
         setCartLoading: (state, action) => {
             state.loading = action.payload;
         },
         setCartError: (state, action) => {
             state.error = action.payload;
+            state.loading = false;
         },
-        setCartData: (state, action) => {
-            state.products = action.payload.products || [];
-            // --- FIX: Recalculate count properly when setting new cart data ---
-            state.count = state.products.reduce((total, product) => total + (product.qty || 1), 0);
-        },
-        addIntoCart: (state, action) => {
-            const payload = action.payload
-            const existingProductIndex = state.products.findIndex( // --- Renamed to 'existingProductIndex'
-                (product) => product.productId === payload.productId && product.variantId === payload.variantId
-            )
-            
-            const qtyToAdd = payload.qty || 1; // Get quantity to add
 
-            if (existingProductIndex < 0) {
-                state.products.push({ ...payload, qty: qtyToAdd })
+        // --- EXISTING ACTIONS ---
+        addProduct: (state, action) => {
+            const newItem = action.payload;
+            
+            // Check if the item with the specific variantId already exists
+            const existingItem = state.products.find(
+                (item) => item.variantId === newItem.variantId
+            );
+
+            if (existingItem) {
+                // If it exists, just increase the quantity
+                existingItem.qty += (newItem.qty || 1);
             } else {
-                // If product already exists, increase quantity
-                state.products[existingProductIndex].qty += qtyToAdd
+                // If it doesn't exist, add it to the cart
+                state.products.push({ ...newItem, qty: newItem.qty || 1 });
+                state.count += 1; // Only increment count for *new* items
             }
+        },
+        removeProduct: (state, action) => {
+            const variantIdToRemove = action.payload;
             
-            // --- FIX: Efficiently update count ---
-            state.count += qtyToAdd;
+            state.products = state.products.filter(
+                (item) => item.variantId !== variantIdToRemove
+            );
+            state.count = state.products.length; // Recalculate count
         },
-        increaseQuantity: (state, action) => {
-            const { productId, variantId } = action.payload
-            const existingProductIndex = state.products.findIndex(
-                (product) => product.productId === productId && product.variantId === variantId
-            )
+        updateProductQty: (state, action) => {
+            const { variantId, qty } = action.payload;
+            const itemToUpdate = state.products.find(
+                (item) => item.variantId === variantId
+            );
 
-            if (existingProductIndex >= 0) {
-                state.products[existingProductIndex].qty += 1
-                // --- FIX: Efficiently update count ---
-                state.count += 1;
+            if (itemToUpdate) {
+                itemToUpdate.qty = qty;
             }
         },
-        decreaseQuantity: (state, action) => {
-            const { productId, variantId } = action.payload
-            const existingProductIndex = state.products.findIndex(
-                (product) => product.productId === productId && product.variantId === variantId
-            )
-
-            if (existingProductIndex >= 0) {
-                if (state.products[existingProductIndex].qty > 1) {
-                    state.products[existingProductIndex].qty -= 1
-                    // --- FIX: Efficiently update count ---
-                    state.count -= 1;
-                }
-            }
-        },
-        removeFromCart: (state, action) => {
-            const { productId, variantId } = action.payload
-
-            // --- FIX: Find item to get its quantity before removing ---
-            const existingProductIndex = state.products.findIndex(
-                (product) => product.productId === productId && product.variantId === variantId
-            )
-
-            if (existingProductIndex >= 0) {
-                const qtyToRemove = state.products[existingProductIndex].qty || 1;
-                
-                // Remove the product from array
-                state.products.splice(existingProductIndex, 1);
-                
-                // --- FIX: Efficiently update count ---
-                state.count -= qtyToRemove;
-            }
-        },
-        updateCartItemQuantity: (state, action) => {
-            const { productId, variantId, qty } = action.payload
-            const existingProductIndex = state.products.findIndex(
-                (product) => product.productId === productId && product.variantId === variantId
-            )
-            
-            if (existingProductIndex < 0) return; // Product not found
-
-            const newQty = Math.max(0, qty); // Ensure quantity is not negative
-            const oldQty = state.products[existingProductIndex].qty || 1;
-            const qtyDifference = newQty - oldQty;
-
-            if (newQty === 0) {
-                // Remove item if quantity is 0
-                state.products.splice(existingProductIndex, 1)
-            } else {
-                // Update quantity
-                state.products[existingProductIndex].qty = newQty
-            }
-            
-            // --- FIX: Efficiently update count ---
-            state.count += qtyDifference;
-        },
-        clearCart: (state, action) => {
-            state.products = []
-            state.count = 0
+        clearCart: (state) => {
+            state.products = [];
+            state.count = 0;
+            // Also clear error/loading
+            state.loading = false;
+            state.error = null;
         }
-
     }
 })
 
-export const {
+// Export all actions
+export const { 
+    setCart,
     setCartLoading,
     setCartError,
-    setCartData,
-    addIntoCart,
-    increaseQuantity,
-    decreaseQuantity,
-    removeFromCart,
-    updateCartItemQuantity,
-    clearCart
-} = cartReducer.actions
-export default cartReducer.reducer
+    addProduct, 
+    removeProduct, 
+    updateProductQty, 
+    clearCart 
+} = cartSlice.actions
+
+export default cartSlice.reducer

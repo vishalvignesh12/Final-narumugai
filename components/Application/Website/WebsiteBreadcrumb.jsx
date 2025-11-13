@@ -8,21 +8,23 @@ const WebsiteBreadcrumb = (props) => {
     return (
         <section className='bg-secondary-subtle/20 py-8 px-4'>
             <div className="max-w-4xl w-full text-center">
-                {/* This line is from our previous fix, it's correct */}
+                {/* Fix: Check if title exists before rendering */}
                 {props.title && <h1 className='lg:text-3xl md:text-2xl text-xl font-semibold mb-3 text-center'>{props.title}</h1>}
                 
                 <ul className='flex flex-wrap gap-2 justify-center items-center text-sm md:text-base'>
                     <li><Link href={WEBSITE_HOME} className='font-semibold hover:text-primary transition-colors'>Home</Link></li>
-                    {
-                        props.items.map((item, index) => {
+                    
+                    {/* --- THIS IS THE FIX --- */}
+                    {/* Check if props.items exists before mapping */}
+                    {props.items && props.items.map((item, index) => {
                             const isLastItem = props.items.length - 1 === index;
+                            
                             return (
                                 <li key={index} className='flex items-center gap-2'>
                                     <Slash size={16} className='text-muted-foreground' />
                                     
-                                    {/* --- THIS IS THE FIX --- */}
-                                    {/* If it's the last item, render text. Otherwise, render a link. */}
-                                    {isLastItem ? (
+                                    {/* If it's the last item or href is missing, render text. Otherwise, render a link. */}
+                                    {isLastItem || !item.href ? (
                                         <span className="text-primary font-semibold">
                                             {item.title}
                                         </span>
@@ -34,8 +36,6 @@ const WebsiteBreadcrumb = (props) => {
                                             {item.title}
                                         </Link>
                                     )}
-                                    {/* --- END OF FIX --- */}
-
                                 </li>
                             )
                         })

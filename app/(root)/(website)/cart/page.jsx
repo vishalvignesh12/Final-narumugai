@@ -1,201 +1,187 @@
 'use client'
-import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb'
-import { Button } from '@/components/ui/button'
-import { WEBSITE_CHECKOUT, WEBSITE_PRODUCT_DETAILS, WEBSITE_SHOP } from '@/routes/WebsiteRoute'
-import Image from 'next/image'
-import Link from 'next/link'
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
+import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb'
+import Link from 'next/link'
+import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { WEBSITE_CHECKOUT, WEBSITE_SHOP } from '@/routes/WebsiteRoute'
 import imgPlaceholder from '@/public/assets/images/img-placeholder.webp'
 import { IoCloseCircleOutline } from "react-icons/io5";
-import { removeFromCart, increaseQuantity, decreaseQuantity, updateCartItemQuantity } from '@/store/reducer/cartReducer'
+
+// --- *** FIX: Import the correct actions from the reducer *** ---
+import { removeProduct, updateProductQty } from '@/store/reducer/cartReducer'
+// --- *** END OF FIX *** ---
+
 import { Input } from '@/components/ui/input'
 import { Plus, Minus } from 'lucide-react'
+import { showToast } from '@/lib/showToast'
 
 const breadCrumb = {
-    title: 'Cart',
+    title: 'Your Cart',
     links: [
         { label: "Cart" }
     ]
 }
+
 const CartPage = () => {
     const dispatch = useDispatch()
     const cart = useSelector(store => store.cartStore)
-
-    const [subtotal, setSubTotal] = useState(0)
-    const [discount, setDiscount] = useState(0)
+    const [subtotal, setSubtotal] = useState(0)
 
     useEffect(() => {
-        const cartProducts = cart.products
+        const total = cart.products.reduce((sum, product) => {
+            return sum + (product.sellingPrice * (product.qty || 1));
+        }, 0);
+        setSubtotal(total);
+    }, [cart.products])
 
-        const totalAmount = cartProducts.reduce((sum, product) => sum + (product.sellingPrice * (product.qty || 1)), 0)
+    // --- *** FIX: Implement handler functions using correct actions *** ---
+    const handleRemove = (variantId) => {
+        if (confirm("Are you sure you want to remove this item?")) {
+            dispatch(removeProduct(variantId));
+            showToast('success', 'Item removed from cart');
+        }
+    }
 
-        const discount = cartProducts.reduce((sum, product) => sum + ((product.mrp - product.sellingPrice) * (product.qty || 1)), 0)
-
-        setSubTotal(totalAmount)
-        setDiscount(discount)
-
-    }, [cart])
+    const handleQuantityChange = (variantId, newQty) => {
+        if (newQty < 1) {
+            handleRemove(variantId); // Remove if quantity goes below 1
+        } else if (newQty > 10) {
+            showToast('error', 'You can only purchase a maximum of 10 items');
+        } else {
+            dispatch(updateProductQty({ variantId, qty: newQty }));
+        }
+    }
+    // --- *** END OF FIX *** ---
 
     return (
         <div>
             <WebsiteBreadcrumb props={breadCrumb} />
-            {cart.count === 0
-                ?
-                <div className='lg:w-screen lg:h-[400px] md:h-[350px] h-[300px] flex justify-center items-center lg:py-32 md:py-24 py-16'>
-                    <div className='text-center px-4'>
-                        <h4 className='lg:text-4xl md:text-3xl text-2xl font-semibold mb-5'>Your cart is empty!</h4>
-
-                        <Button type="button" asChild className='lg:px-8 md:px-6 px-4 lg:py-3 md:py-2 py-2'>
+            <div className='lg:px-32 px-4 my-20'>
+                {cart.count === 0 ? (
+                    <div className='w-full h-[50vh] flex flex-col justify-center items-center'>
+                        <h4 className='text-4xl font-semibold mb-5'>Your cart is empty!</h4>
+                        <Button type="button" asChild>
                             <Link href={WEBSITE_SHOP}>Continue Shopping</Link>
                         </Button>
-
                     </div>
-                </div>
-                :
-                <div className='flex lg:flex-nowrap flex-wrap lg:gap-8 gap-6 lg:my-20 md:my-16 my-10 lg:px-32 md:px-8 px-4'>
-                    <div className='lg:w-[70%] w-full'>
-                        <div className='overflow-x-auto'>
-                            <table className='w-full border rounded-lg overflow-hidden'>
-                                <thead className='border-b bg-gray-50 md:table-header-group hidden'>
-                                    <tr>
-                                        <th className='text-start p-3 font-semibold'>Product</th>
-                                        <th className='text-center p-3 font-semibold'>Quantity</th>
-                                        <th className='text-center p-3 font-semibold'>Price</th>
-                                        <th className='text-center p-3 font-semibold'>Total</th>
-                                        <th className='text-center p-3 font-semibold'>Action</th>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
+                        {/* Cart Items */}
+                        <div className="lg:col-span-2">
+                            <table className="w-full">
+                                <thead className="border-b">
+                                    <tr className="text-left">
+                                        <th className="py-4 font-medium">Product</th>
+                                        <th className="py-4 font-medium hidden md:table-cell">Price</th>
+                                        <th className="py-4 font-medium">Quantity</th>
+                                        <th className="py-4 font-medium text-right">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {cart.products.map(product => (
-                                        <tr key={product.variantId} className='md:table-row block border-b last:border-b-0 hover:bg-gray-50'>
-                                            <td className='p-3'>
-                                                <div className='flex items-center lg:gap-5 md:gap-4 gap-3'>
-                                                    <Image 
-                                                        src={product.media || imgPlaceholder.src} 
-                                                        width={60} 
-                                                        height={60} 
-                                                        alt={product.name} 
-                                                        className='lg:w-16 lg:h-16 md:w-14 md:h-14 w-12 h-12 object-cover rounded'
-                                                    />
-                                                    <div className='min-w-0 flex-1'>
-                                                        <h4 className='lg:text-lg md:text-base text-sm font-medium line-clamp-2 mb-1'>
-                                                            <Link href={WEBSITE_PRODUCT_DETAILS(product.url)} className='hover:text-primary'>
-                                                                {product.name}
-                                                            </Link>
-                                                        </h4>
-                                                        <p className='text-xs text-gray-600'>Color: {product.color}</p>
-                                                        <p className='text-xs text-gray-600'>Size: {product.size}</p>
+                                    {cart.products.map(item => (
+                                        <tr key={item.variantId} className="border-b">
+                                            {/* Product Details */}
+                                            <td className="py-5">
+                                                <div className="flex items-start gap-4">
+                                                    <Link href={item.url ? `/product/${item.url}` : '#'}>
+                                                        <Image
+                                                            src={item.media || imgPlaceholder}
+                                                            width={100}
+                                                            height={120}
+                                                            alt={item.name}
+                                                            className="w-24 h-auto rounded-lg object-cover"
+                                                            unoptimized
+                                                        />
+                                                    </Link>
+                                                    <div className="flex-1">
+                                                        <Link href={item.url ? `/product/${item.url}` : '#'} className="font-medium text-sm hover:text-primary">
+                                                            {item.name}
+                                                        </Link>
+                                                        <p className="text-xs text-gray-500">Color: {item.color}</p>
+                                                        <p className="text-xs text-gray-500">Size: {item.size}</p>
+                                                        <button 
+                                                            onClick={() => handleRemove(item.variantId)} 
+                                                            className="text-xs text-red-500 hover:underline mt-2 flex items-center gap-1"
+                                                        >
+                                                            <IoCloseCircleOutline /> Remove
+                                                        </button>
+                                                        <p className="font-medium text-sm mt-2 md:hidden">
+                                                            {item.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                                        </p>
                                                     </div>
                                                 </div>
                                             </td>
-
-                                            <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center'>
-                                                <span className='md:hidden font-medium text-sm'>Quantity</span>
-                                                <div className='flex items-center gap-2'>
-                                                    <Button 
-                                                        type='button' 
-                                                        size='sm' 
-                                                        variant='outline' 
-                                                        onClick={() => dispatch(decreaseQuantity({ productId: product.productId, variantId: product.variantId }))}
-                                                        className='w-8 h-8 p-0'
+                                            {/* Price */}
+                                            <td className="py-5 font-medium text-sm hidden md:table-cell">
+                                                {item.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
+                                            </td>
+                                            {/* Quantity */}
+                                            <td className="py-5">
+                                                <div className="flex items-center gap-1 border rounded-md p-1 w-fit">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7"
+                                                        onClick={() => handleQuantityChange(item.variantId, (item.qty || 1) - 1)}
                                                     >
-                                                        <Minus className='w-3 h-3' />
+                                                        <Minus className="h-4 w-4" />
                                                     </Button>
-                                                    <Input 
-                                                        type='number' 
-                                                        min='1' 
-                                                        value={product.qty || 1}
-                                                        onChange={(e) => {
-                                                            const newQty = parseInt(e.target.value) || 1
-                                                            dispatch(updateCartItemQuantity({ 
-                                                                productId: product.productId, 
-                                                                variantId: product.variantId, 
-                                                                qty: newQty 
-                                                            }))
-                                                        }}
-                                                        className='w-16 text-center'
+                                                    <Input
+                                                        type="number"
+                                                        value={item.qty || 1}
+                                                        onChange={(e) => handleQuantityChange(item.variantId, parseInt(e.target.value) || 1)}
+                                                        className="w-12 h-7 text-center border-none shadow-none p-0 focus-visible:ring-0 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                                                     />
-                                                    <Button 
-                                                        type='button' 
-                                                        size='sm' 
-                                                        variant='outline' 
-                                                        onClick={() => dispatch(increaseQuantity({ productId: product.productId, variantId: product.variantId }))}
-                                                        className='w-8 h-8 p-0'
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-7 w-7"
+                                                        onClick={() => handleQuantityChange(item.variantId, (item.qty || 1) + 1)}
                                                     >
-                                                        <Plus className='w-3 h-3' />
+                                                        <Plus className="h-4 w-4" />
                                                     </Button>
                                                 </div>
                                             </td>
-
-                                            <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center'>
-                                                <span className='md:hidden font-medium text-sm'>Unit Price</span>
-                                                <span className='font-semibold lg:text-base text-sm'>
-                                                    {product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                                </span>
-                                            </td>
-
-                                            <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center'>
-                                                <span className='md:hidden font-medium text-sm'>Total</span>
-                                                <span className='font-semibold lg:text-base text-sm text-primary'>
-                                                    {(product.sellingPrice * (product.qty || 1)).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                                </span>
-                                            </td>
-
-                                            <td className='md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center'>
-                                                <span className='md:hidden font-medium text-sm'>Remove</span>
-                                                <button type='button' onClick={() => dispatch(removeFromCart({ productId: product.productId, variantId: product.variantId }))} className='text-red-500 hover:text-red-700 p-1 rounded'>
-                                                    <IoCloseCircleOutline className='lg:text-xl text-lg' />
-                                                </button>
+                                            {/* Total */}
+                                            <td className="py-5 font-semibold text-sm text-right">
+                                                {((item.sellingPrice) * (item.qty || 1)).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
                             </table>
                         </div>
-                    </div>
 
-                    <div className='lg:w-[30%] w-full'>
-                        <div className='rounded-lg bg-gray-50 p-5 lg:sticky lg:top-5 shadow-sm'>
-                            <h4 className='lg:text-lg text-base font-semibold mb-5'>Order Summary</h4>
-                            <div>
-                                <table className='w-full'>
-                                    <tbody>
-                                        <tr>
-                                            <td className='font-medium py-2 text-sm lg:text-base'>Subtotal</td>
-                                            <td className='text-end py-2 text-sm lg:text-base'>
-                                                {subtotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td className='font-medium py-2 text-sm lg:text-base'>Discount</td>
-                                            <td className='text-end py-2 text-green-600 text-sm lg:text-base'>
-                                                -{discount.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                            </td>
-                                        </tr>
-                                        <tr className='border-t'>
-                                            <td className='font-semibold py-3 lg:text-lg text-base'>Total</td>
-                                            <td className='text-end py-3 font-semibold lg:text-lg text-base text-primary'>
-                                                {subtotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-
-                                <Button type="button" asChild className="w-full bg-black rounded-full mt-5 mb-3 lg:py-3 py-2">
+                        {/* Order Summary */}
+                        <div className="lg:col-span-1">
+                            <div className="bg-gray-50 p-6 rounded-lg sticky top-24">
+                                <h3 className="text-xl font-semibold mb-6">Order Summary</h3>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Subtotal</span>
+                                        <span>{subtotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                    </div>
+                                    <div className="flex justify-between text-gray-600">
+                                        <span>Shipping</span>
+                                        <span className="font-medium text-green-600">Free</span>
+                                    </div>
+                                    <div className="border-t pt-4">
+                                        <div className="flex justify-between font-bold text-lg">
+                                            <span>Total</span>
+                                            <span>{subtotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <Button asChild size="lg" className="w-full mt-6">
                                     <Link href={WEBSITE_CHECKOUT}>Proceed to Checkout</Link>
                                 </Button>
-
-                                <p className='text-center text-sm'>
-                                    <Link href={WEBSITE_SHOP} className='hover:underline text-gray-600 hover:text-primary'>Continue Shopping</Link>
-                                </p>
-
                             </div>
                         </div>
                     </div>
-
-                </div>
-            }
+                )}
+            </div>
         </div>
     )
 }

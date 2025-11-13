@@ -7,9 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import WishlistButton from './WishlistButton'
 import { IoStar, IoStarOutline } from 'react-icons/io5'
-import { FiShoppingCart } from 'react-icons/fi'
+import { FiEye, FiShoppingCart } from 'react-icons/fi' // Import FiEye
 import { TbTruck } from 'react-icons/tb'
-import { Skeleton } from "@/components/ui/skeleton" // <-- 1. IMPORT SKELETON
+import { Skeleton } from "@/components/ui/skeleton" 
 
 const ProductBox = ({ product, showQuickActions = false }) => {
     const [imageError, setImageError] = useState(false)
@@ -25,11 +25,8 @@ const ProductBox = ({ product, showQuickActions = false }) => {
 
     const renderRating = (rating = 4.5) => {
         const stars = []
-        const fullStars = Math.floor(rating)
-        const hasHalfStar = rating % 1 !== 0
-        
         for (let i = 0; i < 5; i++) {
-            if (i < fullStars) {
+            if (i < Math.floor(rating)) {
                 stars.push(<IoStar key={i} className="text-yellow-400 w-3 h-3" />)
             } else {
                 stars.push(<IoStarOutline key={i} className="text-gray-300 w-3 h-3" />)
@@ -86,18 +83,19 @@ const ProductBox = ({ product, showQuickActions = false }) => {
                         )}
                     </div>
 
-                    {/* Quick Action Buttons - Show on hover */}
-                    {showQuickActions && isHovered && product?.isAvailable && (
+                    {/* --- THIS IS THE FIX --- */}
+                    {/* Changed "Add to Cart" to "View Details" to force variant selection */}
+                    {showQuickActions && isHovered && (
                         <div className="absolute bottom-3 left-3 right-3 flex gap-2 transform translate-y-full group-hover:translate-y-0 transition-transform duration-300">
-                            <Button size="sm" className="flex-1 h-8 text-xs">
-                                <FiShoppingCart className="w-3 h-3 mr-1" />
-                                Add to Cart
-                            </Button>
-                            <Button size="sm" variant="outline" className="h-8 text-xs bg-white/90 backdrop-blur-sm">
-                                Quick View
+                            <Button asChild size="sm" className="flex-1 h-8 text-xs">
+                                <Link href={WEBSITE_PRODUCT_DETAILS(product.slug)}>
+                                    <FiEye className="w-3 h-3 mr-1" />
+                                    View Details
+                                </Link>
                             </Button>
                         </div>
                     )}
+                    {/* --- END OF FIX --- */}
                 </div>
                 
                 {/* Content Section */}
@@ -153,7 +151,7 @@ const ProductBox = ({ product, showQuickActions = false }) => {
     )
 }
 
-// --- 2. CREATE THE SKELETON SUB-COMPONENT ---
+// Skeleton sub-component
 const ProductBoxSkeleton = () => {
     return (
         <Card className="bg-white border-0 shadow-md">
@@ -188,7 +186,6 @@ const ProductBoxSkeleton = () => {
     )
 }
 
-// --- 3. ATTACH THE SKELETON TO THE MAIN COMPONENT ---
 ProductBox.Skeleton = ProductBoxSkeleton;
 
 export default ProductBox
