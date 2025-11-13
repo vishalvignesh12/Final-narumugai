@@ -48,7 +48,7 @@ const AddCouponPage = () => {
     // const [date, setDate] = useState(null)
 
 
-    const form = useForm<z.infer<typeof couponSchema>>({
+    const form = useForm({ // <-- FIX: Removed TypeScript generic <...>
         resolver: zodResolver(couponSchema),
         defaultValues: {
             code: "",
@@ -58,7 +58,7 @@ const AddCouponPage = () => {
         },
     })
 
-    async function onSubmit(values: z.infer<typeof couponSchema>) {
+    async function onSubmit(values) { // <-- FIX: Removed TypeScript type annotation
         try {
             setLoading(true)
             // Sent 'expiryDate' as null since the picker is removed
@@ -104,7 +104,7 @@ const AddCouponPage = () => {
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select discount type" />
-                                        </SelectTrigger>
+                                        </Trigger>
                                     </FormControl>
                                     <SelectContent>
                                         <SelectItem value="percentage">Percentage</SelectItem>
