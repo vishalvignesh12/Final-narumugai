@@ -24,150 +24,105 @@ const sareeCategories = [
 
 const Shop = () => {
     const searchParams = useSearchParams().toString();
-    const [limit, setLimit] = useState(9);
-    const [sorting, setSorting] = useState('category_sorting');
-    const [isMobileFilter, setIsMobileFilter] = useState(false);
-    const [selectedCategory, setSelectedCategory] = useState('');
-    const windowSize = useWindowSize();
+    const [limit, setLimit] = useState(12); // Default to 12 products per page
+    const [page, setPage] = useState(1);
     
-    // Use optional chaining to safely access the width property
-    const isMobile = windowSize?.width <= 768;
+    // Example state for filters (replace with your actual filter logic)
+    const [filterState, setFilterState] = useState({
+        categoryFilter: [],
+        colorFilter: [],
+        sizeFilter: [],
+        priceFilter: [],
+        // ... other filters
+    });
+    
+    // SEO Head (optional but recommended)
+    <Head>
+        <title>Shop All Sarees - Narumugai</title>
+        <meta name_description="Explore our exclusive collection of silk, cotton, and designer sarees. Find the perfect saree for every occasion at Narumugai." />
+        <meta name="keywords" content="shop sarees, buy sarees online, silk sarees, cotton sarees, designer sarees, Narumugai" />
+    </Head>
 
-    // Close mobile menu on route change
-    useEffect(() => {
-        setIsMobileFilter(false);
-        setSelectedCategory('');
-    }, [searchParams]);
-
-    // Close mobile menu and search when pressing Escape
-    useEffect(() => {
-        const handleEscape = (e) => {
-            if (e.key === 'Escape') {
-                setIsMobileFilter(false);
-                setSelectedCategory('');
-            }
-        };
-        
-        document.addEventListener('keydown', handleEscape);
-        return () => document.removeEventListener('keydown', handleEscape);
-    }, []);
-
-    const fetchProducts = async () => {
-        const { data: getProducts } = await axios.get(`/api/shop?page=0&limit=100&sort=${sorting}&${searchParams}`);
-
-        if (!getProducts.success) {
-            return { products: [] };
-        }
-
-        return getProducts.data;
-    };
-
-    const { error, data, isFetching } = useQuery({
-        queryKey: ['products', limit, sorting, searchParams],
-        queryFn: fetchProducts
+    const { data, error, isFetching } = useQuery({
+        queryKey: ['shop-products', searchParams, page, limit, filterState], // Add dependencies
+        queryFn: async () => {
+            const res = await axios.post(`/api/shop`, {
+                start: (page - 1) * limit,
+                size: limit,
+                ...filterState
+            });
+            
+            // This line is correct and returns the product array
+            return res.data.data; 
+        },
+        keepPreviousData: true,
+        staleTime: 60000 // Cache data for 1 minute
     });
 
-    // Define breadcrumb data structure
-    const breadcrumb = {
-        title: 'Shop Sarees',
-        links: [
-            {
-                label: 'Home',
-                href: 'https://narumugai.com'
-            },
-            {
-                label: 'Shop Sarees',
-                href: 'https://narumugai.com/shop'
-            }
-        ]
+    const { isMobile } = useWindowSize();
+
+    // Example handler for filters
+    const handleFilterChange = (newFilters) => {
+        setFilterState(newFilters);
+        setPage(1); // Reset to first page on filter change
     };
 
     return (
-        <div>
-            <Head>
-                <title>Shop Premium Sarees Online | Narumugai Saree Collection</title>
-                <meta name="description" content="Discover our exquisite collection of sarees including silk sarees, cotton sarees, designer sarees, and wedding sarees." />
-                <link rel="canonical" href="https://narumugai.com/shop" />
-            </Head>
-            
-            {/* Structured Data for Saree Collection */}
-            <script
-                type="application/ld+json"
-                dangerouslySetInnerHTML={{
-                    __html: JSON.stringify({
-                        "@context": "https://schema.org",
-                        "@type": "CollectionPage",
-                        "name": "Saree Collection - Narumugai",
-                        "description": "Premium collection of sarees including silk, cotton, designer and wedding sarees",
-                        "url": "https://narumugai.com/shop",
-                        "mainEntity": {
-                            "@type": "ItemList",
-                            "name": "Saree Categories",
-                            "itemListElement": sareeCategories.map((category, index) => ({
-                                "@type": "ListItem",
-                                "position": index + 1,
-                                "name": category.name,
-                                "description": category.description,
-                                "url": `https://narumugai.com/shop?category=${category.filter}`
-                            }))
-                        },
-                        "breadcrumb": {
-                            "@type": "BreadcrumbList",
-                            "itemListElement": [
-                                {
-                                    "@type": "ListItem",
-                                    "position": 1,
-                                    "name": "Home",
-                                    "item": "https://narumugai.com"
-                                },
-                                {
-                                    "@type": "ListItem",
-                                    "position": 2,
-                                    "name": "Shop Sarees",
-                                    "item": "https://narumugai.com/shop"
-                                }
-                            ]
-                        }
-                    })
-                }}
+        <div className='container mx-auto px-4 py-8'>
+            <WebsiteBreadcrumb
+                items={[
+                    { title: "Shop", href: WEBSITE_SHOP.href },
+                ]}
             />
             
-            <WebsiteBreadcrumb props={breadcrumb} />
+            <header className='text-center my-8'>
+                <h1 className='text-4xl font-bold mb-2'>Shop Our Collection</h1>
+                <p className='text-gray-600 text-lg'>Discover the finest sarees for every occasion.</p>
+            </header>
+
+            {/* Filter and Search Section */}
+            <section className='mb-8 p-4 bg-gray-50 rounded-lg'>
+                <SearchWithFilters 
+                    onFilterChange={handleFilterChange} 
+                    isMobile={isMobile}
+                />
+            </section>
             
-            <SearchWithFilters />
-            
-            {/* Products Section */}
-            <section className='max-w-7xl mx-auto px-4 md:px-8 lg:px-12 my-10 lg:my-16'>
+            {/* Product Grid Section */}
+            <section>
+                {/* Loading Skeleton */}
                 {isFetching && (
-                    <div className='flex justify-center items-center py-12'>
-                        <div className='text-center'>
-                            <div className='animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500 mx-auto mb-2'></div>
-                            <p className='text-gray-600'>Loading products...</p>
-                        </div>
+                    <div className='grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-2 grid-cols-2 gap-6'>
+                        {Array.from({ length: limit }).map((_, index) => (
+                            <ProductBox.Skeleton key={index} />
+                        ))}
                     </div>
                 )}
-                
+
+                {/* Error Message */}
                 {error && (
-                    <div className='flex justify-center items-center py-12'>
-                        <div className='text-center text-red-600'>
-                            <p className='font-semibold'>{error.message}</p>
-                        </div>
+                    <div className='text-center py-12'>
+                        <p className='text-red-500 text-lg'>Failed to load products</p>
+                        <p className='text-gray-500 text-sm'>{error.message}</p>
                     </div>
                 )}
                 
                 {!isFetching && !error && (
                     <>
                         <div className='grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-2 grid-cols-2 gap-6'>
-                            {data && data.products && data.products.map(product => (
+                            {/* --- FIX 1 --- */}
+                            {data && data.map(product => (
                                 <ProductBox key={product._id} product={product} showQuickActions={true} />
                             ))}
                         </div>
 
                         {/* Results count */}
                         <div className='flex justify-center mt-12'>
-                            {data && data.products && data.products.length > 0 ? (
+                            {/* --- FIX 2 --- */}
+                            {data && data.length > 0 ? (
                                 <span className='text-gray-500 text-sm bg-gray-50 px-4 py-2 rounded-full'>
-                                    Showing {data.products.length} products
+                                    {/* --- FIX 3 --- */}
+                                    Showing {data.length} products
                                 </span>
                             ) : (
                                 <div className='text-center py-12'>

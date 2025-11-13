@@ -178,7 +178,7 @@ export async function POST(request) {
 
         return NextResponse.json({
             success: true,
-            data: products,
+            products: products,
             meta: { totalRowCount }
         });
 
