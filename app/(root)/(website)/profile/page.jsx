@@ -1,5 +1,5 @@
 import UserPanelLayout from '@/components/Application/Website/UserPanelLayout'
-import ProfileUpdateForm from '@/components/Application/Website/ProfileUpdateForm'
+// import ProfileUpdateForm from '@/components/Application/Website/ProfileUpdateForm' // <-- THIS LINE IS REMOVED
 import ChangePasswordForm from '@/components/Application/Website/ChangePasswordForm'
 
 const breadCrumb = [
@@ -20,9 +20,9 @@ const ProfilePage = () => {
     return (
         <UserPanelLayout title="My Profile" breadCrumb={breadCrumb}>
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
-                <div className='lg:col-span-1'>
+                {/* <div className='lg:col-span-1'>
                     <ProfileUpdateForm />
-                </div>
+                </div> */} {/* <-- THIS BLOCK IS REMOVED */}
                 <div className='lg:col-span-1'>
                     <ChangePasswordForm />
                 </div>

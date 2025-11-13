@@ -5,7 +5,7 @@ import MediaModel from "@/models/Media.model";
 import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
 import CategoryModel from "@/models/Category.model";
-import { cloudinary } from "@/lib/cloudinary";
+import cloudinary from "@/lib/cloudinary"; // <-- THIS LINE IS FIXED
 
 export async function POST(request) {
     try {
