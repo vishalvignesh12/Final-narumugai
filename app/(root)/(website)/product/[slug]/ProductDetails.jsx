@@ -213,7 +213,7 @@ const ProductDetails = ({ slug }) => {
         )
     }
 
-    // --- *** CRASH FIX: Define category parts safely *** ---
+    // --- *** THIS IS THE FIX *** ---
     // This explicitly checks if product.category exists BEFORE trying to access its properties.
     const categoryName = (product.category && product.category.name) ? product.category.name : 'Uncategorized';
     const categorySlug = (product.category && product.category.slug) ? product.category.slug : 'uncategorized';
@@ -367,7 +367,10 @@ const ProductDetails = ({ slug }) => {
                     
                     <div className='text-sm text-gray-500'>
                         <p><span className='font-semibold text-gray-700'>SKU:</span> {selectedVariant ? selectedVariant.sku : (product.sku || 'N/A')}</p>
+                        {/* --- *** FIX *** --- */}
+                        {/* Use the safe categoryName variable here */}
                         <p><span className='font-semibold text-gray-700'>Category:</span> {categoryName}</p>
+                        {/* --- *** END OF FIX *** --- */}
                     </div>
 
                 </div>

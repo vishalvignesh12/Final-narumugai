@@ -1,5 +1,20 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "framework": "nextjs"
+  "version": 2,
+  "builds": [
+    {
+      "src": "next.config.js",
+      "use": "@vercel/next"
+    }
+  ],
+  "functions": {
+    "app/api/**/*.js": {
+      "maxDuration": 30,
+      "memory": 1024,
+      "excludeFiles": [
+        "public/assets/**",
+        ".next/cache/**",
+        "docs/**"
+      ]
+    }
+  }
 }
