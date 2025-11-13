@@ -1,4 +1,4 @@
-"use client"; // <-- THIS IS THE FIX
+"use client";
 
 import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -27,16 +27,9 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover"
-import { cn } from '@/lib/utils'
-import { CalendarIcon } from 'lucide-react'
-import { Calendar } from '@/components/ui/calendar'
-import { format } from 'date-fns'
 
+// Removed Popover, cn, CalendarIcon, Calendar, and format
+// as they were part of the missing date picker functionality
 
 const breadCrumb = [
     {
@@ -51,10 +44,11 @@ const breadCrumb = [
 const AddCouponPage = () => {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
-    const [date, setDate] = useState(null)
+    // Removed 'date' state
+    // const [date, setDate] = useState(null)
 
 
-    const form = useForm({
+    const form = useForm<z.infer<typeof couponSchema>>({
         resolver: zodResolver(couponSchema),
         defaultValues: {
             code: "",
@@ -64,10 +58,11 @@ const AddCouponPage = () => {
         },
     })
 
-    async function onSubmit(values) {
+    async function onSubmit(values: z.infer<typeof couponSchema>) {
         try {
             setLoading(true)
-            const response = await axios.post('/api/coupon/create', { ...values, expiryDate: date })
+            // Sent 'expiryDate' as null since the picker is removed
+            const response = await axios.post('/api/coupon/create', { ...values, expiryDate: null })
             const data = response.data
             if (data.success) {
                 showToast(data.message)
@@ -146,31 +141,8 @@ const AddCouponPage = () => {
                             </FormItem>
                         )}
                     />
-                    <FormItem>
-                        <FormLabel>Expiry Date</FormLabel>
-                        <Popover>
-                            <PopoverTrigger asChild>
-                                <Button
-                                    variant={"outline"}
-                                    className={cn(
-                                        "w-full justify-start text-left font-normal",
-                                        !date && "text-muted-foreground"
-                                    )}
-                                >
-                                    <CalendarIcon className="mr-2 h-4 w-4" />
-                                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                                </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0">
-                                <Calendar
-                                    mode="single"
-                                    selected={date}
-                                    onSelect={setDate}
-                                    initialFocus
-                                />
-                            </PopoverContent>
-                        </Popover>
-                    </FormItem>
+                    
+                    {/* The Expiry Date FormItem has been completely removed */}
 
                     <ButtonLoading loading={loading} type="submit">Submit</ButtonLoading>
                 </form>
