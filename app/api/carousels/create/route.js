@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
-import SliderModel from "@/models/Slider.model";
+import CarouselModel from "@/models/Carousel.model";
 import { isAuthenticated } from "@/lib/authentication";
 
 export async function POST(request) {
@@ -19,7 +19,7 @@ export async function POST(request) {
             return response(false, 400, 'Media ID is required.')
         }
 
-        const newSlider = new SliderModel({
+        const newCarousel = new CarouselModel({
             mediaId: payload.mediaId,
             title: payload.title || '',
             alt: payload.alt || '',
@@ -28,9 +28,9 @@ export async function POST(request) {
             isActive: payload.isActive !== undefined ? payload.isActive : true
         })
 
-        await newSlider.save()
+        await newCarousel.save()
 
-        return response(true, 200, 'Slider created successfully.', newSlider)
+        return response(true, 200, 'Carousel created successfully.', newCarousel)
 
     } catch (error) {
         return catchError(error)

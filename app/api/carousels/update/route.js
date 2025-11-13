@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
-import SliderModel from "@/models/Slider.model";
+import CarouselModel from "@/models/Carousel.model";
 import { isAuthenticated } from "@/lib/authentication";
 import { isValidObjectId } from "mongoose";
 
@@ -16,7 +16,7 @@ export async function PUT(request) {
         const payload = await request.json()
         
         if (!payload.id || !isValidObjectId(payload.id)) {
-            return response(false, 400, 'Valid slider ID is required.')
+            return response(false, 400, 'Valid carousel ID is required.')
         }
 
         const updateData = {}
@@ -27,17 +27,17 @@ export async function PUT(request) {
         if (payload.order !== undefined) updateData.order = payload.order
         if (payload.isActive !== undefined) updateData.isActive = payload.isActive
 
-        const updatedSlider = await SliderModel.findByIdAndUpdate(
+        const updatedCarousel = await CarouselModel.findByIdAndUpdate(
             payload.id,
             updateData,
             { new: true, runValidators: true }
         ).populate('mediaId').lean()
 
-        if (!updatedSlider) {
-            return response(false, 404, 'Slider not found.')
+        if (!updatedCarousel) {
+            return response(false, 404, 'Carousel not found.')
         }
 
-        return response(true, 200, 'Slider updated successfully.', updatedSlider)
+        return response(true, 200, 'Carousel updated successfully.', updatedCarousel)
 
     } catch (error) {
         return catchError(error)

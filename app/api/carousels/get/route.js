@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
-import SliderModel from "@/models/Slider.model";
+import CarouselModel from "@/models/Carousel.model";
 import { NextResponse } from "next/server";
 
 export async function GET(request) {
@@ -19,12 +19,12 @@ export async function GET(request) {
         
         filter.deletedAt = null
 
-        const sliders = await SliderModel.find(filter)
+        const carousels = await CarouselModel.find(filter)
             .populate('mediaId')
             .sort({ order: 1, createdAt: -1 })
             .lean()
 
-        return response(true, 200, 'Sliders retrieved successfully.', sliders)
+        return response(true, 200, 'Carousels retrieved successfully.', carousels)
 
     } catch (error) {
         return catchError(error)

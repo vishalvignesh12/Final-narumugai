@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const sliderSchema = new mongoose.Schema({
+const carouselSchema = new mongoose.Schema({
     mediaId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Media',
@@ -33,5 +33,5 @@ const sliderSchema = new mongoose.Schema({
     },
 }, { timestamps: true })
 
-const SliderModel = mongoose.models.Slider || mongoose.model('Slider', sliderSchema, 'sliders')
-export default SliderModel
+const CarouselModel = mongoose.models.Carousel || mongoose.model('Carousel', carouselSchema, 'carousels')
+export default CarouselModel

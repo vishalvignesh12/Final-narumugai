@@ -1,6 +1,6 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
-import SliderModel from "@/models/Slider.model";
+import CarouselModel from "@/models/Carousel.model";
 import { isAuthenticated } from "@/lib/authentication";
 import { isValidObjectId } from "mongoose";
 
@@ -12,19 +12,19 @@ export async function GET(request, { params }) {
         const id = getParams.id
 
         if (!isValidObjectId(id)) {
-            return response(false, 400, 'Invalid slider ID.')
+            return response(false, 400, 'Invalid carousel ID.')
         }
 
-        const slider = await SliderModel.findOne({ 
+        const carousel = await CarouselModel.findOne({ 
             _id: id,
             deletedAt: null 
         }).populate('mediaId').lean()
 
-        if (!slider) {
-            return response(false, 404, 'Slider not found.')
+        if (!carousel) {
+            return response(false, 404, 'Carousel not found.')
         }
 
-        return response(true, 200, 'Slider retrieved successfully.', slider)
+        return response(true, 200, 'Carousel retrieved successfully.', carousel)
 
     } catch (error) {
         return catchError(error)

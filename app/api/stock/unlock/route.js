@@ -1,13 +1,13 @@
-import { isAuthenticated } from "@/lib/authentication";
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
 import { z } from "zod";
 
+// --- FIX: Removed .length(24) to allow 'fallback-' IDs ---
 const stockUnlockSchema = z.object({
     items: z.array(z.object({
-        variantId: z.string().length(24, 'Invalid variant id format'),
+        variantId: z.string(), // Allow any string (e.g., 'fallback-...' or a real ID)
         quantity: z.number().min(1, 'Quantity must be at least 1').default(1)
     }))
 });
@@ -36,19 +36,17 @@ export async function POST(request) {
             for (const item of items) {
                 // Handle fallback variants (products without real variants)
                 if (!item.variantId || item.variantId === 'null' || item.variantId.includes('fallback-')) {
-                    // Extract product ID from fallback variant ID
+                    
                     const productId = item.variantId?.startsWith('fallback-') 
                         ? item.variantId.replace('fallback-', '') 
                         : item.variantId
                     
-                    // For products without variants, unlock at product level
+                    // --- FIX: Increment 'quantity' field, not 'lockedQuantity' ---
                     const result = await ProductModel.findOneAndUpdate(
+                        { _id: productId },
                         {
-                            _id: productId,
-                            lockedQuantity: { $gte: item.quantity }
-                        },
-                        {
-                            $inc: { lockedQuantity: -item.quantity }
+                            $inc: { quantity: item.quantity }, // Add quantity back
+                            isAvailable: true // Make sure it's available
                         },
                         {
                             new: true,
@@ -61,7 +59,7 @@ export async function POST(request) {
                             variantId: item.variantId,
                             productName: result.name,
                             unlockedQuantity: item.quantity,
-                            remainingLocked: result.lockedQuantity,
+                            remainingStock: result.quantity, // Show new stock
                             type: 'product-level'
                         })
                     }
@@ -70,14 +68,11 @@ export async function POST(request) {
                 }
                 
                 // Handle real variants
-                // Atomic update to unlock stock
+                // --- FIX: Increment 'quantity' field, not 'lockedQuantity' ---
                 const result = await ProductVariantModel.findOneAndUpdate(
+                    { _id: item.variantId },
                     {
-                        _id: item.variantId,
-                        lockedQuantity: { $gte: item.quantity }
-                    },
-                    {
-                        $inc: { lockedQuantity: -item.quantity }
+                        $inc: { quantity: item.quantity } // Add quantity back
                     },
                     {
                         new: true,
@@ -90,7 +85,7 @@ export async function POST(request) {
                         variantId: item.variantId,
                         productName: result.product.name,
                         unlockedQuantity: item.quantity,
-                        remainingLocked: result.lockedQuantity,
+                        remainingStock: result.quantity, // Show new stock
                         type: 'variant-level'
                     })
                 }
