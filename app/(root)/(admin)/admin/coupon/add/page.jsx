@@ -104,7 +104,7 @@ const AddCouponPage = () => {
                                     <FormControl>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select discount type" />
-                                        </Trigger>
+                                        </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
                                         <SelectItem value="percentage">Percentage</SelectItem>
