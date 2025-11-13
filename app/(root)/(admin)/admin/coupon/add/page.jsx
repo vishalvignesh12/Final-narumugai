@@ -14,12 +14,16 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { z } from "zod"
-import { couponSchema } from '@/lib/zodSchema'
+import { categorySchema } from '@/lib/zodSchema'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
 import showToast from '@/lib/showToast'
 import ButtonLoading from '@/components/Application/ButtonLoading'
 import { useState } from 'react'
+import MediaModal from '@/components/Application/Admin/MediaModal'
+import Image from 'next/image'
+import { Textarea } from '@/components/ui/textarea'
+import useFetch from '@/hooks/useFetch'
 import {
     Select,
     SelectContent,
@@ -28,45 +32,49 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 
-// Removed Popover, cn, CalendarIcon, Calendar, and format
-// as they were part of the missing date picker functionality
 
 const breadCrumb = [
     {
-        label: "Coupon",
-        link: "/admin/coupon"
+        label: "Category",
+        link: "/admin/category"
     },
     {
         label: "Add",
     }
 ]
 
-const AddCouponPage = () => {
+const AddCategoryPage = () => {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
-    // Removed 'date' state
-    // const [date, setDate] = useState(null)
+    const [media, setMedia] = useState(null)
+    const { data: categories, loading: categoryLoading } = useFetch('/api/category/get-category')
 
 
-    const form = useForm({ // <-- FIX: Removed TypeScript generic <...>
-        resolver: zodResolver(couponSchema),
+    const form = useForm({
+        resolver: zodResolver(categorySchema),
         defaultValues: {
-            code: "",
-            discountType: "percentage",
-            discountValue: 0,
-            minPurchase: 0,
+            name: "",
+            slug: "",
+            description: "",
+            parent: "",
         },
     })
 
-    async function onSubmit(values) { // <-- FIX: Removed TypeScript type annotation
+    const handleSlug = (e) => {
+        const { value } = e.target
+        const slug = value.toLowerCase().replace(/\s+/g, '-')
+        form.setValue('slug', slug)
+        form.setValue('name', value)
+    }
+
+    async function onSubmit(values) {
         try {
             setLoading(true)
-            // Sent 'expiryDate' as null since the picker is removed
-            const response = await axios.post('/api/coupon/create', { ...values, expiryDate: null })
+            const response = await axios.post('/api/category/create', { ...values, media: media?._id })
             const data = response.data
             if (data.success) {
                 showToast(data.message)
-                router.push('/admin/coupon')
+                router.push('/admin/category')
             }
         } catch (error) {
             showToast(error.response.data.message || 'Error', 'error')
@@ -79,76 +87,97 @@ const AddCouponPage = () => {
     return (
         <div className='border rounded-lg p-4'>
             <BreadCrumb breadCrumb={breadCrumb} />
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                        control={form.control}
-                        name="code"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Coupon Code</FormLabel>
-                                <FormControl>
-                                    <Input placeholder="eg: SUMMER50" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
+            <div className='grid grid-cols-12 gap-4'>
+                <div className='col-span-12 md:col-span-8'>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="eg: Saree" {...field} onChange={handleSlug} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="slug"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Slug</FormLabel>
+                                        <FormControl>
+                                            <Input readOnly placeholder="eg: saree" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="parent"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Parent Category</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a parent category" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="">No Parent</SelectItem>
+                                                {/* ##### THIS IS THE FIXED LINE ##### */}
+                                                {Array.isArray(categories) && categories.length > 0 && categories.map((category) => (
+                                                    <SelectItem key={category._id} value={category._id}>{category.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Category description" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <ButtonLoading loading={loading} type="submit">Submit</ButtonLoading>
+                        </form>
+                    </Form>
+                </div>
+                <div className='col-span-12 md:col-span-4'>
+                    <div className='border rounded-lg p-4'>
+                        <h2 className='text-lg font-semibold mb-4'>Category Image</h2>
+                        {media && (
+                            <div className='relative w-full h-48'>
+                                <Image
+                                    src={media.url}
+                                    alt={media.alt}
+                                    layout='fill'
+                                    objectFit='cover'
+                                    className='rounded-md'
+                                />
+                            </div>
                         )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="discountType"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Discount Type</FormLabel>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                    <FormControl>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select discount type" />
-                                        </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                        <SelectItem value="percentage">Percentage</SelectItem>
-                                        <SelectItem value="fixed">Fixed</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="discountValue"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Discount Value</FormLabel>
-                                <FormControl>
-                                    <Input type="number" placeholder="eg: 50" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={form.control}
-                        name="minPurchase"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Min Purchase</FormLabel>
-                                <FormControl>
-                                    <Input type="number" placeholder="eg: 500" {...field} onChange={(e) => field.onChange(Number(e.target.value))} />
-                                </FormControl>
-                                <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                    
-                    {/* The Expiry Date FormItem has been completely removed */}
-
-                    <ButtonLoading loading={loading} type="submit">Submit</ButtonLoading>
-                </form>
-            </Form>
+                        <MediaModal onSelectMedia={setMedia} />
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
 
-export default AddCouponPage
+export default AddCategoryPage
