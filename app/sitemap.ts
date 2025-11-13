@@ -6,12 +6,28 @@ import CategoryModel from '@/models/Category.model';
 // Use the variable from your .env file
 const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
+// Define an interface for the query results for clarity
+interface IProduct {
+    slug: string;
+    updatedAt?: Date;
+}
+
+interface ICategory {
+    slug: string;
+    updatedAt?: Date;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     try {
         await connectDB();
 
         // 1. Get all products
-        const products = await ProductModel.find({ deletedAt: null, isAvailable: true }).select('slug updatedAt').lean();
+        // FIX: Cast Model to (any) to resolve TypeScript error
+        const products = await (ProductModel as any).find({ deletedAt: null, isAvailable: true })
+            .select('slug updatedAt')
+            .lean()
+            .exec() as IProduct[]; // Added .exec() to ensure a Promise is returned
+
         const productUrls = products.map(product => ({
             url: `${BASE_URL}/product/${product.slug}`,
             lastModified: product.updatedAt || new Date(),
@@ -21,8 +37,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
         // 2. Get all categories
         // NOTE: This assumes your category URL is /shop?category=...
-        // If you have a dedicated page like /category/[slug], change the URL
-        const categories = await CategoryModel.find({ deletedAt: null }).select('slug updatedAt').lean();
+        
+        // FIX: Cast Model to (any) to resolve the error on line 43
+        const categories = await (CategoryModel as any).find({ deletedAt: null })
+            .select('slug updatedAt')
+            .lean()
+            .exec() as ICategory[]; // Added .exec() to ensure a Promise is returned
+
         const categoryUrls = categories.map(category => ({
             url: `${BASE_URL}/shop?category=${category.slug}`, // Based on your current app structure
             lastModified: category.updatedAt || new Date(),
