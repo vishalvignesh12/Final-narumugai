@@ -9,6 +9,7 @@ import WishlistButton from './WishlistButton'
 import { IoStar, IoStarOutline } from 'react-icons/io5'
 import { FiShoppingCart } from 'react-icons/fi'
 import { TbTruck } from 'react-icons/tb'
+import { Skeleton } from "@/components/ui/skeleton" // <-- 1. IMPORT SKELETON
 
 const ProductBox = ({ product, showQuickActions = false }) => {
     const [imageError, setImageError] = useState(false)
@@ -151,5 +152,43 @@ const ProductBox = ({ product, showQuickActions = false }) => {
         </Card>
     )
 }
+
+// --- 2. CREATE THE SKELETON SUB-COMPONENT ---
+const ProductBoxSkeleton = () => {
+    return (
+        <Card className="bg-white border-0 shadow-md">
+            <CardContent className="p-0">
+                {/* Image Skeleton */}
+                <Skeleton className='w-full xl:h-[280px] lg:h-[260px] md:h-[240px] sm:h-[200px] h-[160px] rounded-t-lg rounded-b-none' />
+                
+                {/* Content Skeleton */}
+                <div className="p-4 space-y-3">
+                    {/* Category Skeleton */}
+                    <Skeleton className="h-4 w-1/4" />
+                    
+                    {/* Title Skeleton */}
+                    <div className="space-y-2 min-h-[2.5rem]">
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-4 w-3/4" />
+                    </div>
+                    
+                    {/* Rating Skeleton */}
+                    <Skeleton className="h-3 w-1/3" />
+                    
+                    {/* Price Skeleton */}
+                    <div className='flex items-center justify-between'>
+                        <div className='flex flex-col gap-1'>
+                            <Skeleton className="h-6 w-20" />
+                            <Skeleton className="h-3 w-24" />
+                        </div>
+                    </div>
+                </div>
+            </CardContent>
+        </Card>
+    )
+}
+
+// --- 3. ATTACH THE SKELETON TO THE MAIN COMPONENT ---
+ProductBox.Skeleton = ProductBoxSkeleton;
 
 export default ProductBox

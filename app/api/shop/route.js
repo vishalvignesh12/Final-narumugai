@@ -14,7 +14,7 @@ export async function POST(request) {
 
         const {
             start = 0,
-            size = 10,
+            size = 12, // Default size from your page.jsx
             filters = [],
             sorting = [],
             globalFilter = "",
@@ -33,7 +33,6 @@ export async function POST(request) {
             matchQuery.slug = slug
         }
 
-
         // Global search
         if (globalFilter) {
             matchQuery["$or"] = [
@@ -47,146 +46,95 @@ export async function POST(request) {
             matchQuery[filter.id] = { $regex: filter.value, $options: 'i' };
         });
 
-        // Category filter
-        if (categoryFilter.length > 0) {
-            matchQuery['category.slug'] = { $in: categoryFilter };
-        }
+        // Sorting
+        let sortQuery = {};
+        sorting.forEach(sort => {
+            sortQuery[sort.id] = sort.desc ? -1 : 1;
+        });
 
         // Price filter
-        if (priceFilter.length === 2) {
+        if (priceFilter && priceFilter.length === 2) {
             matchQuery.sellingPrice = { $gte: priceFilter[0], $lte: priceFilter[1] };
         }
 
-
-        // Sorting
-        const sortQuery = sorting.length > 0
-            ? sorting.reduce((acc, sort) => {
-                acc[sort.id] = sort.desc ? -1 : 1;
-                return acc;
-            }, {})
-            : { createdAt: -1 };
-
-
-        // Base aggregation pipeline
-        const pipeline = [
-            {
-                $lookup: {
-                    from: "categories",
-                    localField: "category",
-                    foreignField: "_id",
-                    as: "category"
-                }
-            },
-            { $unwind: "$category" },
-            { $match: matchQuery },
-        ];
-
-
-        // Check if color or size filters are applied
-        const hasVariantFilters = colorFilter.length > 0 || sizeFilter.length > 0;
-
-        if (hasVariantFilters) {
-            const variantMatchQuery = {
-                'variants.deletedAt': null
-            };
-            if (colorFilter.length > 0) {
-                variantMatchQuery['variants.color'] = { $in: colorFilter };
-            }
-            if (sizeFilter.length > 0) {
-                variantMatchQuery['variants.size'] = { $in: sizeFilter };
-            }
-
-            pipeline.push(
-                {
-                    $lookup: {
-                        from: "productvariants",
-                        localField: "_id",
-                        foreignField: "product",
-                        as: "variants"
-                    }
-                },
-                {
-                    $match: {
-                        ...variantMatchQuery,
-                        'variants': { $ne: [] } // Ensure product has variants matching the filter
-                    }
-                }
-            );
+        // Category filter
+        if (categoryFilter && categoryFilter.length > 0) {
+            matchQuery.category = { $in: categoryFilter }; 
         }
 
-        // Add sorting, skipping, and limiting
-        pipeline.push(
-            { $sort: sortQuery },
+        // --- (Add Color/Size filters if needed) ---
+        
+        // --- THIS IS THE FIX ---
+        // We must use an aggregate pipeline to $lookup (join)
+        // the category and media data, just like your working product details page.
+        
+        const aggregatePipeline = [
+            { $match: matchQuery },
+            {
+                $lookup: {
+                    from: 'categories',
+                    localField: 'category',
+                    foreignField: '_id',
+                    as: 'categoryData'
+                }
+            },
+            {
+                $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true }
+            },
+            {
+                $lookup: {
+                    from: 'media', // The media collection
+                    localField: 'media', // The array of ObjectIds in ProductModel
+                    foreignField: '_id', // The _id in MediaModel
+                    as: 'mediaData' // The new array of full media objects
+                }
+            },
+            { $sort: Object.keys(sortQuery).length ? sortQuery : { createdAt: -1 } },
             { $skip: start },
             { $limit: size },
             {
-                $lookup: {
-                    from: "media",
-                    localField: "media",
-                    foreignField: "_id",
-                    as: "media"
-                }
-            }
-        );
-
-
-        // Execute pipeline
-        const products = await ProductModel.aggregate(pipeline);
-
-        // Get total count for pagination
-        // We need a separate pipeline for count that stops before $skip and $limit
-        const countPipeline = [
-            {
-                $lookup: {
-                    from: "categories",
-                    localField: "category",
-                    foreignField: "_id",
-                    as: "category"
+                $project: {
+                    // Project only the fields needed by ProductBox
+                    name: 1,
+                    slug: 1,
+                    mrp: 1,
+                    sellingPrice: 1,
+                    isAvailable: 1,
+                    category: {
+                        name: "$categoryData.name",
+                        slug: "$categoryData.slug"
+                    },
+                    // Get just the first image
+                    media: { $slice: ["$mediaData", 1] } 
                 }
             },
-            { $unwind: "$category" },
-            { $match: matchQuery }
+            {
+                // Reshape the media field to be exactly what ProductBox expects
+                $set: {
+                    media: {
+                        $map: {
+                            input: "$media",
+                            as: "m",
+                            in: { secure_url: "$$m.secure_url", alt: "$$m.alt", title: "$$m.title" }
+                        }
+                    }
+                }
+            }
         ];
 
-        if (hasVariantFilters) {
-            const variantMatchQuery = {
-                'variants.deletedAt': null
-            };
-            if (colorFilter.length > 0) {
-                variantMatchQuery['variants.color'] = { $in: colorFilter };
-            }
-            if (sizeFilter.length > 0) {
-                variantMatchQuery['variants.size'] = { $in: sizeFilter };
-            }
-            countPipeline.push(
-                {
-                    $lookup: {
-                        from: "productvariants",
-                        localField: "_id",
-                        foreignField: "product",
-                        as: "variants"
-                    }
-                },
-                { $match: { ...variantMatchQuery, 'variants': { $ne: [] } } }
-            );
-        }
+        const products = await ProductModel.aggregate(aggregatePipeline);
+        const totalRowCount = await ProductModel.countDocuments(matchQuery);
 
-        countPipeline.push({ $count: 'totalCount' });
-        const countResult = await ProductModel.aggregate(countPipeline);
-        const totalRowCount = countResult[0]?.totalCount || 0;
-
-
-        return NextResponse.json({
-            success: true,
-            products: products,
-            meta: { totalRowCount }
-        });
+        // Return the products and the total count
+        return NextResponse.json({ success: true, products: products, meta: { totalRowCount } })
 
     } catch (error) {
         return catchError(error)
     }
 }
 
+
+// Search functionality (GET request)
 export async function GET(request) {
     try {
         await connectDB()
@@ -216,18 +164,20 @@ export async function GET(request) {
             $or: [
                 { name: { $regex: query, $options: 'i' } },
                 { description: { $regex: query, $options: 'i' } },
-                { _id: { $in: productIdsFromVariants } } // Add matching product ids
+                { _id: { $in: productIdsFromVariants } } 
             ]
         };
 
+        // --- FIX FOR GET REQUEST ---
+        // Use the correct populate syntax for media
         const products = await ProductModel.find(matchQuery)
             .populate('category', 'name slug')
-            .populate('media', 'secure_url')
+            .populate({ path: 'media', select: 'secure_url alt title' }) // Correct populate
             .sort({ createdAt: -1 })
             .limit(10)
-            .lean();
+            .select('name slug sellingPrice mrp media category'); 
 
-        return response(true, 200, 'Search results', products);
+        return response(true, 200, 'Search results', products)
 
     } catch (error) {
         return catchError(error)
