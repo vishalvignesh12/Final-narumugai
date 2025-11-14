@@ -1,33 +1,40 @@
 'use client'
-import BreadCrumb from "@/components/Application/Admin/BreadCrumb"
-import DatatableWrapper from "@/components/Application/Admin/DatatableWrapper"
-import DeleteAction from "@/components/Application/Admin/DeleteAction"
-import EditAction from "@/components/Application/Admin/EditAction"
-import ViewAction from "@/components/Application/Admin/ViewAction"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { DT_COUPON_COLUMN, DT_ORDER_COLUMN, } from "@/lib/column"
-import { columnConfig } from "@/lib/helperFunction"
-import { ADMIN_COUPON_ADD, ADMIN_COUPON_EDIT, ADMIN_COUPON_SHOW, ADMIN_DASHBOARD, ADMIN_ORDER_DETAILS, ADMIN_TRASH } from "@/routes/AdminPanelRoute"
-import Link from "next/link"
-import { useCallback, useMemo } from "react"
-import { FiPlus } from "react-icons/fi"
+import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
+// import DatatableWrapper from '@/components/Application/Admin/DatatableWrapper' // <-- REMOVED
+import DeleteAction from '@/components/Application/Admin/DeleteAction'
+import ViewAction from '@/components/Application/Admin/ViewAction'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { DT_ORDER_COLUMN } from '@/lib/column'
+import { columnConfig } from '@/lib/helperFunction'
+import { ADMIN_DASHBOARD, ADMIN_ORDER_DETAILS, ADMIN_ORDER_SHOW } from '@/routes/AdminPanelRoute'
+import { useCallback, useMemo } from 'react'
+import dynamic from 'next/dynamic' // <-- ADDED
+
+// <-- ADDED DYNAMIC IMPORT BLOCK -->
+const DatatableWrapper = dynamic(
+    () => import('@/components/Application/Admin/DatatableWrapper'),
+    { 
+        ssr: false, 
+        loading: () => <p>Loading orders...</p>
+    }
+)
 
 const breadcrumbData = [
     { href: ADMIN_DASHBOARD, label: 'Home' },
-    { href: "", label: 'Orders' },
+    { href: ADMIN_ORDER_SHOW, label: 'Orders' },
 ]
-const ShowOrder = () => {
+
+const Orders = () => {
 
     const columns = useMemo(() => {
-        return columnConfig(DT_ORDER_COLUMN)
+        return columnConfig(DT_ORDER_COLUMN, false, true)
     }, [])
 
     const action = useCallback((row, deleteType, handleDelete) => {
-        let actionMenu = []
-        actionMenu.push(<ViewAction key="view" href={ADMIN_ORDER_DETAILS(row.original.order_id)} />)
-        actionMenu.push(<DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />)
-        return actionMenu
+        return [
+            <ViewAction key="view" href={`${ADMIN_ORDER_DETAILS}/${row.original.orderId}`} />,
+            <DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />
+        ]
     }, [])
 
     return (
@@ -37,8 +44,7 @@ const ShowOrder = () => {
             <Card className="py-0 rounded shadow-sm gap-0">
                 <CardHeader className="pt-3 px-3 border-b [.border-b]:pb-2">
                     <div className="flex justify-between items-center">
-                        <h4 className='text-xl font-semibold'>Orders</h4>
-
+                        <h4 className='text-xl font-semibold'>Orders List</h4>
                     </div>
                 </CardHeader>
                 <CardContent className="px-0 pt-0">
@@ -50,7 +56,6 @@ const ShowOrder = () => {
                         exportEndpoint="/api/orders/export"
                         deleteEndpoint="/api/orders/delete"
                         deleteType="SD"
-                        trashView={`${ADMIN_TRASH}?trashof=orders`}
                         createAction={action}
                     />
                 </CardContent>
@@ -59,4 +64,4 @@ const ShowOrder = () => {
     )
 }
 
-export default ShowOrder
+export default Orders

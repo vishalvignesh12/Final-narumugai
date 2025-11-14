@@ -1,84 +1,79 @@
-import React from 'react'
-import CountOverview from './CountOverview'
-import QuickAdd from './QuickAdd'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import Link from 'next/link'
-import { OrderOverview } from './OrderOverview'
-import { OrderStatus } from './OrderStatus'
-import LatestOrder from './LatestOrder'
-import LatestReview from './LatestReview'
-import { ADMIN_ORDER_SHOW, ADMIN_REVIEW_SHOW } from '@/routes/AdminPanelRoute'
+'use client'
+import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
+import { ADMIN_DASHBOARD } from '@/routes/AdminPanelRoute'
+import { Card, CardContent } from '@/components/ui/card'
+import dynamic from 'next/dynamic' // <-- 1. IMPORT DYNAMIC
 
-const AdminDashboard = () => {
-    return (
-        <div className='pt-5'>
-            <CountOverview />
-            <QuickAdd />
+// 2. REMOVE ALL STATIC WIDGET IMPORTS
+// import CountOverview from './CountOverview'
+// import OrderOverview from './OrderOverview'
+// import OrderStatus from './OrderStatus'
+// import QuickAdd from './QuickAdd'
+// import LatestOrder from './LatestOrder'
+// import LatestReview from './LatestReview'
 
-            <div className='mt-10 flex lg:flex-nowrap flex-wrap gap-10'>
-                <Card className="rounded-lg lg:w-[70%] w-full p-0">
-                    <CardHeader className="py-3 border [.border-b]:pb-3">
-                        <div className='flex justify-between items-center'>
-                            <span className='font-semibold'>Order Overview</span>
-                            <Button type="button" >
-                                <Link href={ADMIN_ORDER_SHOW}>View All</Link>
-                            </Button>
-                        </div>
-                    </CardHeader>
+// 3. DYNAMICALLY IMPORT ALL WIDGETS
+const CountOverview = dynamic(
+  () => import('./CountOverview'),
+  { ssr: false, loading: () => <div className="h-[126px] bg-gray-200 rounded-lg animate-pulse"></div> }
+)
+const OrderOverview = dynamic(
+  () => import('./OrderOverview'),
+  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+)
+const OrderStatus = dynamic(
+  () => import('./OrderStatus'),
+  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+)
+const QuickAdd = dynamic(
+  () => import('./QuickAdd'),
+  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+)
+const LatestOrder = dynamic(
+  () => import('./LatestOrder'),
+  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+)
+const LatestReview = dynamic(
+  () => import('./LatestReview'),
+  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+)
 
-                    <CardContent>
-                        <OrderOverview />
-                    </CardContent>
 
-                </Card>
-                <Card className="rounded-lg lg:w-[30%] w-full p-0">
-                    <CardHeader className="py-3 border [.border-b]:pb-3">
-                        <div className='flex justify-between items-center'>
-                            <span className='font-semibold'>Orders Status </span>
-                            <Button type="button" >
-                                <Link href={ADMIN_ORDER_SHOW}>View All</Link>
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <OrderStatus />
-                    </CardContent>
-                </Card>
-            </div>
-            <div className='mt-10 flex lg:flex-nowrap flex-wrap gap-10'>
-                <Card className="rounded-lg lg:w-[70%] w-full p-0 block">
-                    <CardHeader className="py-3 border [.border-b]:pb-3">
-                        <div className='flex justify-between items-center'>
-                            <span className='font-semibold'>Latest Order</span>
-                            <Button type="button" >
-                                <Link href={ADMIN_ORDER_SHOW}>View All</Link>
-                            </Button>
-                        </div>
-                    </CardHeader>
+const breadcrumbData = [
+  { href: ADMIN_DASHBOARD, label: 'Dashboard' },
+]
 
-                    <CardContent className='pt-3 lg:h-[350px] overflow-auto'>
-                        <LatestOrder />
-                    </CardContent>
+const Dashboard = () => {
 
-                </Card>
-                <Card className="rounded-lg lg:w-[30%] w-full p-0 block">
-                    <CardHeader className="py-3 border [.border-b]:pb-3">
-                        <div className='flex justify-between items-center'>
-                            <span className='font-semibold'>Latest Review </span>
-                            <Button type="button" >
-                                <Link href={ADMIN_REVIEW_SHOW}>View All</Link>
-                            </Button>
-                        </div>
-                    </CardHeader>
-                    <CardContent className='pt-3 px-1 lg:h-[350px] overflow-auto'>
-                        <LatestReview />
-                    </CardContent>
-                </Card>
-            </div>
+  return (
+    <div>
+      <BreadCrumb breadcrumbData={breadcrumbData} />
 
+      <div className='mt-5 space-y-5'>
+
+        <CountOverview />
+
+        <div className='grid grid-cols-1 xl:grid-cols-2 gap-5'>
+          <OrderOverview />
+          <OrderStatus />
         </div>
-    )
+
+        <div className='grid grid-cols-1 xl:grid-cols-3 gap-5'>
+          <div className='xl:col-span-1'>
+            <QuickAdd />
+          </div>
+          <div className='xl:col-span-2'>
+            <LatestOrder />
+          </div>
+        </div>
+
+        <div>
+          <LatestReview />
+        </div>
+
+      </div>
+    </div>
+  )
 }
 
-export default AdminDashboard
+export default Dashboard

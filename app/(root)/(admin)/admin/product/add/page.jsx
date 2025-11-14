@@ -14,9 +14,28 @@ import { showToast } from '@/lib/showToast'
 import axios from 'axios'
 import useFetch from '@/hooks/useFetch'
 import Select from '@/components/Application/Select'
-import Editor from '@/components/Application/Admin/Editor'
-import MediaModal from '@/components/Application/Admin/MediaModal'
+// import Editor from '@/components/Application/Admin/Editor' // <-- OLD LINE REMOVED
+// import MediaModal from '@/components/Application/Admin/MediaModal' // <-- OLD LINE REMOVED
 import Image from 'next/image'
+import dynamic from 'next/dynamic' // <-- 1. IMPORT DYNAMIC
+
+// 2. DYNAMICALLY IMPORT CLIENT-SIDE COMPONENTS
+const Editor = dynamic(
+  () => import('@/components/Application/Admin/Editor'),
+  { 
+    ssr: false, 
+    loading: () => <p>Loading editor...</p> 
+  } 
+)
+const MediaModal = dynamic(
+  () => import('@/components/Application/Admin/MediaModal'),
+  { 
+    ssr: false, 
+    loading: () => <p>Loading media...</p> 
+  } 
+)
+
+
 const breadcrumbData = [
   { href: ADMIN_DASHBOARD, label: 'Home' },
   { href: ADMIN_PRODUCT_SHOW, label: 'Products' },

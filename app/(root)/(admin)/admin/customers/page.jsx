@@ -1,29 +1,38 @@
 'use client'
-import BreadCrumb from "@/components/Application/Admin/BreadCrumb"
-import DatatableWrapper from "@/components/Application/Admin/DatatableWrapper"
-import DeleteAction from "@/components/Application/Admin/DeleteAction"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import {   DT_CUSTOMERS_COLUMN, } from "@/lib/column"
-import { columnConfig } from "@/lib/helperFunction"
-import { ADMIN_DASHBOARD, ADMIN_TRASH } from "@/routes/AdminPanelRoute"
+import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
+// import DatatableWrapper from '@/components/Application/Admin/DatatableWrapper' // <-- REMOVED
+import DeleteAction from '@/components/Application/Admin/DeleteAction'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { DT_CUSTOMERS_COLUMN } from '@/lib/column'
+import { columnConfig } from '@/lib/helperFunction'
+import { ADMIN_CUSTOMER_SHOW, ADMIN_DASHBOARD } from '@/routes/AdminPanelRoute'
+import { useCallback, useMemo } from 'react'
+import dynamic from 'next/dynamic' // <-- ADDED
 
-import { useCallback, useMemo } from "react"
+// <-- ADDED DYNAMIC IMPORT BLOCK -->
+const DatatableWrapper = dynamic(
+    () => import('@/components/Application/Admin/DatatableWrapper'),
+    { 
+        ssr: false, 
+        loading: () => <p>Loading customers...</p>
+    }
+)
 
 const breadcrumbData = [
     { href: ADMIN_DASHBOARD, label: 'Home' },
-    { href: '', label: 'Customers' },
+    { href: ADMIN_CUSTOMER_SHOW, label: 'Customers' },
 ]
-const ShowCustomers = () => {
+
+const Customers = () => {
 
     const columns = useMemo(() => {
-        return columnConfig(DT_CUSTOMERS_COLUMN)
+        return columnConfig(DT_CUSTOMERS_COLUMN, false, true)
     }, [])
 
     const action = useCallback((row, deleteType, handleDelete) => {
-        let actionMenu = []
-
-        actionMenu.push(<DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />)
-        return actionMenu
+        return [
+            <DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />
+        ]
     }, [])
 
     return (
@@ -33,8 +42,7 @@ const ShowCustomers = () => {
             <Card className="py-0 rounded shadow-sm gap-0">
                 <CardHeader className="pt-3 px-3 border-b [.border-b]:pb-2">
                     <div className="flex justify-between items-center">
-                        <h4 className='text-xl font-semibold'>Customers</h4>
-
+                        <h4 className='text-xl font-semibold'>Customers List</h4>
                     </div>
                 </CardHeader>
                 <CardContent className="px-0 pt-0">
@@ -46,7 +54,6 @@ const ShowCustomers = () => {
                         exportEndpoint="/api/customers/export"
                         deleteEndpoint="/api/customers/delete"
                         deleteType="SD"
-                        trashView={`${ADMIN_TRASH}?trashof=customers`}
                         createAction={action}
                     />
                 </CardContent>
@@ -55,4 +62,4 @@ const ShowCustomers = () => {
     )
 }
 
-export default ShowCustomers
+export default Customers

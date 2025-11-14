@@ -1,6 +1,6 @@
 'use client'
 import BreadCrumb from "@/components/Application/Admin/BreadCrumb"
-import DatatableWrapper from "@/components/Application/Admin/DatatableWrapper"
+// import DatatableWrapper from "@/components/Application/Admin/DatatableWrapper" // <-- OLD LINE REMOVED
 import DeleteAction from "@/components/Application/Admin/DeleteAction"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { DT_CATEGORY_COLUMN, DT_COUPON_COLUMN, DT_CUSTOMERS_COLUMN, DT_ORDER_COLUMN, DT_PRODUCT_COLUMN, DT_PRODUCT_VARIANT_COLUMN, DT_REVIEW_COLUMN } from "@/lib/column"
@@ -8,7 +8,18 @@ import { columnConfig } from "@/lib/helperFunction"
 import { ADMIN_DASHBOARD, ADMIN_TRASH } from "@/routes/AdminPanelRoute"
 
 import { useSearchParams } from "next/navigation"
-import { useCallback, useMemo } from "react"
+// 1. IMPORT Suspense and dynamic
+import { useCallback, useMemo, Suspense } from "react" 
+import dynamic from 'next/dynamic'
+
+// 2. DYNAMICALLY IMPORT DatatableWrapper (Fixes 'a is not iterable')
+const DatatableWrapper = dynamic(
+    () => import('@/components/Application/Admin/DatatableWrapper'),
+    { 
+        ssr: false, 
+        loading: () => <p>Loading data...</p> 
+    }
+)
 
 const breadcrumbData = [
     { href: ADMIN_DASHBOARD, label: 'Home' },
@@ -69,16 +80,27 @@ const TRASH_CONFIG = {
 
 }
 
-const Trash = () => {
+// 3. CREATE AN INNER COMPONENT for all logic
+//    This is what will be "suspended"
+const TrashContent = () => {
 
-    const searchParams = useSearchParams()
+    const searchParams = useSearchParams() // <-- Hook is now safely inside
     const trashOf = searchParams.get('trashof')
 
-    const config = TRASH_CONFIG[trashOf]
+    const config = TRASH_CONFIG[trashOf] || TRASH_CONFIG.category // Default to category
+
+    if (!config) {
+        return (
+            <div>
+                <BreadCrumb breadcrumbData={breadcrumbData} />
+                <p>Invalid trash category selected.</p>
+            </div>
+        )
+    }
 
     const columns = useMemo(() => {
-        return columnConfig(config.columns, false, false, true)
-    }, [])
+        return columnConfig(config.columns || [], false, false, true)
+    }, [config])
 
     const action = useCallback((row, deleteType, handleDelete) => {
         return [<DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />]
@@ -108,6 +130,15 @@ const Trash = () => {
                 </CardContent>
             </Card>
         </div>
+    )
+}
+
+// 4. WRAP THE INNER COMPONENT IN <Suspense>
+const Trash = () => {
+    return (
+        <Suspense fallback={<div>Loading trash...</div>}>
+            <TrashContent />
+        </Suspense>
     )
 }
 

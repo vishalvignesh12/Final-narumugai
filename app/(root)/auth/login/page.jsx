@@ -1,6 +1,7 @@
 'use client'
 import { Card, CardContent } from '@/components/ui/card'
-import React, { useState } from 'react'
+// 1. IMPORT Suspense
+import React, { useState, Suspense } from 'react' 
 import { zodResolver } from "@hookform/resolvers/zod"
 import { zSchema } from '@/lib/zodSchema'
 import {
@@ -21,14 +22,27 @@ import Link from 'next/link'
 import { USER_DASHBOARD, WEBSITE_REGISTER, WEBSITE_RESETPASSWORD } from '@/routes/WebsiteRoute'
 import axios from 'axios'
 import { showToast } from '@/lib/showToast'
-import OTPVerification from '@/components/Application/OTPVerification'
 import { useDispatch } from 'react-redux'
 import { login } from '@/store/reducer/authReducer'
-import { useRouter, useSearchParams } from 'next/navigation'
+// 2. IMPORT useSearchParams HERE
+import { useRouter, useSearchParams } from 'next/navigation' 
 import { ADMIN_DASHBOARD } from '@/routes/AdminPanelRoute'
-const LoginPage = () => {
+import dynamic from 'next/dynamic' 
+
+// Keep the dynamic import for OTPVerification
+const OTPVerification = dynamic(
+  () => import('@/components/Application/OTPVerification'),
+  { 
+    ssr: false,
+    loading: () => <p>Loading OTP...</p>
+  }
+)
+
+// 3. CREATE A NEW COMPONENT FOR ALL THE LOGIC
+//    This is the component that will be "suspended"
+const LoginForm = () => {
     const dispatch = useDispatch()
-    const searchParams = useSearchParams()
+    const searchParams = useSearchParams() // <-- Hook is now safely inside
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [otpVerificationLoading, setOtpVerificationLoading] = useState(false)
@@ -93,6 +107,7 @@ const LoginPage = () => {
         }
     }
 
+    // 4. RETURN THE ORIGINAL JSX
     return (
         <Card className="w-[400px]">
             <CardContent>
@@ -170,6 +185,17 @@ const LoginPage = () => {
 
             </CardContent>
         </Card>
+    )
+}
+
+
+// 5. EXPORT THE MAIN PAGE COMPONENT THAT WRAPS THE LOGIC
+//    IN <Suspense>
+const LoginPage = () => {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <LoginForm />
+        </Suspense>
     )
 }
 

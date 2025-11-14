@@ -14,10 +14,19 @@ import { showToast } from '@/lib/showToast'
 import axios from 'axios'
 import useFetch from '@/hooks/useFetch'
 import Select from '@/components/Application/Select'
-import Editor from '@/components/Application/Admin/Editor'
+// import Editor from '@/components/Application/Admin/Editor' // <-- OLD LINE REMOVED
 import MediaModal from '@/components/Application/Admin/MediaModal'
 import Image from 'next/image'
 import { sizes } from '@/lib/utils'
+import dynamic from 'next/dynamic' // <-- 1. IMPORT DYNAMIC
+
+// 2. THIS IS THE NEW DYNAMIC IMPORT BLOCK
+// Even though it's not used, we import it dynamically to prevent the build crash
+const Editor = dynamic(
+  () => import('@/components/Application/Admin/Editor'),
+  { ssr: false }
+)
+
 const breadcrumbData = [
   { href: ADMIN_DASHBOARD, label: 'Home' },
   { href: ADMIN_PRODUCT_VARIANT_SHOW, label: 'Product Variants' },

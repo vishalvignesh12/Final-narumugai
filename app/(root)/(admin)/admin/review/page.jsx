@@ -1,29 +1,38 @@
 'use client'
-import BreadCrumb from "@/components/Application/Admin/BreadCrumb"
-import DatatableWrapper from "@/components/Application/Admin/DatatableWrapper"
-import DeleteAction from "@/components/Application/Admin/DeleteAction"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { DT_REVIEW_COLUMN, } from "@/lib/column"
-import { columnConfig } from "@/lib/helperFunction"
-import { ADMIN_DASHBOARD, ADMIN_TRASH } from "@/routes/AdminPanelRoute"
+import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
+// import DatatableWrapper from '@/components/Application/Admin/DatatableWrapper' // <-- REMOVED
+import DeleteAction from '@/components/Application/Admin/DeleteAction'
+import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { DT_REVIEW_COLUMN } from '@/lib/column'
+import { columnConfig } from '@/lib/helperFunction'
+import { ADMIN_DASHBOARD, ADMIN_REVIEW_SHOW } from '@/routes/AdminPanelRoute'
+import { useCallback, useMemo } from 'react'
+import dynamic from 'next/dynamic' // <-- ADDED
 
-import { useCallback, useMemo } from "react"
+// <-- ADDED DYNAMIC IMPORT BLOCK -->
+const DatatableWrapper = dynamic(
+    () => import('@/components/Application/Admin/DatatableWrapper'),
+    { 
+        ssr: false, 
+        loading: () => <p>Loading reviews...</p>
+    }
+)
 
 const breadcrumbData = [
     { href: ADMIN_DASHBOARD, label: 'Home' },
-    { href: '', label: 'Review' },
+    { href: ADMIN_REVIEW_SHOW, label: 'Review' },
 ]
-const ShowReview = () => {
+
+const Review = () => {
 
     const columns = useMemo(() => {
-        return columnConfig(DT_REVIEW_COLUMN)
+        return columnConfig(DT_REVIEW_COLUMN, false, true)
     }, [])
 
     const action = useCallback((row, deleteType, handleDelete) => {
-        let actionMenu = []
-
-        actionMenu.push(<DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />)
-        return actionMenu
+        return [
+            <DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />
+        ]
     }, [])
 
     return (
@@ -33,8 +42,7 @@ const ShowReview = () => {
             <Card className="py-0 rounded shadow-sm gap-0">
                 <CardHeader className="pt-3 px-3 border-b [.border-b]:pb-2">
                     <div className="flex justify-between items-center">
-                        <h4 className='text-xl font-semibold'>Reviews</h4>
-
+                        <h4 className='text-xl font-semibold'>Review List</h4>
                     </div>
                 </CardHeader>
                 <CardContent className="px-0 pt-0">
@@ -46,7 +54,6 @@ const ShowReview = () => {
                         exportEndpoint="/api/review/export"
                         deleteEndpoint="/api/review/delete"
                         deleteType="SD"
-                        trashView={`${ADMIN_TRASH}?trashof=review`}
                         createAction={action}
                     />
                 </CardContent>
@@ -55,4 +62,4 @@ const ShowReview = () => {
     )
 }
 
-export default ShowReview
+export default Review
