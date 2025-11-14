@@ -1,117 +1,183 @@
-'use client'
+"use client";
+
 import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
-import { ADMIN_CATEGORY_SHOW, ADMIN_DASHBOARD } from '@/routes/AdminPanelRoute'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import ButtonLoading from '@/components/Application/ButtonLoading'
-import { zSchema } from '@/lib/zodSchema'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useEffect, useState } from 'react'
-import slugify from 'slugify'
-import { showToast } from '@/lib/showToast'
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { Button } from "@/components/ui/button"
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { z } from "zod"
+import { categorySchema } from '@/lib/zodSchema'
+import { useRouter } from 'next/navigation'
 import axios from 'axios'
-const breadcrumbData = [
-  { href: ADMIN_DASHBOARD, label: 'Home' },
-  { href: ADMIN_CATEGORY_SHOW, label: 'Category' },
-  { href: '', label: 'Add Category' },
+import showToast from '@/lib/showToast'
+import ButtonLoading from '@/components/Application/ButtonLoading'
+import { useState } from 'react'
+import MediaModal from '@/components/Application/Admin/MediaModal'
+import Image from 'next/image'
+import { Textarea } from '@/components/ui/textarea'
+import useFetch from '@/hooks/useFetch'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+
+
+const breadCrumb = [
+    {
+        label: "Category",
+        link: "/admin/category"
+    },
+    {
+        label: "Add",
+    }
 ]
 
-const AddCategory = () => {
-  const [loading, setLoading] = useState(false)
-  const formSchema = zSchema.pick({
-    name: true, slug: true
-  })
+const AddCategoryPage = () => {
+    const router = useRouter()
+    const [loading, setLoading] = useState(false)
+    const [media, setMedia] = useState(null)
+    const { data: categories, loading: categoryLoading } = useFetch('/api/category/get-category')
 
-  const form = useForm({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      slug: "",
-    },
-  })
 
-  useEffect(() => {
-    const name = form.getValues('name')
-    if (name) {
-      form.setValue('slug', slugify(name).toLowerCase())
+    const form = useForm({
+        resolver: zodResolver(categorySchema),
+        defaultValues: {
+            name: "",
+            slug: "",
+            description: "",
+            parent: "",
+        },
+    })
+
+    const handleSlug = (e) => {
+        const { value } = e.target
+        const slug = value.toLowerCase().replace(/\s+/g, '-')
+        form.setValue('slug', slug)
+        form.setValue('name', value)
     }
-  }, [form.watch('name')])
 
-  const onSubmit = async (values) => {
-    setLoading(true)
-    try {
-      const { data: response } = await axios.post('/api/category/create', values)
-      if (!response.success) {
-        throw new Error(response.message)
-      }
-
-      form.reset()
-      showToast('success', response.message)
-    } catch (error) {
-      showToast('error', error.message)
-    } finally {
-      setLoading(false)
+    async function onSubmit(values) {
+        try {
+            setLoading(true)
+            const response = await axios.post('/api/category/create', { ...values, media: media?._id })
+            const data = response.data
+            if (data.success) {
+                showToast(data.message)
+                router.push('/admin/category')
+            }
+        } catch (error) {
+            showToast(error.response.data.message || 'Error', 'error')
+            console.log(error)
+        } finally {
+            setLoading(false)
+        }
     }
-  }
 
-  return (
-    <div>
-      <BreadCrumb breadcrumbData={breadcrumbData} />
-
-      <Card className="py-0 rounded shadow-sm">
-        <CardHeader className="pt-3 px-3 border-b [.border-b]:pb-2">
-          <h4 className='text-xl font-semibold'>Add Category</h4>
-        </CardHeader>
-        <CardContent className="pb-5">
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} >
-
-              <div className='mb-5'>
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input type="text" placeholder="Enter category name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className='mb-5'>
-                <FormField
-                  control={form.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Slug</FormLabel>
-                      <FormControl>
-                        <Input type="text" placeholder="Enter slug" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className='mb-3'>
-                <ButtonLoading loading={loading} type="submit" text="Add Category" className="cursor-pointer" />
-              </div>
-
-            </form>
-          </Form>
-
-        </CardContent>
-      </Card>
-
-    </div>
-  )
+    return (
+        <div className='border rounded-lg p-4'>
+            <BreadCrumb breadCrumb={breadCrumb} />
+            <div className='grid grid-cols-12 gap-4'>
+                <div className='col-span-12 md:col-span-8'>
+                    <Form {...form}>
+                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Name</FormLabel>
+                                        <FormControl>
+                                            <Input placeholder="eg: Saree" {...field} onChange={handleSlug} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="slug"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Slug</FormLabel>
+                                        <FormControl>
+                                            <Input readOnly placeholder="eg: saree" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="parent"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Parent Category</FormLabel>
+                                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                            <FormControl>
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select a parent category" />
+                                                </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                                <SelectItem value="">No Parent</SelectItem>
+                                                {/* ##### THIS IS THE FIXED LINE ##### */}
+                                                {categories?.length > 0 && categories.map((category) => (
+                                                    <SelectItem key={category._id} value={category._id}>{category.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="description"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Description</FormLabel>
+                                        <FormControl>
+                                            <Textarea placeholder="Category description" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <ButtonLoading loading={loading} type="submit">Submit</ButtonLoading>
+                        </form>
+                    </Form>
+                </div>
+                <div className='col-span-12 md:col-span-4'>
+                    <div className='border rounded-lg p-4'>
+                        <h2 className='text-lg font-semibold mb-4'>Category Image</h2>
+                        {media && (
+                            <div className='relative w-full h-48'>
+                                <Image
+                                    src={media.url}
+                                    alt={media.alt}
+                                    layout='fill'
+                                    objectFit='cover'
+                                    className='rounded-md'
+                                />
+                            </div>
+                        )}
+                        <MediaModal onSelectMedia={setMedia} />
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
 }
 
-export default AddCategory
+export default AddCategoryPage
