@@ -14,7 +14,7 @@ import dynamic from 'next/dynamic' // <-- ADDED
 const DatatableWrapper = dynamic(
     () => import('@/components/Application/Admin/DatatableWrapper'),
     { 
-        ssr: false, 
+        ssr: false, // <-- THIS IS THE FIX
         loading: () => <p>Loading categories...</p>
     }
 )

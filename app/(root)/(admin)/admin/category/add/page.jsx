@@ -86,7 +86,7 @@ const AddCategoryPage = () => {
 
     return (
         <div className='border rounded-lg p-4'>
-            <BreadCrumb breadCrumb={breadCrumb} />
+            <BreadCrumb breadcrumbData={breadCrumb} />
             <div className='grid grid-cols-12 gap-4'>
                 <div className='col-span-12 md:col-span-8'>
                     <Form {...form}>
@@ -131,10 +131,12 @@ const AddCategoryPage = () => {
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="">No Parent</SelectItem>
+                                                
                                                 {/* ##### THIS IS THE FIXED LINE ##### */}
                                                 {categories?.length > 0 && categories.map((category) => (
                                                     <SelectItem key={category._id} value={category._id}>{category.name}</SelectItem>
                                                 ))}
+
                                             </SelectContent>
                                         </Select>
                                         <FormMessage />
