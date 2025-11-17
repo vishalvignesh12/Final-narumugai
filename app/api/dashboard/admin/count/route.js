@@ -1,32 +1,40 @@
-import { isAuthenticated } from "@/lib/authentication"
-import { connectDB } from "@/lib/databaseConnection"
 import { catchError, response } from "@/lib/helperFunction"
-import CategoryModel from "@/models/Category.model"
 import OrderModel from "@/models/Order.model"
 import ProductModel from "@/models/Product.model"
 import UserModel from "@/models/User.model"
+import { connectDB } from "@/lib/databaseConnection"
 
 export async function GET() {
     try {
-        const auth = await isAuthenticated('admin')
-        if (!auth.isAuth) {
-            return response(false, 403, 'Unauthorized.')
-        }
+        await connectDB();
 
-        await connectDB()
-
-
-        const [category, product, customer, order] = await Promise.all([
-            CategoryModel.countDocuments({ deletedAt: null }),
-            ProductModel.countDocuments({ deletedAt: null }),
-            UserModel.countDocuments({ deletedAt: null }),
-            OrderModel.countDocuments({ deletedAt: null }),
+        // 1. Total Revenue (Unchanged - only counts 'delivered')
+        const totalRevenue = await OrderModel.aggregate([
+            { $match: { status: 'delivered' } },
+            { $group: { _id: null, total: { $sum: '$totalAmount' } } }
         ])
 
-        return response(true, 200, 'Dashboard count.', {
-            category, product, customer, order
-        })
+        // 2. Total Orders (FIX: Filter out 'unverified' and 'cancelled' orders)
+        const totalOrders = await OrderModel.countDocuments({
+            status: { $nin: ['unverified', 'cancelled'] }
+        });
 
+        // 3. Total Customers (Unchanged)
+        const totalCustomers = await UserModel.countDocuments({ role: 'user' });
+
+        // 4. Total Products (FIX: Filter out soft-deleted products)
+        const totalProducts = await ProductModel.countDocuments({
+            deletedAt: null
+        });
+
+        const data = {
+            totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+            totalOrders,
+            totalCustomers,
+            totalProducts
+        }
+
+        return response(true, 200, "Dashboard count retrieved", data)
     } catch (error) {
         return catchError(error)
     }

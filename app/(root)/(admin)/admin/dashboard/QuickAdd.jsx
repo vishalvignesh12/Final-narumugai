@@ -1,46 +1,174 @@
-import Link from 'next/link'
-import React from 'react'
-import { BiCategory } from "react-icons/bi";
-import { IoShirtOutline } from "react-icons/io5";
-import { RiCoupon2Line } from "react-icons/ri";
-import { MdOutlinePermMedia } from "react-icons/md";
-import { ADMIN_CATEGORY_ADD, ADMIN_COUPON_ADD, ADMIN_COUPON_SHOW, ADMIN_MEDIA_SHOW, ADMIN_PRODUCT_ADD } from '@/routes/AdminPanelRoute';
+'use client'
+import ButtonLoading from '@/components/Application/ButtonLoading'
+import { Button } from '@/components/ui/button'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { zSchema } from '@/lib/zodSchema'
+import { ADMIN_CATEGORY_ADD, ADMIN_PRODUCT_ADD } from '@/routes/AdminPanelRoute'
+import { zodResolver } from '@hookform/resolvers/zod'
+import axios from 'axios'
+import { useRouter } from 'next/navigation'
+import React, { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { showToast } from '@/lib/showToast'
+
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+
+
 const QuickAdd = () => {
+
+    const router = useRouter()
+    const [productLoading, setProductLoading] = useState(false)
+    const [categoryLoading, setCategoryLoading] = useState(false)
+    
+    // Get both schemas
+    const { productSchema, categorySchema } = zSchema;
+
+    // Form for Products
+    const productForm = useForm({
+        resolver: zodResolver(productSchema),
+        defaultValues: {
+            name: "",
+            slug: ""
+        }
+    })
+
+    // Form for Categories
+    const categoryForm = useForm({
+        resolver: zodResolver(categorySchema),
+        defaultValues: {
+            name: "",
+            slug: ""
+        }
+    })
+
+    const onSubmitProduct = async (values) => {
+        setProductLoading(true)
+        try {
+            const { data } = await axios.post('/api/product/create', { ...values, quickAdd: true })
+            if (data.success) {
+                showToast('success', data.message)
+                productForm.reset()
+                router.push(ADMIN_PRODUCT_ADD)
+            }
+        } catch (error) {
+            showToast('error', error.response ? error.response.data.message : error.message)
+        } finally {
+            setProductLoading(false)
+        }
+    }
+
+    // --- NEW: Submit handler for Category ---
+    const onSubmitCategory = async (values) => {
+        setCategoryLoading(true)
+        try {
+            const { data } = await axios.post('/api/category/create', { ...values, quickAdd: true })
+            if (data.success) {
+                showToast('success', data.message)
+                categoryForm.reset()
+                router.push(ADMIN_CATEGORY_ADD)
+            }
+        } catch (error) {
+            showToast('error', error.response ? error.response.data.message : error.message)
+        } finally {
+            setCategoryLoading(false)
+        }
+    }
+
     return (
-        <div className='grid lg:grid-cols-4 sm:grid-cols-2 sm:gap-10 gap-5 mt-10'>
-            <Link href={ADMIN_CATEGORY_ADD}>
-                <div className='flex items-center justify-between p-3 rounded-lg shadow bg-white dark:bg-card bg-gradient-to-tr from-green-400 via-green-500 to-green-600'>
-                    <h4 className='font-medium text-white dark:text-black'>Add Category</h4>
-                    <span className='w-12 h-12 border dark:border-green-800 flex justify-center items-center rounded-full text-white'>
-                        <BiCategory size={20} />
-                    </span>
-                </div>
-            </Link>
-            <Link href={ADMIN_PRODUCT_ADD}>
-                <div className='flex items-center justify-between p-3 rounded-lg shadow bg-white dark:bg-card bg-gradient-to-tr from-blue-400 via-blue-500 to-blue-600'>
-                    <h4 className='font-medium text-white dark:text-black'>Add Product</h4>
-                    <span className='w-12 h-12 border dark:border-blue-800 flex justify-center items-center rounded-full text-white'>
-                        <IoShirtOutline size={20} />
-                    </span>
-                </div>
-            </Link>
-            <Link href={ADMIN_COUPON_ADD}>
-                <div className='flex items-center justify-between p-3 rounded-lg shadow bg-white dark:bg-card bg-gradient-to-tr from-yellow-400 via-yellow-500 to-yellow-600'>
-                    <h4 className='font-medium text-white dark:text-black'>Add Coupon</h4>
-                    <span className='w-12 h-12 border dark:border-yellow-800 flex justify-center items-center rounded-full text-white'>
-                        <RiCoupon2Line size={20} />
-                    </span>
-                </div>
-            </Link>
-            <Link href={ADMIN_MEDIA_SHOW}>
-                <div className='flex items-center justify-between p-3 rounded-lg shadow bg-white dark:bg-card bg-gradient-to-tr from-cyan-400 via-cyan-500 to-cyan-600'>
-                    <h4 className='font-medium text-white dark:text-black'>Upload Media</h4>
-                    <span className='w-12 h-12 border dark:border-cyan-800 flex justify-center items-center rounded-full text-white'>
-                        <MdOutlinePermMedia size={20} />
-                    </span>
-                </div>
-            </Link>
-        </div>
+        <Card className="h-full">
+            <CardHeader>
+                <CardTitle>Quick Add</CardTitle>
+                <CardDescription>Quickly create a new product or category.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Tabs defaultValue="product" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="product">Product</TabsTrigger>
+                        <TabsTrigger value="category">Category</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="product">
+                        <Form {...productForm}>
+                            <form onSubmit={productForm.handleSubmit(onSubmitProduct)} className='space-y-4 pt-4'>
+                                <FormField
+                                    control={productForm.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Product Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Enter product name" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={productForm.control}
+                                    name="slug"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Product Slug</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Enter product slug" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <Button type="submit" disabled={productLoading} className="w-full">
+                                    {productLoading ? <ButtonLoading /> : "Add Product"}
+                                </Button>
+                            </form>
+                        </Form>
+                    </TabsContent>
+                    
+                    {/* --- FIX: Implemented full form for Category --- */}
+                    <TabsContent value="category">
+                        <Form {...categoryForm}>
+                            <form onSubmit={categoryForm.handleSubmit(onSubmitCategory)} className='space-y-4 pt-4'>
+                                <FormField
+                                    control={categoryForm.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Category Name</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Enter category name" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={categoryForm.control}
+                                    name="slug"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Category Slug</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Enter category slug" {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <Button type="submit" disabled={categoryLoading} className="w-full">
+                                    {categoryLoading ? <ButtonLoading /> : "Add Category"}
+                                </Button>
+                            </form>
+                        </Form>
+                    </TabsContent>
+                </Tabs>
+            </CardContent>
+        </Card>
     )
 }
 

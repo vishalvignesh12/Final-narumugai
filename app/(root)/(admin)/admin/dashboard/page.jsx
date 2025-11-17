@@ -1,42 +1,42 @@
-'use client'
+// --- 'use client' has been REMOVED. This is now a Server Component. ---
 import BreadCrumb from '@/components/Application/Admin/BreadCrumb'
 import { ADMIN_DASHBOARD } from '@/routes/AdminPanelRoute'
 import { Card, CardContent } from '@/components/ui/card'
-import dynamic from 'next/dynamic' // <-- 1. IMPORT DYNAMIC
+import dynamic from 'next/dynamic'
 
-// 2. REMOVE ALL STATIC WIDGET IMPORTS
-// import CountOverview from './CountOverview'
-// import OrderOverview from './OrderOverview'
-// import OrderStatus from './OrderStatus'
-// import QuickAdd from './QuickAdd'
-// import LatestOrder from './LatestOrder'
-// import LatestReview from './LatestReview'
+// --- FIX: Explicitly import 'default' or 'named' exports ---
 
-// 3. DYNAMICALLY IMPORT ALL WIDGETS
+// CountOverview uses "export default", so we use .then((mod) => mod.default)
 const CountOverview = dynamic(
-  () => import('./CountOverview'),
-  { ssr: false, loading: () => <div className="h-[126px] bg-gray-200 rounded-lg animate-pulse"></div> }
+  () => import('./CountOverview').then((mod) => mod.default),
+  { loading: () => <div className="h-[126px] bg-gray-200 rounded-lg animate-pulse"></div> }
 )
+
+// We assume all other components are NAMED exports (e.g., "export function OrderOverview")
 const OrderOverview = dynamic(
-  () => import('./OrderOverview'),
-  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+  () => import('./OrderOverview').then((mod) => mod.OrderOverview),
+  { loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
 )
 const OrderStatus = dynamic(
-  () => import('./OrderStatus'),
-  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+  () => import('./OrderStatus').then((mod) => mod.OrderStatus),
+  { loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
 )
+
+// NOTE: We assume these are also NAMED exports. 
+// If they are 'export default', change to .then((mod) => mod.default)
 const QuickAdd = dynamic(
-  () => import('./QuickAdd'),
-  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+  () => import('./QuickAdd').then((mod) => mod.default), // <-- This is CORRECT
+  { loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
 )
 const LatestOrder = dynamic(
-  () => import('./LatestOrder'),
-  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+  () => import('./LatestOrder').then((mod) => mod.default),
+  { loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
 )
 const LatestReview = dynamic(
-  () => import('./LatestReview'),
-  { ssr: false, loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
+  () => import('./LatestReview').then((mod) => mod.default),
+  { loading: () => <div className="h-[400px] bg-gray-200 rounded-lg animate-pulse"></div> }
 )
+// --- END OF FIX ---
 
 
 const breadcrumbData = [

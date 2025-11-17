@@ -1,61 +1,34 @@
-'use client'
-import axios from "axios"
-import { useEffect, useMemo, useState } from "react"
+import { useState, useEffect } from 'react'
+import axios from 'axios'
+import { showToast } from '@/lib/showToast'
 
-const useFetch = (url, method = "GET", options = {}) => {
-    const [data, setData] = useState(null)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState(null)
-    const [refreshIndex, setRefreshIndex] = useState(0)
+const useFetch = (url) => {
+    //                                    THIS IS THE FIX
+    //                                        ||
+    //                                        \/
+    const [data, setData] = useState([]) // Initialize with an empty array
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(undefined)
 
-    // Memoize options to prevent unnecessary re-renders
-    const optionsString = JSON.stringify(options)
-    const requestOptions = useMemo(() => {
+    const refetch = async () => {
+        setLoading(true)
         try {
-            const opts = { ...options }
-            if (method === 'POST' && !opts.data) {
-                opts.data = {}
+            const { data: response } = await axios.get(url)
+            if (!response.success) {
+                throw new Error(response.message)
             }
-            return opts
-        } catch (err) {
-            console.error('Error parsing options:', err)
-            return {}
+            setData(response.data)
+        } catch (error) {
+            setError(error.message)
+            showToast('error', error.message)
+        } finally {
+            setLoading(false)
         }
-    }, [method, optionsString])
+    }
 
     useEffect(() => {
-        const apiCall = async () => {
-            if (!url) return
-            
-            setLoading(true)
-            setError(null)
-            try {
-                const { data: response } = await axios({
-                    url,
-                    method,
-                    ...requestOptions
-                })
-
-                if (!response?.success) {
-                    throw new Error(response?.message || 'Request failed')
-                }
-
-                setData(response)
-            } catch (error) {
-                setError(error?.message || 'An error occurred')
-                console.error('useFetch error:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        apiCall()
-
-    }, [url, method, refreshIndex, requestOptions])
-
-    const refetch = () => {
-        setRefreshIndex(prev => prev + 1)
-    }
+        refetch()
+    }, [url])
 
     return { data, loading, error, refetch }
 }

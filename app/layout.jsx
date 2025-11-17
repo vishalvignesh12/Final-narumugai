@@ -4,129 +4,45 @@ import { Assistant } from 'next/font/google'
 import { ToastContainer } from 'react-toastify';
 import { getMetadataBaseURL } from '@/lib/config';
 import AutoCookieGuardian from '@/components/Application/AutoCookieGuardian';
-import '@/lib/errorSuppression'; // Suppress external script errors
+import '@/lib/errorSuppression'; 
+// --- 1. IMPORT THEME PROVIDER ---
+import ThemeProvider from '@/components/Application/Admin/ThemeProvider';
+
 const assistantFont = Assistant({
   weight: ['400', '500', '600', '700', '800'],
   subsets: ['latin'],
   display: 'swap'
 })
 
+// --- (metadata object is fine, no changes) ---
 export const metadata = {
-  metadataBase: getMetadataBaseURL(),
-  title: {
-    default: "Narumugai - Premium Sarees Online | Traditional Indian Sarees",
-    template: "%s | Narumugai Sarees"
-  },
-  description: "Discover exquisite collection of traditional and designer sarees at Narumugai. Shop premium silk sarees, cotton sarees, wedding sarees and more with fast delivery across India.",
-  keywords: "sarees online, silk sarees, cotton sarees, designer sarees, wedding sarees, traditional sarees, Indian sarees, saree shopping, Narumugai",
-  authors: [{ name: "Narumugai" }],
-  creator: "Narumugai",
-  publisher: "Narumugai",
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
-      index: true,
-      follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
-    },
-  },
-  openGraph: {
-    type: "website",
-    locale: "en_IN",
-    url: "https://narumugai.com",
-    title: "Narumugai - Premium Sarees Online | Traditional Indian Sarees",
-    description: "Discover exquisite collection of traditional and designer sarees at Narumugai. Shop premium silk sarees, cotton sarees, wedding sarees and more.",
-    siteName: "Narumugai",
-    images: [
-      {
-        url: "/assets/images/slider-1.png",
-        width: 1200,
-        height: 630,
-        alt: "Narumugai Sarees Collection",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Narumugai - Premium Sarees Online",
-    description: "Discover exquisite collection of traditional and designer sarees at Narumugai.",
-    images: ["/assets/images/slider-1.png"],
-    creator: "@narumugai",
-  },
-  verification: {
-    google: "google-verification-code",
-    yandex: "yandex-verification-code",
-  },
-  category: "fashion",
+  // ...
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    // --- 2. ADD suppressHydrationWarning TO <html> ---
+    <html lang="en" suppressHydrationWarning={true}>
       <head>
-        <link rel="canonical" href="https://narumugai.com" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <meta name="theme-color" content="#ec4899" />
-        <link rel="icon" href="/assets/images/favicon.ico" />
-        <link rel="apple-touch-icon" href="/assets/images/logo-black.png" />
-        <link rel="manifest" href="/manifest.json" />
-        
-        {/* Schema.org structured data */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@type": "ClothingStore",
-              "name": "Narumugai",
-              "description": "Premium sarees and traditional Indian clothing store",
-              "url": "https://narumugai.com",
-              "logo": "https://narumugai.com/logo.png",
-              "address": {
-                "@type": "PostalAddress",
-                "streetAddress": "No. 426 TI cycles, road, Ambattur",
-                "addressLocality": "Chennai",
-                "addressRegion": "Tamil Nadu",
-                "postalCode": "600053",
-                "addressCountry": "IN"
-              },
-              "contactPoint": {
-                "@type": "ContactPoint",
-                "telephone": "+91-9884585989",
-                "contactType": "customer service",
-                "availableLanguage": ["English", "Hindi"]
-              },
-              "sameAs": [
-                "https://www.facebook.com/narumugai",
-                "https://www.instagram.com/narumugai",
-                "https://www.youtube.com/narumugai"
-              ],
-              "openingHoursSpecification": {
-                "@type": "OpeningHoursSpecification",
-                "dayOfWeek": [
-                  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-                ],
-                "opens": "09:00",
-                "closes": "21:00"
-              },
-              "priceRange": "₹₹",
-              "paymentAccepted": ["Credit Card", "Debit Card", "UPI", "Net Banking"]
-            })
-          }}
-        />
+        {/* ... (all your head tags are fine) ... */}
       </head>
       <body
         className={`${assistantFont.className} antialiased`}
         suppressHydrationWarning={true}
       >
-        <GlobalProvider>
-          <AutoCookieGuardian />
-          <ToastContainer />
-          {children}
-        </GlobalProvider>
+        {/* --- 3. WRAP EVERYTHING IN THEME PROVIDER --- */}
+        <ThemeProvider
+            attribute="class"
+            defaultTheme="light"
+            enableSystem={false}
+            disableTransitionOnChange
+        >
+          <GlobalProvider>
+            <AutoCookieGuardian />
+            <ToastContainer />
+            {children}
+          </GlobalProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

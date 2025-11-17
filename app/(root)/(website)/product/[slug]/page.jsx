@@ -8,13 +8,14 @@ import { connectDB } from '@/lib/databaseConnection'
 import ProductModel from '@/models/Product.model'
 import ProductVariantModel from '@/models/ProductVariant.model'
 import ReviewModel from '@/models/Review.model'
-import MediaModel from '@/models/Media.model' // Ensure model is registered
+
+// Import Media model to ensure it's registered with Mongoose
+import MediaModel from '@/models/Media.model'
 
 // Revalidate data
 export const revalidate = 300 // Revalidate every 5 minutes
 export const dynamicParams = true;
 
-// --- generateMetadata function (No changes, this was fine) ---
 export async function generateMetadata({ params }) {
     const { slug } = params;
     
@@ -30,15 +31,16 @@ export async function generateMetadata({ params }) {
 
         console.log('Metadata: Querying product with filter:', filter); 
 
-        const getProduct = await ProductModel.findOne(filter).populate({
+        // Get product data
+        const getProductData = await ProductModel.findOne(filter).populate({
             path: 'media',
             select: 'secure_url',
             model: 'Media'
         }).lean();
 
-        console.log('Metadata: Product found:', !!getProduct); 
+        console.log('Metadata: Product found:', !!getProductData); 
 
-        if (!getProduct) {
+        if (!getProductData) {
             console.error(`Product not found for slug: ${slug}`);
             return {
                 title: 'Product Details | Narumugai',
@@ -46,12 +48,19 @@ export async function generateMetadata({ params }) {
             };
         }
 
-        let variant = await ProductVariantModel.findOne({ product: getProduct._id }).populate({
+        // Get variant data
+        let variantData = await ProductVariantModel.findOne({ product: getProductData._id }).populate({
             path: 'media',
             select: 'secure_url',
             model: 'Media'
         }).lean();
 
+        // --- FIX: Serialize data to plain objects ---
+        const getProduct = JSON.parse(JSON.stringify(getProductData));
+        let variant = JSON.parse(JSON.stringify(variantData));
+        // --- END FIX ---
+
+        // If no variant found, create a fallback variant
         if (!variant) {
             variant = {
                 _id: null,
@@ -66,13 +75,14 @@ export async function generateMetadata({ params }) {
             };
         }
 
+        // Get review count 
         const reviewCount = await ReviewModel.countDocuments({ product: getProduct._id });
 
-        // --- Metadata return (No changes) ---
+        // Return metadata 
         return {
             title: `${getProduct.name} | Premium Saree Online | Narumugai`,
             description: `Buy ${getProduct.name} online at best price. Premium quality saree. Free shipping and easy returns.`,
-            // ... (rest of your metadata object)
+            keywords: `${getProduct.name}, saree online, buy saree online, premium sarees`,
             openGraph: {
                 title: `${getProduct.name} | Premium Saree Online | Narumugai`,
                 description: `Buy ${getProduct.name} online at best price. Premium quality saree with free shipping.`,
@@ -97,7 +107,43 @@ export async function generateMetadata({ params }) {
                     }))
                 ]
             },
-            // ... (rest of your metadata object)
+            twitter: {
+                card: 'summary_large_image',
+                site: '@narumugai',
+                creator: '@narumugai',
+                title: `${getProduct.name} | Premium Saree Online | Narumugai`,
+                description: `Buy ${getProduct.name} online at best price. Premium quality saree with free shipping.`,
+                images: [variant?.media?.[0]?.secure_url || getProduct?.media?.[0]?.secure_url || '/assets/images/img-placeholder.webp'],
+                app: {
+                    name: {
+                        iphone: 'Narumugai',
+                        ipad: 'Narumugai',
+                        googleplay: 'Narumugai'
+                    },
+                    id: {
+                        iphone: 'narumugai-app',
+                        ipad: 'narumugai-app',
+                        googleplay: 'com.narumugai.app'
+                    }
+                }
+            },
+            alternates: {
+                canonical: `${getBaseURL()}/product/${slug}`
+            },
+            other: {
+                'product:price:amount': variant.sellingPrice,
+                'product:price:currency': 'INR',
+                'product:availability': 'in stock',
+                'product:condition': 'new',
+                'product:brand': 'Narumugai',
+                'product:retailer_item_id': variant._id || getProduct._id,
+                'product:category': getProduct.category || 'Sarees',
+                'product:color': variant?.color,
+                'product:size': variant?.size,
+                'business:contact_data:country_name': 'India',
+                'business:contact_data:locality': 'Chennai',
+                'business:contact_data:region': 'Tamil Nadu'
+            }
         };
     } catch (error) {
         console.error('Error generating metadata:', error);
@@ -108,8 +154,6 @@ export async function generateMetadata({ params }) {
     }
 }
 
-
-// --- ProductPage Component (Main Fix Here) ---
 const ProductPage = async ({ params }) => {
     const { slug } = params;
     
@@ -123,17 +167,18 @@ const ProductPage = async ({ params }) => {
             slug: slug
         };
 
-        console.log('Querying product with filter:', filter); 
+        console.log('Querying product with filter:', filter);
 
-        const product = await ProductModel.findOne(filter).populate({
+        // Get product data
+        const productData = await ProductModel.findOne(filter).populate({
             path: 'media',
             select: 'secure_url',
             model: 'Media'
         }).lean();
 
-        console.log('Product found:', !!product); 
+        console.log('Product found:', !!productData); 
 
-        if (!product) {
+        if (!productData) {
             console.error(`Product not found for slug: ${slug} in main component`);
             return (
                 <div className='flex justify-center items-center py-10 h-[300px]'>
@@ -142,9 +187,9 @@ const ProductPage = async ({ params }) => {
             );
         }
 
-        // --- FIX 1: Fetch ALL variants for the client component ---
-        const allVariants = await ProductVariantModel.find({ 
-            product: product._id,
+        // Get all variants data
+        const allVariantsData = await ProductVariantModel.find({ 
+            product: productData._id,
             deletedAt: null 
         }).populate({
             path: 'media',
@@ -152,27 +197,36 @@ const ProductPage = async ({ params }) => {
             model: 'Media'
         }).lean();
 
-        // --- FIX 2: Determine default variant and colors/sizes from ALL variants ---
-        let defaultVariant;
+        // Determine default variant
+        let defaultVariantData;
         
-        if (allVariants.length > 0) {
-            defaultVariant = allVariants[0]; // Use the first as default
+        if (allVariantsData.length > 0) {
+            defaultVariantData = allVariantsData[0]; // Use the first as default
         } else {
             // Fallback for products with no variants
-            defaultVariant = {
+            defaultVariantData = {
                 _id: null,
-                product: product._id,
+                product: productData._id,
                 color: 'Default',
                 size: 'Default',
-                mrp: product.mrp,
-                sellingPrice: product.sellingPrice,
-                discountPercentage: product.discountPercentage,
-                quantity: product.quantity || 0,
-                media: product.media || []
+                mrp: productData.mrp,
+                sellingPrice: productData.sellingPrice,
+                discountPercentage: productData.discountPercentage,
+                quantity: productData.quantity || 0,
+                media: productData.media || []
             };
         }
 
-        // Get colors and sizes from the full list
+        // get review count 
+        const reviewCount = await ReviewModel.countDocuments({ product: productData._id });
+
+        // --- FIX: Serialize all data before passing to client component ---
+        const product = JSON.parse(JSON.stringify(productData));
+        const allVariants = JSON.parse(JSON.stringify(allVariantsData));
+        const defaultVariant = JSON.parse(JSON.stringify(defaultVariantData));
+        // --- END FIX ---
+
+        // Get colors and sizes from the plain 'allVariants' object
         const colors = allVariants.length > 0 
             ? [...new Set(allVariants.map(v => v.color))] 
             : ['Default'];
@@ -180,17 +234,14 @@ const ProductPage = async ({ params }) => {
         const sizes = allVariants.length > 0
             ? [...new Set(allVariants.map(v => v.size))]
             : ['Default'];
-
-        // get review count 
-        const reviewCount = await ReviewModel.countDocuments({ product: product._id });
-
-        // Destructure for structured data
+        
+        // Destructure the plain data for use in structured data script
         const prod = product;
-        const varnt = defaultVariant; // Use default variant for LD+JSON
+        const varnt = defaultVariant;
         
         return (
             <div>
-                {/* Product Structured Data (Using server-fetched data) */}
+                {/* Product Structured Data */}
                 <script
                     type="application/ld+json"
                     dangerouslySetInnerHTML={{
@@ -219,15 +270,54 @@ const ProductPage = async ({ params }) => {
                             },
                             "aggregateRating": {
                                 "@type": "AggregateRating",
-                                "ratingValue": "4.5",
+                                "ratingValue": "4.5", // You might want to fetch this dynamically
                                 "reviewCount": reviewCount || 0
                             },
-                            // ... (rest of your structured data)
+                            "additionalProperty": [
+                                {
+                                    "@type": "PropertyValue",
+                                    "name": "Color",
+                                    "value": varnt.color
+                                },
+                                {
+                                    "@type": "PropertyValue",
+                                    "name": "Size",
+                                    "value": varnt.size
+                                },
+                                {
+                                    "@type": "PropertyValue",
+                                    "name": "Material",
+                                    "value": "Premium Fabric" // You might want to make this dynamic
+                                }
+                            ],
+                            "breadcrumb": {
+                                "@type": "BreadcrumbList",
+                                "itemListElement": [
+                                    {
+                                        "@type": "ListItem",
+                                        "position": 1,
+                                        "name": "Home",
+                                        "item": "https://narumugai.com"
+                                    },
+                                    {
+                                        "@type": "ListItem",
+                                        "position": 2,
+                                        "name": "Shop Sarees",
+                                        "item": "https://narumugai.com/shop"
+                                    },
+                                    {
+                                        "@type": "ListItem",
+                                        "position": 3,
+                                        "name": prod.name,
+                                        "item": `https://narumugai.com/product/${slug}`
+                                    }
+                                ]
+                            }
                         })
                     }}
                 />
                 
-                {/* --- FIX 3: Pass all data as props to the client component --- */}
+                {/* Pass the plain, serialized data to the client component */}
                 <ProductDetails
                     product={product}
                     defaultVariant={defaultVariant}

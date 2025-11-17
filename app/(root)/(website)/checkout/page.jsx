@@ -174,17 +174,10 @@ const Checkout = () => {
     const placeOrder = async (formData) => {
         setPlacingOrder(true);
         
-        // --- ADDED THIS VALIDATION BLOCK ---
-        const hasInvalidItem = verifiedCartData.some(
-            (item) => !item.variantId || item.variantId.startsWith('fallback-')
-        );
-
-        if (hasInvalidItem) {
-            showToast('error', 'An item in your cart is invalid. Please remove it and add it again.');
-            setPlacingOrder(false);
-            return; // Stop the function
-        }
-        // --- END OF VALIDATION BLOCK ---
+        // --- BUGGY VALIDATION BLOCK REMOVED ---
+        // The block that checked for `!item.variantId` or
+        // `item.variantId.startsWith('fallback-')` has been
+        // removed from here.
 
         // Prepare items for stock check
         const stockLockItems = verifiedCartData.map(cartItem => ({

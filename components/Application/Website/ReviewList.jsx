@@ -24,8 +24,8 @@ const ReviewList = ({ review }) => {
                     <p className='flex gap-2 items-center'>
                         <span className='font-medium'>{review?.reviewedBy}</span>
                         -
-                        <span className='text-gray-500'>{dayjs(review?.createdAt).fromNow()}</span>
-                        <span className='flex items-center text-xs gap-1'>( {review.rating} <IoStar className='text-yellow-500 mb-1' />)</span>
+                        <span className='flex items-center text-xs gap-1'>( {review?.rating} <IoStar className='text-yellow-500 mb-1' />)</span>
+                        <span className='flex items-center text-xs gap-1'>( {review?.rating} <IoStar className='text-yellow-500 mb-1' />)</span>
                     </p>
                     <p className='mt-3 text-gray-600'>{review?.review}</p>
                 </div>

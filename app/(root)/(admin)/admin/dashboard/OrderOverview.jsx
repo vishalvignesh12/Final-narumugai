@@ -1,100 +1,75 @@
 "use client"
-
-import { TrendingUp } from "lucide-react"
 import { Bar, BarChart, CartesianGrid, XAxis } from "recharts"
-
 import {
-    Card,
-    CardContent,
-    CardDescription,
-    CardFooter,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card"
-import {
-    ChartConfig,
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
 } from "@/components/ui/chart"
 import { useEffect, useState } from "react"
 import useFetch from "@/hooks/useFetch"
-// const chartData = [
-//     { month: "January", amount: 186 },
-//     { month: "February", amount: 305 },
-//     { month: "March", amount: 237 },
-//     { month: "April", amount: 73 },
-//     { month: "May", amount: 209 },
-//     { month: "June", amount: 214 },
-//     { month: "July", amount: 554 },
-//     { month: "August", amount: 158 },
-//     { month: "September", amount: 327 },
-//     { month: "November", amount: 200 },
-//     { month: "December", amount: 597 },
-// ]
 
-const months = [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "November",
-    "December",
-]
+// --- UI CHANGES: Import Card components ---
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from "@/components/ui/card"
+
 
 const chartConfig = {
-    amount: {
-        label: "Amount",
-        color: "#8e51ff",
+    revenue: {
+        label: "Revenue",
+        color: "#8b5cf6",
     },
 }
 
 export function OrderOverview() {
 
+    // --- NO LOGIC CHANGES ---
     const [chartData, setChartData] = useState([])
-    const { data: monthlySales, loading } = useFetch('/api/dashboard/admin/monthly-sales')
+    const { data: sales, loading } = useFetch('/api/dashboard/admin/monthly-sales')
+
     useEffect(() => {
-        if (monthlySales && monthlySales.success) {
-            const getChartData = months.map((month, index) => {
-                const monthData = monthlySales.data.find(item => item._id.month === index + 1)
-
-                return {
-                    month: month,
-                    amount: monthData ? monthData.totalSales : 0
-                }
-            })
-
-            setChartData(getChartData)
+        if (sales && sales.success) {
+            const monthData = sales.data.map((s) => ({
+                month: s.month,
+                revenue: s.totalSales
+            }))
+            setChartData(monthData)
         }
+    }, [sales])
+    // --- END OF LOGIC ---
 
 
-    }, [monthlySales])
-
- 
+    // --- UI CHANGES: Wrap component in <Card> ---
     return (
-        <div>
-            <ChartContainer config={chartConfig}>
-                <BarChart accessibilityLayer data={chartData}>
-                    <CartesianGrid vertical={false} />
-                    <XAxis
-                        dataKey="month"
-                        tickLine={false}
-                        tickMargin={10}
-                        axisLine={false}
-                        tickFormatter={(value) => value.slice(0, 3)}
-                    />
-                    <ChartTooltip
-                        cursor={true}
-                        content={<ChartTooltipContent />}
-                    />
-                    <Bar dataKey="amount" fill="var(--color-amount)" radius={5} />
-                </BarChart>
-            </ChartContainer>
-        </div>
+        <Card className="h-full">
+            <CardHeader>
+                <CardTitle>Sales Overview</CardTitle>
+                <CardDescription>Your total sales revenue for the last 6 months.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ChartContainer config={chartConfig} className="h-[300px] w-full">
+                    <BarChart accessibilityLayer data={chartData}>
+                        <CartesianGrid vertical={false} />
+                        <XAxis
+                            dataKey="month"
+                            tickLine={false}
+                            tickMargin={10}
+                            axisLine={false}
+                        />
+                        <ChartTooltip
+                            cursor={false}
+                            content={<ChartTooltipContent
+                                formatter={(value) => `₹${value.toLocaleString('en-IN')}`}
+                            />}
+                        />
+                        <Bar dataKey="revenue" fill="var(--color-revenue)" radius={4} />
+                    </BarChart>
+                </ChartContainer>
+            </CardContent>
+        </Card>
     )
 }
