@@ -39,6 +39,7 @@ const CartPage = () => {
     // --- *** FIX: Implement handler functions using correct actions *** ---
     const handleRemove = (variantId) => {
         if (confirm("Are you sure you want to remove this item?")) {
+            // Dispatch the imported 'removeProduct' action
             dispatch(removeProduct(variantId));
             showToast('success', 'Item removed from cart');
         }
@@ -50,6 +51,7 @@ const CartPage = () => {
         } else if (newQty > 10) {
             showToast('error', 'You can only purchase a maximum of 10 items');
         } else {
+            // Dispatch the imported 'updateProductQty' action
             dispatch(updateProductQty({ variantId, qty: newQty }));
         }
     }

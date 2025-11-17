@@ -15,12 +15,15 @@ const AuthHydrator = ({ children }) => {
     const auth = useSelector(store => store.authStore.auth);
 
     useEffect(() => {
+        // If the Redux state is not set
         if (!auth) {
+            // Try to load auth data from localStorage
             const persistedAuth = localStorage.getItem('auth');
             if (persistedAuth) {
                 try {
                     const authData = JSON.parse(persistedAuth);
                     if (authData) {
+                        // Dispatch the login action to restore the session
                         dispatch(login(authData));
                     }
                 } catch (error) {
@@ -29,7 +32,7 @@ const AuthHydrator = ({ children }) => {
                 }
             }
         }
-    }, [dispatch, auth]); 
+    }, [dispatch, auth]); // Runs when the component mounts and if auth state changes
 
     return <>{children}</>;
 }
@@ -50,6 +53,7 @@ const GlobalProvider = ({ children }) => {
         <Provider store={store}>
             {/* 3. Wrap everything with the QueryClientProvider */}
             <QueryClientProvider client={queryClient}>
+                {/* AuthHydrator will now restore the auth state on load */}
                 <AuthHydrator>
                     {children}
                 </AuthHydrator>

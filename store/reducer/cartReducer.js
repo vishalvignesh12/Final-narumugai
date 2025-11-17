@@ -7,6 +7,8 @@ const getInitialState = () => {
         count: 0
     };
     try {
+        // This logic is good, but redux-persist makes it slightly redundant
+        // It's still safe to keep as a fallback.
         if (typeof window !== 'undefined') {
             const persistedCart = localStorage.getItem('cart');
             if (persistedCart) {
@@ -35,7 +37,7 @@ export const cartSlice = createSlice({
     name: 'cart',
     initialState,
     reducers: {
-        // --- NEW ACTIONS to handle API state ---
+        // --- Actions to handle API state (Excellent for production) ---
         setCart: (state, action) => {
             const cartData = action.payload;
             state.products = cartData.products;
@@ -51,7 +53,7 @@ export const cartSlice = createSlice({
             state.loading = false;
         },
 
-        // --- EXISTING ACTIONS ---
+        // --- Client-side actions ---
         addProduct: (state, action) => {
             const newItem = action.payload;
             
