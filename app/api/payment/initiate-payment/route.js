@@ -11,7 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 // --- (productSchema remains the same) ---
 const productSchema = z.object({
-    productId: z.string().length(24, 'Invalid product id format'),
+    productId: z.string().min(1), // Or just z.string()
     variantId: z.string(), // Allow fallback IDs
     name: z.string().min(1),
     qty: z.number().min(1),
