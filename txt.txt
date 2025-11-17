@@ -1,0 +1,7 @@
+Error occurred prerendering page "/admin/category". Read more: https://nextjs.org/docs/messages/prerender-error
+ReferenceError: ADMIN_TRASH is not defined
+at o (C:\Projects\Final-narumugai\.next\server\app\(root)\(admin)\admin\category\page.js:1:8265) {
+digest: '3887360819'
+
+Export encountered an error on /(root)/(admin)/admin/category/page: /admin/category, exiting the build.
+x Next.js build worker exited with code: 1 and signal: null

@@ -6,14 +6,14 @@ import EditAction from '@/components/Application/Admin/EditAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_CATEGORY_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_CATEGORY_ADD, ADMIN_CATEGORY_SHOW, ADMIN_DASHBOARD } from '@/routes/AdminPanelRoute'
+import { ADMIN_CATEGORY_ADD, ADMIN_CATEGORY_SHOW, ADMIN_DASHBOARD, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic' // <-- ADDED
 
 // <-- ADDED DYNAMIC IMPORT BLOCK -->
 const DatatableWrapper = dynamic(
-    () => import('@/components/Application/Admin/DatatableWrapper'),
-    { 
+    () => import('@/components/Application/Admin/Datatable'),
+    {
         ssr: false, // <-- THIS IS THE FIX
         loading: () => <p>Loading categories...</p>
     }
@@ -56,6 +56,7 @@ const Category = () => {
                         exportEndpoint="/api/category/export"
                         deleteEndpoint="/api/category/delete"
                         deleteType="SD"
+                        trashView={ADMIN_TRASH}
                         createAction={action}
                     />
                 </CardContent>

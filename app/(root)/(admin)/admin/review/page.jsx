@@ -5,15 +5,15 @@ import DeleteAction from '@/components/Application/Admin/DeleteAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_REVIEW_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_DASHBOARD, ADMIN_REVIEW_SHOW } from '@/routes/AdminPanelRoute'
+import { ADMIN_DASHBOARD, ADMIN_REVIEW_SHOW, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic' // <-- ADDED
 
 // <-- ADDED DYNAMIC IMPORT BLOCK -->
 const DatatableWrapper = dynamic(
-    () => import('@/components/Application/Admin/DatatableWrapper'),
-    { 
-        ssr: false, 
+    () => import('@/components/Application/Admin/Datatable'),
+    {
+        ssr: false,
         loading: () => <p>Loading reviews...</p>
     }
 )
@@ -54,6 +54,7 @@ const Review = () => {
                         exportEndpoint="/api/review/export"
                         deleteEndpoint="/api/review/delete"
                         deleteType="SD"
+                        trashView={ADMIN_TRASH}
                         createAction={action}
                     />
                 </CardContent>

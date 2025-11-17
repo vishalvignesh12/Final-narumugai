@@ -6,15 +6,15 @@ import EditAction from '@/components/Application/Admin/EditAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_COUPON_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_COUPON_ADD, ADMIN_COUPON_SHOW, ADMIN_DASHBOARD } from '@/routes/AdminPanelRoute'
+import { ADMIN_COUPON_ADD, ADMIN_COUPON_SHOW, ADMIN_DASHBOARD, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic' // <-- ADDED
 
 // <-- ADDED DYNAMIC IMPORT BLOCK -->
 const DatatableWrapper = dynamic(
-    () => import('@/components/Application/Admin/DatatableWrapper'),
-    { 
-        ssr: false, 
+    () => import('@/components/Application/Admin/Datatable'),
+    {
+        ssr: false,
         loading: () => <p>Loading coupons...</p>
     }
 )
@@ -56,6 +56,7 @@ const Coupon = () => {
                         exportEndpoint="/api/coupon/export"
                         deleteEndpoint="/api/coupon/delete"
                         deleteType="SD"
+                        trashView={ADMIN_TRASH}
                         createAction={action}
                     />
                 </CardContent>

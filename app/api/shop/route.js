@@ -64,65 +64,20 @@ export async function POST(request) {
 
         // --- (Add Color/Size filters if needed) ---
         
-        // --- THIS IS THE FIX ---
-        // Use an aggregate pipeline to $lookup (join)
-        // the category and media data.
-        
-        const aggregatePipeline = [
-            { $match: matchQuery },
-            {
-                $lookup: {
-                    from: 'categories',
-                    localField: 'category',
-                    foreignField: '_id',
-                    as: 'categoryData'
-                }
-            },
-            {
-                $unwind: { path: "$categoryData", preserveNullAndEmptyArrays: true }
-            },
-            {
-                $lookup: {
-                    from: 'media', // The media collection
-                    localField: 'media', // The array of ObjectIds in ProductModel
-                    foreignField: '_id', // The _id in MediaModel
-                    as: 'mediaData' // The new array of full media objects
-                }
-            },
-            { $sort: Object.keys(sortQuery).length ? sortQuery : { createdAt: -1 } },
-            { $skip: start },
-            { $limit: size },
-            {
-                $project: {
-                    // Project only the fields needed by ProductBox
-                    name: 1,
-                    slug: 1,
-                    mrp: 1,
-                    sellingPrice: 1,
-                    isAvailable: 1,
-                    category: {
-                        name: "$categoryData.name",
-                        slug: "$categoryData.slug"
-                    },
-                    // Get just the first image
-                    media: { $slice: ["$mediaData", 1] } 
-                }
-            },
-            {
-                // Reshape the media field to be exactly what ProductBox expects
-                $set: {
-                    media: {
-                        $map: {
-                            input: "$media",
-                            as: "m",
-                            in: { secure_url: "$$m.secure_url", alt: "$$m.alt", title: "$$m.title" }
-                        }
-                    }
-                }
-            }
-        ];
-
-        const products = await ProductModel.aggregate(aggregatePipeline);
+        // Use find with populate for simpler and more reliable media handling
+        const products = await ProductModel.find(matchQuery)
+            .populate({
+                path: 'category',
+                select: 'name slug'
+            })
+            .populate({
+                path: 'media',
+                select: 'secure_url alt title'
+            })
+            .sort(sortQuery)
+            .skip(start)
+            .limit(size)
+            .select('name slug mrp sellingPrice isAvailable category media');
         const totalRowCount = await ProductModel.countDocuments(matchQuery);
 
         // Return the products and the total count

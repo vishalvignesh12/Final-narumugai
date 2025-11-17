@@ -14,10 +14,10 @@ import dynamic from 'next/dynamic'
 
 // 2. DYNAMICALLY IMPORT DatatableWrapper (Fixes 'a is not iterable')
 const DatatableWrapper = dynamic(
-    () => import('@/components/Application/Admin/DatatableWrapper'),
-    { 
-        ssr: false, 
-        loading: () => <p>Loading data...</p> 
+    () => import('@/components/Application/Admin/Datatable'),
+    {
+        ssr: false,
+        loading: () => <p>Loading data...</p>
     }
 )
 

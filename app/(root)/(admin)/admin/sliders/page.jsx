@@ -6,15 +6,15 @@ import EditAction from '@/components/Application/Admin/EditAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_SLIDER_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_DASHBOARD, ADMIN_SLIDER_ADD, ADMIN_SLIDER_SHOW } from '@/routes/AdminPanelRoute'
+import { ADMIN_DASHBOARD, ADMIN_SLIDER_ADD, ADMIN_SLIDER_SHOW, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic' // <-- ADDED
 
 // <-- ADDED DYNAMIC IMPORT BLOCK -->
 const DatatableWrapper = dynamic(
-    () => import('@/components/Application/Admin/DatatableWrapper'),
-    { 
-        ssr: false, 
+    () => import('@/components/Application/Admin/Datatable'),
+    {
+        ssr: false,
         loading: () => <p>Loading sliders...</p>
     }
 )
@@ -55,6 +55,7 @@ const Slider = () => {
                         columnsConfig={columns}
                         deleteEndpoint="/api/carousels/delete"
                         deleteType="SD"
+                        trashView={ADMIN_TRASH}
                         createAction={action}
                     />
                 </CardContent>
