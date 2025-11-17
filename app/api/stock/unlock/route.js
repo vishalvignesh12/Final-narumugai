@@ -4,10 +4,10 @@ import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
 import { z } from "zod";
 
-// --- FIX: Removed .length(24) to allow 'fallback-' IDs ---
+// --- FIX: Allow 'variantId' to be nullable ---
 const stockUnlockSchema = z.object({
     items: z.array(z.object({
-        variantId: z.string(), // Allow any string (e.g., 'fallback-...' or a real ID)
+        variantId: z.string().nullable(), // <-- THIS LINE IS FIXED
         quantity: z.number().min(1, 'Quantity must be at least 1').default(1)
     }))
 });
@@ -39,7 +39,7 @@ export async function POST(request) {
                     
                     const productId = item.variantId?.startsWith('fallback-') 
                         ? item.variantId.replace('fallback-', '') 
-                        : item.variantId
+                        : item.variantId // This might be null
                     
                     // --- FIX: Increment 'quantity' field, not 'lockedQuantity' ---
                     const result = await ProductModel.findOneAndUpdate(

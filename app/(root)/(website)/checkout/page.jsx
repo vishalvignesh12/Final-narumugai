@@ -172,6 +172,21 @@ const Checkout = () => {
 
     // --- CRITICAL FIX: Modified placeOrder function ---
     const placeOrder = async (formData) => {
+        
+        // --- FIX 1: VALIDATE CART DATA BEFORE PROCEEDING ---
+        // Check for items with missing/invalid productId or name, which cause backend validation to fail
+        const invalidItem = verifiedCartData.find(item => 
+            !item.productId || item.productId.trim() === '' || 
+            !item.name || item.name.trim() === ''
+        );
+
+        if (invalidItem) {
+            showToast('error', `An item in your cart (${invalidItem.name || 'Unknown'}) is invalid. Please remove it from your cart and add it again.`);
+            return; // Stop the order process
+        }
+        // --- END OF FIX 1 ---
+
+
         setPlacingOrder(true);
         
         // --- BUGGY VALIDATION BLOCK REMOVED ---
@@ -204,23 +219,18 @@ const Checkout = () => {
                     sellingPrice: cartItem.sellingPrice,
                 }));
 
-                // --- ::: START OF THE FIX ::: ---
-                
                 // Prepare the payload
                 const payload = {
                     ...formData,
                     products: products,
+                    // Send coupon code for server-side validation
                     couponCode: couponCode,
                     // Conditionally add userId ONLY if it exists.
-                    // If authStore.auth._id is null/undefined, this will add nothing,
-                    // which correctly passes z.string().optional() validation.
                     ...(authStore?.auth?._id && { userId: authStore.auth._id })
                 };
 
                 // Call API to create a pending order and get PayU details
                 const { data: response } = await axios.post('/api/payment/initiate-payment', payload);
-                
-                // --- ::: END OF THE FIX ::: ---
 
                 if (!response.success) {
                     throw new Error(response.message || 'Failed to initiate payment');
@@ -237,8 +247,18 @@ const Checkout = () => {
 
             } catch (initiateError) {
                 // --- ROLLBACK: Payment initiation failed, so UNLOCK stock ---
-                console.error('Error initiating payment, unlocking stock:', initiateError);
-                showToast('error', initiateError.message || 'Error processing your order');
+
+                // --- ::: START OF ENHANCED LOGGING ::: ---
+                const errorData = initiateError.response?.data;
+                const errorMessage = errorData?.message || initiateError.message || 'Error processing your order';
+                
+                console.error('Error initiating payment, unlocking stock:', errorMessage);
+                if (errorData?.error) {
+                    console.error('Validation errors:', errorData.error);
+                }
+                // --- ::: END OF ENHANCED LOGGING ::: ---
+
+                showToast('error', errorMessage);
                 
                 // Call the unlock endpoint to return the items to stock
                 await axios.post('/api/stock/unlock', {
@@ -249,8 +269,17 @@ const Checkout = () => {
 
         } catch (stockError) {
             // --- STEP 1 FAILED: Stock purchase failed ---
-            console.error('Error locking stock:', stockError);
-            showToast('error', stockError.response?.data?.message || 'An item in your cart is no longer available.');
+            // --- ENHANCED ERROR LOGGING ---
+            const errorData = stockError.response?.data;
+            const errorMessage = errorData?.message || 'An item in your cart is no longer available.';
+
+            console.error('Error locking stock:', errorMessage);
+            if (errorData?.error) {
+                console.error('Locking errors:', errorData.error);
+            }
+            // --- END ENHANCED LOGGING ---
+
+            showToast('error', errorMessage);
             setPlacingOrder(false);
         }
     }
@@ -470,8 +499,9 @@ const Checkout = () => {
                                                 <td className='py-3'>
                                                     <div className='flex items-center gap-3'>
                                                         <div className="w-16 h-16">
+                                                            {/* --- FIX 2: Added fallback src to prevent "" src error --- */}
                                                             <Image 
-                                                                src={product.media} 
+                                                                src={product.media || '/assets/images/img-placeholder.webp'} 
                                                                 width={64} 
                                                                 height={64} 
                                                                 alt={product.name} 

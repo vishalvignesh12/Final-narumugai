@@ -1,124 +1,152 @@
-import { orderStatus } from "@/lib/utils"
-import mongoose from "mongoose"
+import { model, models, Schema } from "mongoose";
 
-const orderSchema = new mongoose.Schema({
-    user: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: false
+// This sub-schema defines the structure for products within an order
+const productSchema = new Schema({
+    productId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Product',
+        required: true
+    },
+    variantId: {
+        // --- FIX 1: Change type to String ---
+        // This allows storing 'null', 'fallback-...' strings, or real ObjectIds as strings
+        type: String, 
+        
+        // --- FIX 2: Make it not required ---
+        // This allows 'null' or 'undefined' values.
+        required: false, 
+        
+        // --- FIX 3: Explicitly allow null ---
+        default: null 
     },
     name: {
         type: String,
         required: true
     },
-    email: {
-        type: String,
-        required: true
-    },
-    phone: {
-        type: String,
-        required: true
-    },
-    country: {
-        type: String,
-        required: true
-    },
-    state: {
-        type: String,
-        required: true
-    },
-
-    city: {
-        type: String,
-        required: true
-    },
-    pincode: {
-        type: String,
-        required: true
-    },
-    landmark: {
-        type: String,
-        required: true
-    },
-    ordernote: {
-        type: String,
-        required: false
-    },
-
-    products: [
-        {
-            productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
-            variantId: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductVariant', required: true },
-            name: { type: String, required: true },
-            qty: { type: Number, required: true },
-            mrp: { type: Number, required: true },
-            sellingPrice: { type: Number, required: true },
-        }
-    ],
-    subtotal: {
+    qty: {
         type: Number,
-        required: true
-    },
-    discount: {
-        type: Number,
-        required: true
-    },
-    couponDiscountAmount: {
-        type: Number,
-        required: true
-    },
-    totalAmount: {
-        type: Number,
-        required: true
-    },
-    status: {
-        type: String,
-        enum: [...orderStatus, 'pending-payment', 'failed'], // Added new statuses
-        default: 'pending-payment'
-    },
-    // REPLACED Razorpay fields with PayU fields
-    payment_gateway_id: { // Will store PayU's mihpayid
-        type: String,
-        required: false,
-        index: true
-    },
-    transaction_id: { // Will store our unique txnid
-        type: String,
         required: true,
-        unique: true,
-        index: true
+        default: 1
     },
-    order_id: { // This is your internal order ID, keeping as is
-        type: String,
-        required: true,
-        unique: true,
+    mrp: {
+        type: Number,
+        required: true
     },
-    // END OF CHANGES
-    cancellationReason: {
-        type: String,
-        required: false
-    },
-    cancelledAt: {
-        type: Date,
-        required: false
-    },
-    cancelledBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: false
-    },
-    deletedAt: {
-        type: Date,
-        default: null,
-        index: true
-    },
-}, { timestamps: true })
+    sellingPrice: {
+        type: Number,
+        required: true
+    }
+}, { _id: false }); // No separate _id for sub-documents
 
-// Add indexes for faster lookups
-orderSchema.index({ user: 1 });
-orderSchema.index({ email: 1 });
-orderSchema.index({ phone: 1 });
+const orderSchema = new Schema(
+    {
+        user: {
+            type: Schema.Types.ObjectId,
+            ref: "User",
+            // Not all orders must have a user (e.g., guest checkout)
+        },
+        name: {
+            type: String,
+            required: true,
+        },
+        email: {
+            type: String,
+            required: true,
+        },
+        phone: {
+            type: String,
+            required: true,
+        },
+        country: {
+            type: String,
+            required: true
+        },
+        state: {
+            type: String,
+            required: true,
+        },
+        city: {
+            type: String,
+            required: true,
+        },
+        pincode: {
+            type: String,
+            required: true,
+        },
+        landmark: {
+            type: String,
+            required: true,
+        },
+        ordernote: {
+            type: String,
+        },
 
+        // Array of products included in the order
+        products: [productSchema],
 
-const OrderModel = mongoose.models.Order || mongoose.model('Order', orderSchema, 'orders')
-export default OrderModel
+        // Payment and pricing details
+        subtotal: {
+            type: Number,
+            required: true,
+            default: 0
+        },
+        discount: {
+            type: Number,
+            required: true,
+            default: 0
+        },
+        couponDiscountAmount: {
+            type: Number,
+            required: true,
+            default: 0
+        },
+        totalAmount: {
+            type: Number,
+            required: true,
+            default: 0
+        },
+
+        // Order and payment status
+        status: {
+            type: String,
+            enum: [
+                'pending-payment',
+                'processing',
+                'shipped',
+                'delivered',
+                'cancelled',
+                'failed',
+                'refunded'
+            ],
+            default: 'pending-payment',
+        },
+        
+        // Transaction and payment IDs
+        transaction_id: {
+            type: String,
+            unique: true,
+            sparse: true // Allows multiple documents to have null/undefined txnid
+        },
+        order_id: {
+            type: String,
+            unique: true,
+            sparse: true
+        },
+        payment_id: {
+            type: String,
+        },
+        payment_method: {
+            type: String,
+        },
+        payment_status: {
+            type: String,
+            default: 'pending'
+        },
+    },
+    {
+        timestamps: true,
+    }
+);
+
+const OrderModel = models.Order || model('Order', orderSchema);
+export default OrderModel;

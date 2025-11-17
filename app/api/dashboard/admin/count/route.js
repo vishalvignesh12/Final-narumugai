@@ -35,9 +35,9 @@ export async function GET() {
 
         const data = {
             totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
-            totalOrders,
-            totalCustomers,
-            totalProducts,
+            order: totalOrders,
+            customer: totalCustomers,
+            product: totalProducts,
             category: totalCategories
         }
 
