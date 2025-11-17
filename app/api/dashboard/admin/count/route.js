@@ -1,4 +1,5 @@
 import { catchError, response } from "@/lib/helperFunction"
+import CategoryModel from "@/models/Category.model"
 import OrderModel from "@/models/Order.model"
 import ProductModel from "@/models/Product.model"
 import UserModel from "@/models/User.model"
@@ -27,11 +28,17 @@ export async function GET() {
             deletedAt: null
         });
 
+        // 5. Total Categories (FIX: Filter out soft-deleted categories)
+        const totalCategories = await CategoryModel.countDocuments({
+            deletedAt: null
+        });
+
         const data = {
             totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
             totalOrders,
             totalCustomers,
-            totalProducts
+            totalProducts,
+            category: totalCategories
         }
 
         return response(true, 200, "Dashboard count retrieved", data)

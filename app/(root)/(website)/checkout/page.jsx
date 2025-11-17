@@ -204,14 +204,23 @@ const Checkout = () => {
                     sellingPrice: cartItem.sellingPrice,
                 }));
 
-                // Call API to create a pending order and get PayU details
-                const { data: response } = await axios.post('/api/payment/initiate-payment', {
+                // --- ::: START OF THE FIX ::: ---
+                
+                // Prepare the payload
+                const payload = {
                     ...formData,
                     products: products,
-                    // Send coupon code for server-side validation
                     couponCode: couponCode,
-                    // Note: The backend will recalculate all totals for security
-                });
+                    // Conditionally add userId ONLY if it exists.
+                    // If authStore.auth._id is null/undefined, this will add nothing,
+                    // which correctly passes z.string().optional() validation.
+                    ...(authStore?.auth?._id && { userId: authStore.auth._id })
+                };
+
+                // Call API to create a pending order and get PayU details
+                const { data: response } = await axios.post('/api/payment/initiate-payment', payload);
+                
+                // --- ::: END OF THE FIX ::: ---
 
                 if (!response.success) {
                     throw new Error(response.message || 'Failed to initiate payment');

@@ -55,7 +55,7 @@ const Product = () => {
             initialPageSize={10}
             columnsConfig={columns}
             deleteEndpoint="/api/product/delete"
-            deleteType="PD"
+            deleteType="SD"
             trashView={ADMIN_TRASH}
             createAction={action}
           />

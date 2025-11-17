@@ -5,7 +5,7 @@ import DeleteAction from '@/components/Application/Admin/DeleteAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_CUSTOMERS_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_CUSTOMER_SHOW, ADMIN_DASHBOARD, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
+import { ADMIN_CUSTOMERS_SHOW, ADMIN_DASHBOARD, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic' // <-- ADDED
 
@@ -20,7 +20,7 @@ const DatatableWrapper = dynamic(
 
 const breadcrumbData = [
     { href: ADMIN_DASHBOARD, label: 'Home' },
-    { href: ADMIN_CUSTOMER_SHOW, label: 'Customers' },
+    { href: ADMIN_CUSTOMERS_SHOW, label: 'Customers' },
 ]
 
 const Customers = () => {
