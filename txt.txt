@@ -1,7 +1,13 @@
-Error occurred prerendering page "/admin/category". Read more: https://nextjs.org/docs/messages/prerender-error
-ReferenceError: ADMIN_TRASH is not defined
-at o (C:\Projects\Final-narumugai\.next\server\app\(root)\(admin)\admin\category\page.js:1:8265) {
-digest: '3887360819'
 
-Export encountered an error on /(root)/(admin)/admin/category/page: /admin/category, exiting the build.
-x Next.js build worker exited with code: 1 and signal: null
+Here is a single prompt you can use to instruct your CLI tool to fix both authentication issues.
+
+You need to fix two critical authentication bugs in my application.
+
+1. Fix the infinite redirect loop in middleware.js: The catch (error) block at the end of middleware.js is causing an infinite redirect loop for users with bad tokens on public pages. It needs to be updated to check if the user is on a public path before redirecting.
+
+Replace the entire content of middleware.js with the following corrected code:
+
+
+2. Fix the blank page flash in app/(root)/(admin)/admin/layout.jsx: The admin layout component shows a blank white page for unauthenticated users before redirecting because it doesn't check the auth.loading state from Redux. It should show a Loading component instead.
+
+Replace the entire content of app/(root)/(admin)/admin/layout.jsx with the following corrected code:
