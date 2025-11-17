@@ -1,13 +1,4 @@
-
-Here is a single prompt you can use to instruct your CLI tool to fix both authentication issues.
-
-You need to fix two critical authentication bugs in my application.
-
-1. Fix the infinite redirect loop in middleware.js: The catch (error) block at the end of middleware.js is causing an infinite redirect loop for users with bad tokens on public pages. It needs to be updated to check if the user is on a public path before redirecting.
-
-Replace the entire content of middleware.js with the following corrected code:
-
-
-2. Fix the blank page flash in app/(root)/(admin)/admin/layout.jsx: The admin layout component shows a blank white page for unauthenticated users before redirecting because it doesn't check the auth.loading state from Redux. It should show a Loading component instead.
-
-Replace the entire content of app/(root)/(admin)/admin/layout.jsx with the following corrected code:
+v Error initiating payment, unlocking stock: Error: Invalid or missing fields.
+at et (page-27032b2526caa8e3.js:1:4079)
+at async push.22544.t.current.t.current.e.formControl.eg (7546-e107c01c2988bf73.js:1:80355)
+et @ page-27032b2526caa8e3.js:1
