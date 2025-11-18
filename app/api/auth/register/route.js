@@ -5,6 +5,7 @@ import { sendMail } from "@/lib/sendMail";
 import { zSchema } from "@/lib/zodSchema";
 import UserModel from "@/models/User.model";
 import { SignJWT } from "jose";
+import { getBaseURL } from "@/lib/config"; // <--- 1. ADD THIS IMPORT
 
 export async function POST(request) {
     try {
@@ -31,7 +32,6 @@ export async function POST(request) {
         }
 
         // new registration  
-
         const NewRegistration = new UserModel({
             name, email, password
         })
@@ -45,8 +45,14 @@ export async function POST(request) {
             .setProtectedHeader({ alg: 'HS256' })
             .sign(secret)
 
+        // --- 2. USE getBaseURL() TO BUILD THE LINK ---
+        const verificationLink = `${getBaseURL()}/auth/verify-email/${token}`
 
-        await sendMail('Email Verification request from narumugai', email, emailVerificationLink(`${process.env.NEXT_PUBLIC_BASE_URL}/auth/verify-email/${token}`))
+        await sendMail(
+            'Email Verification request from narumugai', 
+            email, 
+            emailVerificationLink(verificationLink) // <--- 3. USE THE NEW LINK
+        )
 
         return response(true, 200, 'Registration success, Please verify your email address.')
 
