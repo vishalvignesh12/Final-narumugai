@@ -49,7 +49,7 @@ const MediaPageContent = () => {
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                  {/* Optional: Add your UploadMedia button here if needed */}
-                 {/* <UploadMedia /> */}
+                  <UploadMedia /> 
             </div>
 
             {isLoading ? (
