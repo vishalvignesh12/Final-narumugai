@@ -1,44 +1,26 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import SearchWithFilters from '@/components/Application/Website/SearchWithFilters';
 import ProductBox from '@/components/Application/Website/ProductBox';
-import ButtonLoading from '@/components/Application/ButtonLoading';
 import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb';
-import { WEBSITE_SHOP } from '@/routes/WebsiteRoute';
 import { useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
-import Head from 'next/head';
 import useWindowSize from '@/hooks/useWindowSize';
-import useFetch from '@/hooks/useFetch';
-import { Button } from "@/components/ui/button"; // <-- IMPORT BUTTON
-
-// Saree categories for better navigation
-const sareeCategories = [
-    { name: 'Silk Sarees', filter: 'silk', description: 'Premium silk sarees for special occasions' },
-    { name: 'Cotton Sarees', filter: 'cotton', description: 'Comfortable cotton sarees for daily wear' },
-    // ... other categories
-];
+import { Button } from "@/components/ui/button";
 
 const Shop = () => {
     const searchParams = useSearchParams().toString();
     const [limit, setLimit] = useState(12);
     const [page, setPage] = useState(1);
     
+    // Initial filter state
     const [filterState, setFilterState] = useState({
         categoryFilter: [],
-        colorFilter: [],
-        sizeFilter: [],
-        priceFilter: [],
-        // ... other filters
+        priceFilter: [], 
+        // removed color/size as requested
     });
     
-    <Head>
-        <title>Shop All Sarees - Narumugai</title>
-        <meta name_description="Explore our exclusive collection of silk, cotton, and designer sarees. Find the perfect saree for every occasion at Narumugai." />
-        <meta name="keywords" content="shop sarees, buy sarees online, silk sarees, cotton sarees, designer sarees, Narumugai" />
-    </Head>
-
     const { data, error, isFetching } = useQuery({
         queryKey: ['shop-products', searchParams, page, limit, filterState], 
         queryFn: async () => {
@@ -47,9 +29,6 @@ const Shop = () => {
                 size: limit,
                 ...filterState
             });
-            
-            // --- FIX 1: Return the WHOLE object ---
-            // This gives us access to data.products and data.meta
             return res.data; 
         },
         keepPreviousData: true,
@@ -58,9 +37,13 @@ const Shop = () => {
 
     const { isMobile } = useWindowSize();
 
-    const handleFilterChange = (newFilters) => {
-        setFilterState(newFilters);
-        setPage(1); 
+    // --- FIX: MERGE STATE INSTEAD OF REPLACE ---
+    const handleFilterChange = (newFilterPiece) => {
+        setFilterState(prevState => ({
+            ...prevState,
+            ...newFilterPiece
+        }));
+        setPage(1); // Reset to page 1 on filter change
     };
 
     // --- PAGINATION LOGIC ---
@@ -74,13 +57,12 @@ const Shop = () => {
     const handleNextPage = () => {
         setPage((prev) => Math.min(prev + 1, totalPages));
     };
-    // --- END PAGINATION LOGIC ---
 
     return (
         <div className='container mx-auto px-4 py-8'>
             <WebsiteBreadcrumb
                 items={[
-                    { title: "Shop" }, // Fixed: Last item doesn't need href
+                    { title: "Shop" },
                 ]}
             />
             
@@ -115,14 +97,12 @@ const Shop = () => {
                 {!isFetching && !error && (
                     <>
                         <div className='grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-2 grid-cols-2 gap-6'>
-                            {/* --- FIX 2: Read from data.products --- */}
                             {data && data.products && data.products.map(product => (
                                 <ProductBox key={product._id} product={product} showQuickActions={true} />
                             ))}
                         </div>
 
                         <div className='flex justify-center mt-12'>
-                            {/* --- FIX 3: Read from data.products and data.meta --- */}
                             {data && data.products && data.products.length > 0 ? (
                                 <span className='text-gray-500 text-sm bg-gray-50 px-4 py-2 rounded-full'>
                                     Showing {data.products.length} of {data.meta.totalRowCount} products
@@ -135,21 +115,23 @@ const Shop = () => {
                             )}
                         </div>
 
-                        {/* --- FIX 4: ADD PAGINATION CONTROLS --- */}
+                        {/* Pagination Controls */}
                         {totalPages > 1 && (
                             <div className="flex justify-center items-center gap-4 mt-8">
                                 <Button 
                                     onClick={handlePrevPage} 
                                     disabled={page === 1 || isFetching}
+                                    variant="outline"
                                 >
                                     Previous
                                 </Button>
-                                <span className="text-gray-700">
+                                <span className="text-gray-700 font-medium">
                                     Page {page} of {totalPages}
                                 </span>
                                 <Button 
                                     onClick={handleNextPage} 
                                     disabled={page === totalPages || isFetching}
+                                    variant="outline"
                                 >
                                     Next
                                 </Button>

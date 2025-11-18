@@ -4,13 +4,19 @@ import { Input } from '@/components/ui/input';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { 
+    Dialog, 
+    DialogContent, 
+    DialogTrigger, 
+    DialogTitle, // <--- 1. ADD THIS IMPORT
+    DialogHeader // <--- Optional but good for structure
+} from '@/components/ui/dialog';
 import useWindowSize from '@/hooks/useWindowSize';
 import Filter from './Filter';
 import { WEBSITE_SHOP } from '@/routes/WebsiteRoute';
 import { IoSearchOutline, IoFilterOutline } from 'react-icons/io5';
 
-const SearchWithFilters = () => {
+const SearchWithFilters = ({ onFilterChange }) => { // <--- 2. ADD PROP HERE (Important for filtering)
     const router = useRouter();
     const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -90,7 +96,7 @@ const SearchWithFilters = () => {
                                     </div>
                                 </div>
                                 <div className="overflow-y-auto p-4">
-                                    <Filter />
+                                    <Filter onFilterChange={onFilterChange} />
                                 </div>
                             </SheetContent>
                         </Sheet>
@@ -106,12 +112,18 @@ const SearchWithFilters = () => {
                                     Filters
                                 </Button>
                             </DialogTrigger>
+                            
+                            {/* 3. FIXED DIALOG CONTENT */}
                             <DialogContent className="max-w-md max-h-[80vh] overflow-hidden p-0">
                                 <div className="p-4 border-b bg-gray-50">
-                                    <h3 className="font-semibold text-lg">Filter Products</h3>
+                                    <DialogHeader>
+                                        {/* REPLACED h3 WITH DialogTitle */}
+                                        <DialogTitle className="text-left">Filter Products</DialogTitle>
+                                    </DialogHeader>
                                 </div>
                                 <div className="overflow-y-auto p-4">
-                                    <Filter />
+                                    {/* Passed props correctly */}
+                                    <Filter onFilterChange={onFilterChange} />
                                 </div>
                             </DialogContent>
                         </Dialog>
