@@ -1,5 +1,5 @@
 "use client"
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import SearchWithFilters from '@/components/Application/Website/SearchWithFilters';
 import ProductBox from '@/components/Application/Website/ProductBox';
 import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb';
@@ -10,23 +10,28 @@ import useWindowSize from '@/hooks/useWindowSize';
 import { Button } from "@/components/ui/button";
 
 const Shop = () => {
-    const searchParams = useSearchParams().toString();
+    // --- FIX 1: Correctly initialize search params ---
+    const searchParamsObj = useSearchParams();
+    const searchParamsString = searchParamsObj.toString();
+    const searchQuery = searchParamsObj.get('q') || ""; // Extract the 'q' param
+
     const [limit, setLimit] = useState(12);
     const [page, setPage] = useState(1);
     
-    // Initial filter state
     const [filterState, setFilterState] = useState({
         categoryFilter: [],
-        priceFilter: [], 
-        // removed color/size as requested
+        priceFilter: [],
+        // removed color/size based on previous context, add back if needed
     });
     
     const { data, error, isFetching } = useQuery({
-        queryKey: ['shop-products', searchParams, page, limit, filterState], 
+        // Include searchParamsString in key to re-fetch when URL changes
+        queryKey: ['shop-products', searchParamsString, page, limit, filterState], 
         queryFn: async () => {
             const res = await axios.post(`/api/shop`, {
                 start: (page - 1) * limit,
                 size: limit,
+                globalFilter: searchQuery, // --- FIX 2: Pass the search query to API ---
                 ...filterState
             });
             return res.data; 
@@ -37,16 +42,15 @@ const Shop = () => {
 
     const { isMobile } = useWindowSize();
 
-    // --- FIX: MERGE STATE INSTEAD OF REPLACE ---
     const handleFilterChange = (newFilterPiece) => {
+        // Merge logic from previous fixes
         setFilterState(prevState => ({
             ...prevState,
             ...newFilterPiece
         }));
-        setPage(1); // Reset to page 1 on filter change
+        setPage(1); 
     };
 
-    // --- PAGINATION LOGIC ---
     const totalProducts = data?.meta?.totalRowCount || 0;
     const totalPages = Math.ceil(totalProducts / limit);
 
@@ -60,11 +64,7 @@ const Shop = () => {
 
     return (
         <div className='container mx-auto px-4 py-8'>
-            <WebsiteBreadcrumb
-                items={[
-                    { title: "Shop" },
-                ]}
-            />
+            <WebsiteBreadcrumb items={[{ title: "Shop" }]} />
             
             <header className='text-center my-8'>
                 <h1 className='text-4xl font-bold mb-2'>Shop Our Collection</h1>
@@ -115,26 +115,11 @@ const Shop = () => {
                             )}
                         </div>
 
-                        {/* Pagination Controls */}
                         {totalPages > 1 && (
                             <div className="flex justify-center items-center gap-4 mt-8">
-                                <Button 
-                                    onClick={handlePrevPage} 
-                                    disabled={page === 1 || isFetching}
-                                    variant="outline"
-                                >
-                                    Previous
-                                </Button>
-                                <span className="text-gray-700 font-medium">
-                                    Page {page} of {totalPages}
-                                </span>
-                                <Button 
-                                    onClick={handleNextPage} 
-                                    disabled={page === totalPages || isFetching}
-                                    variant="outline"
-                                >
-                                    Next
-                                </Button>
+                                <Button onClick={handlePrevPage} disabled={page === 1 || isFetching} variant="outline">Previous</Button>
+                                <span className="text-gray-700 font-medium">Page {page} of {totalPages}</span>
+                                <Button onClick={handleNextPage} disabled={page === totalPages || isFetching} variant="outline">Next</Button>
                             </div>
                         )}
                     </>
