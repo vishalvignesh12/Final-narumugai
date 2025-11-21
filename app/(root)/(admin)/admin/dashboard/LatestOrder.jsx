@@ -67,10 +67,10 @@ const LatestOrder = () => {
                             <TableRow key={order._id}>
                                 <TableCell>
                                     <Link href={`/admin/orders/details/${order._id}`} className='hover:underline'>
-                                        ...{order.orderId.slice(-6)}
+                                        ...{order.orderId?.slice(-6)}
                                     </Link>
                                 </TableCell>
-                                <TableCell>{order.shippingAddress.name}</TableCell>
+                                <TableCell>{order.shippingAddress?.name}</TableCell>
                                 <TableCell>
                                     <Badge 
                                         variant={
