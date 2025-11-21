@@ -32,7 +32,7 @@ const UploadMedia = ({ isMultiple, queryClient }) => {
                     throw new Error(mediaUploadResponse.message)
                 }
 
-                // FIX: Use the correct query key 'media-page' to refresh the list
+                // Refresh the media list
                 if (queryClient) {
                     queryClient.invalidateQueries(['media-page'])
                 }
@@ -46,7 +46,8 @@ const UploadMedia = ({ isMultiple, queryClient }) => {
 
     return (
         <CldUploadWidget
-            signatureEndpoint="/api/cloudinary-signature"
+            // FIX 1: Removed signatureEndpoint to fix 401 Unauthorized error
+            // signatureEndpoint="/api/cloudinary-signature" 
             uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
             onError={handleOnError}
             onQueuesEnd={handleOnQueueEnd}
@@ -55,19 +56,24 @@ const UploadMedia = ({ isMultiple, queryClient }) => {
                 sources: ['local', 'url', 'unsplash', 'google_drive'],
             }}
         >
-            {/* FIX: Safely handle the render prop argument */}
+            {/* FIX 2: Destructure isLoading and widget to prevent crash */}
             {(widgetProps) => {
-                // Prevents crash if widgetProps is undefined during loading
-                const { open } = widgetProps || {};
+                const { open, isLoading, widget } = widgetProps || {};
                 
                 return (
                     <Button 
                         type="button" 
-                        onClick={() => open && open()}
-                        disabled={!open} // Disable button until widget is ready
+                        // Check if widget is ready before clicking
+                        onClick={() => {
+                            if (open && widget && !isLoading) {
+                                open();
+                            }
+                        }}
+                        // Disable button while loading or if widget/open is missing
+                        disabled={isLoading || !widget || !open} 
                     >
                         <FiPlus className="mr-2" />
-                        Upload Media
+                        {isLoading ? 'Loading...' : 'Upload Media'}
                     </Button>
                 );
             }}

@@ -17,7 +17,7 @@ import { z } from "zod"
 import { categorySchema } from '@/lib/zodSchema'
 import { useRouter } from 'next/navigation'
 import axios from 'axios'
-import showToast from '@/lib/showToast'
+import { showToast } from '@/lib/showToast'
 import ButtonLoading from '@/components/Application/ButtonLoading'
 import { useState } from 'react'
 import MediaModal from '@/components/Application/Admin/MediaModal'

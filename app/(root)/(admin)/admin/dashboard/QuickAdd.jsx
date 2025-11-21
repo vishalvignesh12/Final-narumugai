@@ -28,8 +28,9 @@ const QuickAdd = () => {
     const [productLoading, setProductLoading] = useState(false)
     const [categoryLoading, setCategoryLoading] = useState(false)
     
-    // Get both schemas
-    const { productSchema, categorySchema } = zSchema;
+    // FIX: Derive schemas using .pick() instead of destructuring non-existent properties
+    const productSchema = zSchema.pick({ name: true, slug: true });
+    const categorySchema = zSchema.pick({ name: true, slug: true });
 
     // Form for Products
     const productForm = useForm({
@@ -65,7 +66,7 @@ const QuickAdd = () => {
         }
     }
 
-    // --- NEW: Submit handler for Category ---
+    // --- Submit handler for Category ---
     const onSubmitCategory = async (values) => {
         setCategoryLoading(true)
         try {
@@ -130,7 +131,6 @@ const QuickAdd = () => {
                         </Form>
                     </TabsContent>
                     
-                    {/* --- FIX: Implemented full form for Category --- */}
                     <TabsContent value="category">
                         <Form {...categoryForm}>
                             <form onSubmit={categoryForm.handleSubmit(onSubmitCategory)} className='space-y-4 pt-4'>

@@ -14,9 +14,18 @@ import { showToast } from '@/lib/showToast'
 import axios from 'axios'
 import useFetch from '@/hooks/useFetch'
 import Select from '@/components/Application/Select'
-import Editor from '@/components/Application/Admin/Editor'
+// REMOVE standard import
+// import Editor from '@/components/Application/Admin/Editor'
 import MediaModal from '@/components/Application/Admin/MediaModal'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
+
+// FIX: Dynamically import Editor with SSR disabled
+const Editor = dynamic(() => import('@/components/Application/Admin/Editor'), { 
+  ssr: false,
+  loading: () => <p>Loading Editor...</p>
+})
+
 const breadcrumbData = [
   { href: ADMIN_DASHBOARD, label: 'Home' },
   { href: ADMIN_PRODUCT_SHOW, label: 'Products' },

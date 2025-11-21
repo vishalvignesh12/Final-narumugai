@@ -5,7 +5,8 @@ import EditAction from '@/components/Application/Admin/EditAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_PRODUCT_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_PRODUCT_ADD, ADMIN_DASHBOARD, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
+// FIX: Import ADMIN_PRODUCT_EDIT here
+import { ADMIN_PRODUCT_ADD, ADMIN_DASHBOARD, ADMIN_TRASH, ADMIN_PRODUCT_EDIT } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic'
 
@@ -33,7 +34,8 @@ const Product = () => {
     // guard against row not having expected structure
     const id = row?.original?._id ?? null
     return [
-      <EditAction key="edit" href={id ? `${ADMIN_PRODUCT_ADD}/edit/${id}` : ADMIN_PRODUCT_ADD} />,
+      // FIX: Use ADMIN_PRODUCT_EDIT(id) instead of constructing URL with ADMIN_PRODUCT_ADD
+      <EditAction key="edit" href={id ? ADMIN_PRODUCT_EDIT(id) : ADMIN_PRODUCT_ADD} />,
       <DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />
     ]
   }, [])

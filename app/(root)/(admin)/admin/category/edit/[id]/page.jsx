@@ -17,7 +17,7 @@ import { z } from "zod"
 import { categorySchema } from '@/lib/zodSchema'
 import { useParams, useRouter } from 'next/navigation'
 import axios from 'axios'
-import showToast from '@/lib/showToast'
+import { showToast } from '@/lib/showToast'
 import ButtonLoading from '@/components/Application/ButtonLoading'
 import { useEffect, useState } from 'react'
 import MediaModal from '@/components/Application/Admin/MediaModal'
@@ -146,7 +146,7 @@ const EditCategoryPage = () => {
                                             </FormControl>
                                             <SelectContent>
                                                 <SelectItem value="">No Parent</SelectItem>
-                                                
+
                                                 {/* ##### THIS IS THE FIXED LINE ##### */}
                                                 {categories?.length > 0 && categories.map((category) => (
                                                     <SelectItem key={category._id} value={category._id}>{category.name}</SelectItem>
