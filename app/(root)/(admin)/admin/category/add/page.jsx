@@ -70,7 +70,11 @@ const AddCategoryPage = () => {
     async function onSubmit(values) {
         try {
             setLoading(true)
-            const response = await axios.post('/api/category/create', { ...values, media: media?._id })
+            const payload = { ...values, media: media?._id }
+            if (payload.parent === 'none') {
+                delete payload.parent
+            }
+            const response = await axios.post('/api/category/create', payload)
             const data = response.data
             if (data.success) {
                 showToast(data.message)
@@ -130,8 +134,8 @@ const AddCategoryPage = () => {
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent>
-                                                <SelectItem value="">No Parent</SelectItem>
-                                                
+                                                <SelectItem value="none">No Parent</SelectItem>
+
                                                 {/* ##### THIS IS THE FIXED LINE ##### */}
                                                 {categories?.length > 0 && categories.map((category) => (
                                                     <SelectItem key={category._id} value={category._id}>{category.name}</SelectItem>

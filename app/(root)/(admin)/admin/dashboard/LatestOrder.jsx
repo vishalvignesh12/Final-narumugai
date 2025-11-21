@@ -70,14 +70,14 @@ const LatestOrder = () => {
                                         ...{order.orderId?.slice(-6)}
                                     </Link>
                                 </TableCell>
-                                <TableCell>{order.shippingAddress?.name}</TableCell>
+                                <TableCell>{order.shippingAddress?.name || 'N/A'}</TableCell>
                                 <TableCell>
-                                    <Badge 
+                                    <Badge
                                         variant={
                                             order.status === 'pending' ? 'destructive' :
-                                            order.status === 'processing' ? 'warning' :
-                                            order.status === 'delivered' ? 'success' :
-                                            'default'
+                                                order.status === 'processing' ? 'warning' :
+                                                    order.status === 'delivered' ? 'success' :
+                                                        'default'
                                         }
                                         className="capitalize"
                                     >

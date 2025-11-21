@@ -1,8 +1,9 @@
 import { connectDB } from "@/lib/databaseConnection";
-import { catchError,  response } from "@/lib/helperFunction";
+import { catchError, response } from "@/lib/helperFunction";
 import MediaModel from "@/models/Media.model";
 import { NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/authentication";
+
 export async function GET(request) {
     try {
         const auth = await isAuthenticated('admin')
@@ -12,7 +13,8 @@ export async function GET(request) {
 
         await connectDB()
 
-        const searchParams = request.nextUrl.searchParams;
+        const url = new URL(request.url);
+        const searchParams = url.searchParams;
         const page = parseInt(searchParams.get('page'), 10) || 0
         const limit = parseInt(searchParams.get('limit'), 10) || 10
         const deleteType = searchParams.get('deleteType')
@@ -36,6 +38,7 @@ export async function GET(request) {
         })
 
     } catch (error) {
+        console.error("API Error in /api/media:", error);
         return catchError(error)
     }
 }
