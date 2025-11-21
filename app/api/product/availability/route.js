@@ -43,13 +43,13 @@ export async function GET(request) {
             },
             {
                 $unwind: {
-                    path: "$categoryData", 
+                    path: "$categoryData",
                     preserveNullAndEmptyArrays: true
                 }
             },
             {
                 $lookup: {
-                    from: 'media',
+                    from: 'medias', // FIX: Changed from 'media' to 'medias' to match Model definition
                     localField: 'media',
                     foreignField: '_id',
                     as: 'mediaData'
@@ -102,7 +102,7 @@ export async function GET(request) {
             },
             {
                 $unwind: {
-                    path: "$categoryData", 
+                    path: "$categoryData",
                     preserveNullAndEmptyArrays: true
                 }
             },
@@ -143,18 +143,18 @@ export async function PATCH(request) {
         const { productId, isAvailable } = await request.json()
 
         if (!productId) {
-            return NextResponse.json({ 
-                success: false, 
-                message: 'Product ID is required.' 
+            return NextResponse.json({
+                success: false,
+                message: 'Product ID is required.'
             }, { status: 400 })
         }
 
         // Find the product
         const product = await ProductModel.findById(productId)
         if (!product) {
-            return NextResponse.json({ 
-                success: false, 
-                message: 'Product not found.' 
+            return NextResponse.json({
+                success: false,
+                message: 'Product not found.'
             }, { status: 404 })
         }
 

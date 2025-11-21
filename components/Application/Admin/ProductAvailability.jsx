@@ -90,7 +90,7 @@ const ProductAvailability = () => {
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Product Availability</h1>
                     <p className="text-gray-600 dark:text-gray-400">Manage physical store inventory</p>
                 </div>
-                
+
                 {/* Search */}
                 <div className="relative w-full sm:w-80">
                     <Input
@@ -118,7 +118,7 @@ const ProductAvailability = () => {
                         </div>
                     </CardContent>
                 </Card>
-                
+
                 <Card>
                     <CardContent className="p-4">
                         <div className="flex items-center space-x-2">
@@ -162,12 +162,12 @@ const ProductAvailability = () => {
                 </div>
             ) : products.length === 0 ? (
                 <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-                    <CloudinaryImage 
-                        src={notFound.src} 
-                        width={80} 
-                        height={80} 
-                        alt="not found" 
-                        className="mb-4" 
+                    <CloudinaryImage
+                        src={notFound.src}
+                        width={80}
+                        height={80}
+                        alt="not found"
+                        className="mb-4"
                     />
                     <h3 className="text-lg font-semibold text-gray-600 mb-2">No products found</h3>
                     <p className="text-gray-500">
@@ -191,18 +191,17 @@ const ProductAvailability = () => {
                                     />
                                     {/* Enhanced Availability Badge */}
                                     <div className="absolute top-3 right-3">
-                                        <Badge 
+                                        <Badge
                                             variant={product.isAvailable ? "default" : "destructive"}
-                                            className={`text-xs font-semibold px-3 py-1 shadow-md ${
-                                                product.isAvailable 
-                                                    ? 'bg-green-500 hover:bg-green-600 text-white' 
-                                                    : 'bg-red-500 hover:bg-red-600 text-white'
-                                            }`}
+                                            className={`text-xs font-semibold px-3 py-1 shadow-md ${product.isAvailable
+                                                ? 'bg-green-500 hover:bg-green-600 text-white'
+                                                : 'bg-red-500 hover:bg-red-600 text-white'
+                                                }`}
                                         >
                                             {product.isAvailable ? "Available" : "Sold Out"}
                                         </Badge>
                                     </div>
-                                    
+
                                     {/* Overlay on hover */}
                                     <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                                 </div>
@@ -217,7 +216,7 @@ const ProductAvailability = () => {
                                             {product.category}
                                         </p>
                                     </div>
-                                    
+
                                     {/* Enhanced Price Display */}
                                     <div className="space-y-2">
                                         <div className="flex items-center justify-between">
@@ -237,7 +236,7 @@ const ProductAvailability = () => {
                                                 </Badge>
                                             )}
                                         </div>
-                                        
+
                                         {/* Additional Product Info */}
                                         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
                                             <div className="flex justify-between">
@@ -246,16 +245,15 @@ const ProductAvailability = () => {
                                             </div>
                                             <div className="flex justify-between">
                                                 <span>Stock:</span>
-                                                <span className={`font-semibold ${
-                                                    product.isAvailable 
-                                                        ? 'text-green-600 dark:text-green-400' 
-                                                        : 'text-red-600 dark:text-red-400'
-                                                }`}>
+                                                <span className={`font-semibold ${product.isAvailable
+                                                    ? 'text-green-600 dark:text-green-400'
+                                                    : 'text-red-600 dark:text-red-400'
+                                                    }`}>
                                                     {product.isAvailable ? 'In Stock' : 'Out of Stock'}
                                                 </span>
                                             </div>
                                         </div>
-                                        
+
                                         {!product.isAvailable && product.soldAt && (
                                             <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 p-2 rounded">
                                                 <span className="font-medium">Sold on:</span> {new Date(product.soldAt).toLocaleDateString()}
@@ -268,11 +266,10 @@ const ProductAvailability = () => {
                                 <ButtonLoading
                                     loading={updatingProduct === product._id}
                                     onClick={() => handleAvailabilityToggle(product._id, product.isAvailable, product.name)}
-                                    className={`w-full h-11 font-semibold text-sm rounded-lg transition-all duration-200 ${
-                                        product.isAvailable 
-                                            ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-200 dark:hover:shadow-red-900' 
-                                            : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-green-200 dark:hover:shadow-green-900'
-                                    }`}
+                                    className={`w-full h-11 font-semibold text-sm rounded-lg transition-all duration-200 ${product.isAvailable
+                                        ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-200 dark:hover:shadow-red-900'
+                                        : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-green-200 dark:hover:shadow-green-900'
+                                        }`}
                                     disabled={updatingProduct === product._id}
                                 >
                                     {product.isAvailable ? (

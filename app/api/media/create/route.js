@@ -1,12 +1,9 @@
-import { isAuthenticated } from "@/lib/authentication";
-import cloudinary from "@/lib/cloudinary";
 import { connectDB } from "@/lib/databaseConnection";
-import { catchError,  response } from "@/lib/helperFunction";
+import { catchError, response } from "@/lib/helperFunction";
 import MediaModel from "@/models/Media.model";
+import { isAuthenticated } from "@/lib/authentication";
 
 export async function POST(request) {
-    const payload = await request.json()
-
     try {
         const auth = await isAuthenticated('admin')
         if (!auth.isAuth) {
@@ -14,20 +11,21 @@ export async function POST(request) {
         }
 
         await connectDB()
-        const newMedia = await MediaModel.insertMany(payload)
-        return response(true, 200, 'Media upload successfully.', newMedia)
 
-    } catch (error) {
+        const payload = await request.json()
 
-        if (payload && payload.length > 0) {
-            const publicIds = payload.map(data => data.public_id)
-            try {
-                await cloudinary.api.delete_resources(publicIds)
-            } catch (deleteError) {
-                error.cloudinary = deleteError
-            }
+        // FIX: Check if payload is Array (multiple files) or Object (single file)
+        if (Array.isArray(payload)) {
+            // Use insertMany for arrays (from onQueuesEnd)
+            await MediaModel.insertMany(payload)
+        } else {
+            // Fallback for single file uploads if any
+            await MediaModel.create(payload)
         }
 
+        return response(true, 200, 'Media uploaded successfully.')
+
+    } catch (error) {
         return catchError(error)
     }
 }

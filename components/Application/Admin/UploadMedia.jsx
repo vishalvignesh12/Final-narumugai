@@ -11,43 +11,47 @@ const UploadMedia = ({ isMultiple, queryClient }) => {
         const errorMessage = error?.statusText || error?.message || "Upload Error";
         showToast('error', errorMessage);
     }
-    
+
     const handleOnQueueEnd = async (results) => {
-        // Safety check: ensure files exist
         if (!results?.info?.files) return;
 
         const files = results.info.files;
+        // Create array of files
         const uploadedFiles = files.filter(file => file.uploadInfo).map(file => ({
             asset_id: file.uploadInfo.asset_id,
             public_id: file.uploadInfo.public_id,
             secure_url: file.uploadInfo.secure_url,
             path: file.uploadInfo.path,
             thumbnail_url: file.uploadInfo.thumbnail_url,
+            alt: file.uploadInfo.original_filename || "", // Add default alt
+            title: file.uploadInfo.original_filename || "", // Add default title
         }))
 
         if (uploadedFiles.length > 0) {
             try {
+                // Ensure we are sending the array
                 const { data: mediaUploadResponse } = await axios.post('/api/media/create', uploadedFiles)
+
                 if (!mediaUploadResponse.success) {
                     throw new Error(mediaUploadResponse.message)
                 }
 
-                // Refresh the media list
+                // FIX: Refresh BOTH the main page list and the modal list
                 if (queryClient) {
-                    queryClient.invalidateQueries(['media-page'])
+                    queryClient.invalidateQueries(['media-page']) // For Admin Media Page
+                    queryClient.invalidateQueries(['MediaModal']) // For Product Add/Edit Modal
                 }
                 showToast('success', mediaUploadResponse.message)
 
             } catch (error) {
-                showToast('error', error.message)
+                console.error("Upload Save Error:", error);
+                showToast('error', error.message || "Failed to save media")
             }
         }
     }
 
     return (
         <CldUploadWidget
-            // FIX 1: Removed signatureEndpoint to fix 401 Unauthorized error
-            // signatureEndpoint="/api/cloudinary-signature" 
             uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
             onError={handleOnError}
             onQueuesEnd={handleOnQueueEnd}
@@ -56,28 +60,21 @@ const UploadMedia = ({ isMultiple, queryClient }) => {
                 sources: ['local', 'url', 'unsplash', 'google_drive'],
             }}
         >
-            {/* FIX 2: Destructure isLoading and widget to prevent crash */}
             {(widgetProps) => {
                 const { open, isLoading, widget } = widgetProps || {};
-                
                 return (
-                    <Button 
-                        type="button" 
-                        // Check if widget is ready before clicking
+                    <Button
+                        type="button"
                         onClick={() => {
-                            if (open && widget && !isLoading) {
-                                open();
-                            }
+                            if (open && widget && !isLoading) open();
                         }}
-                        // Disable button while loading or if widget/open is missing
-                        disabled={isLoading || !widget || !open} 
+                        disabled={isLoading || !widget || !open}
                     >
                         <FiPlus className="mr-2" />
                         {isLoading ? 'Loading...' : 'Upload Media'}
                     </Button>
                 );
             }}
-
         </CldUploadWidget>
     )
 }
