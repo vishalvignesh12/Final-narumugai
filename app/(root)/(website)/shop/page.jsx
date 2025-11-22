@@ -17,27 +17,28 @@ const Shop = () => {
 
     const [limit, setLimit] = useState(12);
     const [page, setPage] = useState(1);
-    
+
     const [filterState, setFilterState] = useState({
         categoryFilter: [],
         priceFilter: [],
         // removed color/size based on previous context, add back if needed
     });
-    
+
     const { data, error, isFetching } = useQuery({
         // Include searchParamsString in key to re-fetch when URL changes
-        queryKey: ['shop-products', searchParamsString, page, limit, filterState], 
+        queryKey: ['shop-products', searchParamsString, page, limit, filterState],
         queryFn: async () => {
             const res = await axios.post(`/api/shop`, {
                 start: (page - 1) * limit,
                 size: limit,
                 globalFilter: searchQuery, // --- FIX 2: Pass the search query to API ---
+                categorySlug: searchParamsObj.get('category'), // Pass category slug from URL
                 ...filterState
             });
-            return res.data; 
+            return res.data;
         },
         keepPreviousData: true,
-        staleTime: 60000 
+        staleTime: 60000
     });
 
     const { isMobile } = useWindowSize();
@@ -48,7 +49,7 @@ const Shop = () => {
             ...prevState,
             ...newFilterPiece
         }));
-        setPage(1); 
+        setPage(1);
     };
 
     const totalProducts = data?.meta?.totalRowCount || 0;
@@ -65,19 +66,19 @@ const Shop = () => {
     return (
         <div className='container mx-auto px-4 py-8'>
             <WebsiteBreadcrumb items={[{ title: "Shop" }]} />
-            
+
             <header className='text-center my-8'>
                 <h1 className='text-4xl font-bold mb-2'>Shop Our Collection</h1>
                 <p className='text-gray-600 text-lg'>Discover the finest sarees for every occasion.</p>
             </header>
 
             <section className='mb-8 p-4 bg-gray-50 rounded-lg'>
-                <SearchWithFilters 
-                    onFilterChange={handleFilterChange} 
+                <SearchWithFilters
+                    onFilterChange={handleFilterChange}
                     isMobile={isMobile}
                 />
             </section>
-            
+
             <section>
                 {isFetching && (
                     <div className='grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-2 grid-cols-2 gap-6'>
@@ -93,7 +94,7 @@ const Shop = () => {
                         <p className='text-gray-500 text-sm'>{error.message}</p>
                     </div>
                 )}
-                
+
                 {!isFetching && !error && (
                     <>
                         <div className='grid xl:grid-cols-4 lg:grid-cols-3 md:grid-cols-2 sm:grid-cols-2 grid-cols-2 gap-6'>

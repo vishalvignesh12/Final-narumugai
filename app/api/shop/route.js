@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
+import CategoryModel from "@/models/Category.model";
 import { NextResponse } from "next/server";
 
 // Cache this route for 60 seconds
@@ -22,7 +23,8 @@ export async function POST(request) {
             colorFilter = [],
             sizeFilter = [],
             priceFilter = [],
-            slug
+            slug,
+            categorySlug // Add categorySlug
         } = payload;
 
 
@@ -31,6 +33,21 @@ export async function POST(request) {
         // Handle slug
         if (slug) {
             matchQuery.slug = slug
+        }
+
+        // Handle categorySlug
+        if (categorySlug) {
+            const category = await CategoryModel.findOne({ slug: categorySlug });
+            if (category) {
+                // If categoryFilter is also present, merge them? 
+                // Or assume categorySlug is the initial filter.
+                // Let's add it to the $in array if it exists, or create it.
+                if (!matchQuery.category) {
+                    matchQuery.category = { $in: [category._id] };
+                } else if (matchQuery.category.$in) {
+                    matchQuery.category.$in.push(category._id);
+                }
+            }
         }
 
         // Global search
@@ -59,11 +76,11 @@ export async function POST(request) {
 
         // Category filter
         if (categoryFilter && categoryFilter.length > 0) {
-            matchQuery.category = { $in: categoryFilter }; 
+            matchQuery.category = { $in: categoryFilter };
         }
 
         // --- (Add Color/Size filters if needed) ---
-        
+
         // Use find with populate for simpler and more reliable media handling
         const products = await ProductModel.find(matchQuery)
             .populate({
@@ -119,7 +136,7 @@ export async function GET(request) {
             $or: [
                 { name: { $regex: query, $options: 'i' } },
                 { description: { $regex: query, $options: 'i' } },
-                { _id: { $in: productIdsFromVariants } } 
+                { _id: { $in: productIdsFromVariants } }
             ]
         };
 
@@ -130,7 +147,7 @@ export async function GET(request) {
             .populate({ path: 'media', select: 'secure_url alt title' }) // Correct populate
             .sort({ createdAt: -1 })
             .limit(10)
-            .select('name slug sellingPrice mrp media category'); 
+            .select('name slug sellingPrice mrp media category');
 
         return response(true, 200, 'Search results', products)
 

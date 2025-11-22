@@ -1,59 +1,106 @@
 'use client'
+'use client'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Slider } from '@/components/ui/slider'
 import { Skeleton } from '@/components/ui/skeleton'
 import axios from 'axios'
 import { useEffect, useState } from 'react'
 
-const Filter = ({ onFilterChange }) => {
+import { Checkbox } from '@/components/ui/checkbox'
+import { Label } from '@/components/ui/label'
+
+const Filter = ({ onFilterChange, categorySlug }) => {
     // State for price range
     const [priceRange, setPriceRange] = useState([0, 50000]);
     const [minPrice, setMinPrice] = useState(0);
     const [maxPrice, setMaxPrice] = useState(50000);
     const [isLoadingPrice, setIsLoadingPrice] = useState(true);
 
-    // Fetch only price range on mount
+    // State for categories
+    const [categories, setCategories] = useState([]);
+    const [selectedCategories, setSelectedCategories] = useState([]);
+    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+
+    // Fetch price range and categories on mount
     useEffect(() => {
-        const fetchPriceData = async () => {
+        const fetchData = async () => {
             setIsLoadingPrice(true);
+            setIsLoadingCategories(true);
             try {
-                // We fetch the global price range
-                const { data } = await axios.get(`/api/product/price-range`);
-                
-                if (data.success) {
-                    const min = data.data.min || 0;
-                    const max = data.data.max || 50000;
+                // Fetch price range
+                const priceRes = await axios.get(`/api/product/price-range`);
+
+                if (priceRes.data.success) {
+                    const min = priceRes.data.data.min || 0;
+                    const max = priceRes.data.data.max || 50000;
                     setMinPrice(min);
                     setMaxPrice(max);
                     setPriceRange([min, max]);
                 }
+
+                // Fetch categories
+                const categoryRes = await axios.get('/api/category/get-category');
+                if (categoryRes.data.success) {
+                    setCategories(categoryRes.data.data);
+                }
             } catch (error) {
-                console.error("Failed to fetch price range:", error);
+                console.error("Failed to fetch filter data:", error);
             } finally {
                 setIsLoadingPrice(false);
+                setIsLoadingCategories(false);
             }
         };
 
-        fetchPriceData();
-    }, []); // Empty dependency array = Runs once on mount (Prevents Loop)
+        fetchData();
+    }, []);
+
+    // Handle initial category selection from URL slug
+    useEffect(() => {
+        if (categorySlug && categories.length > 0) {
+            const matchedCategory = categories.find(c => c.slug === categorySlug);
+            if (matchedCategory) {
+                const newSelected = [matchedCategory._id];
+                setSelectedCategories(newSelected);
+                // Trigger filter change immediately
+                if (onFilterChange) {
+                    onFilterChange({ categoryFilter: newSelected });
+                }
+            }
+        }
+    }, [categorySlug, categories]); // Run when slug or categories change
 
     // Handle slider movement (visual update only)
     const handlePriceChange = (value) => {
         setPriceRange(value);
     };
-    
+
     // Commit change when user releases the slider
     const onPriceCommit = (value) => {
-        if(onFilterChange) {
-            // Pass an object with the specific filter key
+        if (onFilterChange) {
             onFilterChange({ priceFilter: value });
+        }
+    };
+
+    // Handle category checkbox change
+    const handleCategoryChange = (categoryId, checked) => {
+        let newSelected;
+        if (checked) {
+            newSelected = [...selectedCategories, categoryId];
+        } else {
+            newSelected = selectedCategories.filter(id => id !== categoryId);
+        }
+
+        setSelectedCategories(newSelected);
+
+        if (onFilterChange) {
+            onFilterChange({ categoryFilter: newSelected });
         }
     };
 
     return (
         <div className='sticky top-5'>
-            <Accordion type="multiple" defaultValue={['item-1']} className="w-full">
-                {/* Price Filter Only */}
+            <Accordion type="multiple" defaultValue={['item-1', 'item-2']} className="w-full">
+                {/* Price Filter */}
                 <AccordionItem value="item-1">
                     <AccordionTrigger>Price</AccordionTrigger>
                     <AccordionContent>
@@ -68,13 +115,45 @@ const Filter = ({ onFilterChange }) => {
                                     step={100}
                                     value={priceRange}
                                     onValueChange={handlePriceChange}
-                                    onValueCommit={onPriceCommit} // <--- FIXED: Changed from onValueChangeCommit
+                                    onValueCommit={onPriceCommit}
                                 />
                                 <div className='flex justify-between items-center mt-3 text-sm'>
                                     <span>{priceRange[0].toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 })}</span>
                                     <span>{priceRange[1].toLocaleString('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 })}</span>
                                 </div>
                             </>
+                        )}
+                    </AccordionContent>
+                </AccordionItem>
+
+                {/* Category Filter */}
+                <AccordionItem value="item-2">
+                    <AccordionTrigger>Categories</AccordionTrigger>
+                    <AccordionContent>
+                        {isLoadingCategories ? (
+                            <div className="space-y-2">
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-full" />
+                            </div>
+                        ) : (
+                            <div className="space-y-2">
+                                {categories.map((category) => (
+                                    <div key={category._id} className="flex items-center space-x-2">
+                                        <Checkbox
+                                            id={`category-${category._id}`}
+                                            checked={selectedCategories.includes(category._id)}
+                                            onCheckedChange={(checked) => handleCategoryChange(category._id, checked)}
+                                        />
+                                        <Label
+                                            htmlFor={`category-${category._id}`}
+                                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                        >
+                                            {category.name}
+                                        </Label>
+                                    </div>
+                                ))}
+                            </div>
                         )}
                     </AccordionContent>
                 </AccordionItem>

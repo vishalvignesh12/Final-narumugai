@@ -4,19 +4,19 @@ import { Input } from '@/components/ui/input';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { 
-    Dialog, 
-    DialogContent, 
-    DialogTrigger, 
-    DialogTitle, // <--- 1. ADD THIS IMPORT
-    DialogHeader // <--- Optional but good for structure
+import {
+    Dialog,
+    DialogContent,
+    DialogTrigger,
+    DialogTitle,
+    DialogHeader
 } from '@/components/ui/dialog';
 import useWindowSize from '@/hooks/useWindowSize';
 import Filter from './Filter';
 import { WEBSITE_SHOP } from '@/routes/WebsiteRoute';
 import { IoSearchOutline, IoFilterOutline } from 'react-icons/io5';
 
-const SearchWithFilters = ({ onFilterChange }) => { // <--- 2. ADD PROP HERE (Important for filtering)
+const SearchWithFilters = ({ onFilterChange }) => {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -29,7 +29,7 @@ const SearchWithFilters = ({ onFilterChange }) => { // <--- 2. ADD PROP HERE (Im
         const checkMobileSize = () => {
             setIsMobile(windowSize?.width < 768);
         };
-        
+
         if (windowSize) {
             checkMobileSize();
         }
@@ -39,13 +39,13 @@ const SearchWithFilters = ({ onFilterChange }) => { // <--- 2. ADD PROP HERE (Im
     const handleSearch = (e) => {
         e.preventDefault();
         const urlSearchParams = new URLSearchParams(searchParams.toString());
-        
+
         if (searchQuery.trim()) {
             urlSearchParams.set('q', searchQuery.trim());
         } else {
             urlSearchParams.delete('q');
         }
-        
+
         router.push(`${WEBSITE_SHOP}?${urlSearchParams.toString()}`);
     };
 
@@ -62,9 +62,9 @@ const SearchWithFilters = ({ onFilterChange }) => { // <--- 2. ADD PROP HERE (Im
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        <IoSearchOutline 
-                            size={20} 
-                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" 
+                        <IoSearchOutline
+                            size={20}
+                            className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
                         />
                     </div>
 
@@ -72,9 +72,9 @@ const SearchWithFilters = ({ onFilterChange }) => { // <--- 2. ADD PROP HERE (Im
                     {isMobile ? (
                         <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                             <SheetTrigger asChild>
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     className="h-12 px-4 rounded-lg border-2 border-gray-200 hover:border-pink-500 hover:bg-pink-50 transition-all"
                                 >
                                     <IoFilterOutline size={20} className="mr-2" />
@@ -85,9 +85,9 @@ const SearchWithFilters = ({ onFilterChange }) => { // <--- 2. ADD PROP HERE (Im
                                 <div className="p-4 border-b bg-gray-50">
                                     <div className="flex items-center justify-between">
                                         <h3 className="font-semibold text-lg">Filter Products</h3>
-                                        <Button 
-                                            type="button" 
-                                            variant="ghost" 
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
                                             size="sm"
                                             onClick={() => setIsFilterOpen(false)}
                                         >
@@ -96,42 +96,39 @@ const SearchWithFilters = ({ onFilterChange }) => { // <--- 2. ADD PROP HERE (Im
                                     </div>
                                 </div>
                                 <div className="overflow-y-auto p-4">
-                                    <Filter onFilterChange={onFilterChange} />
+                                    <Filter onFilterChange={onFilterChange} categorySlug={searchParams.get('category')} />
                                 </div>
                             </SheetContent>
                         </Sheet>
                     ) : (
                         <Dialog open={isFilterOpen} onOpenChange={setIsFilterOpen}>
                             <DialogTrigger asChild>
-                                <Button 
-                                    type="button" 
-                                    variant="outline" 
+                                <Button
+                                    type="button"
+                                    variant="outline"
                                     className="h-12 px-4 rounded-lg border-2 border-gray-200 hover:border-pink-500 hover:bg-pink-50 transition-all"
                                 >
                                     <IoFilterOutline size={20} className="mr-2" />
                                     Filters
                                 </Button>
                             </DialogTrigger>
-                            
-                            {/* 3. FIXED DIALOG CONTENT */}
+
                             <DialogContent className="max-w-md max-h-[80vh] overflow-hidden p-0">
                                 <div className="p-4 border-b bg-gray-50">
                                     <DialogHeader>
-                                        {/* REPLACED h3 WITH DialogTitle */}
                                         <DialogTitle className="text-left">Filter Products</DialogTitle>
                                     </DialogHeader>
                                 </div>
                                 <div className="overflow-y-auto p-4">
-                                    {/* Passed props correctly */}
-                                    <Filter onFilterChange={onFilterChange} />
+                                    <Filter onFilterChange={onFilterChange} categorySlug={searchParams.get('category')} />
                                 </div>
                             </DialogContent>
                         </Dialog>
                     )}
 
                     {/* Search Button */}
-                    <Button 
-                        type="submit" 
+                    <Button
+                        type="submit"
                         className="h-12 px-6 rounded-lg bg-pink-500 hover:bg-pink-600 text-white transition-all"
                     >
                         <IoSearchOutline size={18} className="mr-2" />
