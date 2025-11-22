@@ -88,7 +88,7 @@ const Banner = () => {
             columnsConfig={columns}
             deleteEndpoint="/api/banners/delete"
             deleteType="SD"
-            trashView={ADMIN_TRASH}
+            trashView={`${ADMIN_TRASH}?trashof=banner`}
             createAction={action}
           />
         </CardContent>

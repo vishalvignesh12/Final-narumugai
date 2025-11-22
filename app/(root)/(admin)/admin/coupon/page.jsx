@@ -56,7 +56,7 @@ const Coupon = () => {
                         exportEndpoint="/api/coupon/export"
                         deleteEndpoint="/api/coupon/delete"
                         deleteType="SD"
-                        trashView={ADMIN_TRASH}
+                        trashView={`${ADMIN_TRASH}?trashof=coupon`}
                         createAction={action}
                     />
                 </CardContent>

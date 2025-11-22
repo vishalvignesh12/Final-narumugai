@@ -58,7 +58,7 @@ const Product = () => {
             columnsConfig={columns}
             deleteEndpoint="/api/product/delete"
             deleteType="SD"
-            trashView={ADMIN_TRASH}
+            trashView={`${ADMIN_TRASH}?trashof=product`}
             createAction={action}
           />
         </CardContent>

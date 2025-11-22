@@ -56,7 +56,7 @@ const ProductVariant = () => {
                         exportEndpoint="/api/product-variant/export"
                         deleteEndpoint="/api/product-variant/delete"
                         deleteType="SD"
-                        trashView={ADMIN_TRASH}
+                        trashView={`${ADMIN_TRASH}?trashof=product-variant`}
                         createAction={action}
                     />
                 </CardContent>

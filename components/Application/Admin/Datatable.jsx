@@ -53,6 +53,8 @@ const Datatable = ({
         let c
         if (deleteType === 'PD') {
             c = confirm('Are you sure you want to delete the data permanently?')
+        } else if (deleteType === 'RSD') {
+            c = confirm('Are you sure you want to restore these items?')
         } else {
             c = confirm('Are you sure you want to move data into trash?')
         }
@@ -184,7 +186,7 @@ const Datatable = ({
 
                 {deleteType === 'SD' &&
                     <Tooltip title="Delete All">
-                        <IconButton 
+                        <IconButton
                             disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
                             onClick={() => handleDelete(Object.keys(rowSelection), deleteType)}
                         >
@@ -196,15 +198,15 @@ const Datatable = ({
                 {deleteType === 'PD' &&
                     <>
                         <Tooltip title="Restore Data">
-                            <IconButton 
+                            <IconButton
                                 disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
-                                onClick={() => handleDelete(Object.keys(rowSelection), 'RD')}
+                                onClick={() => handleDelete(Object.keys(rowSelection), 'RSD')}
                             >
                                 <RestoreFromTrashIcon />
                             </IconButton>
                         </Tooltip>
                         <Tooltip title="Permanently Delete Data">
-                            <IconButton 
+                            <IconButton
                                 disabled={!table.getIsSomeRowsSelected() && !table.getIsAllRowsSelected()}
                                 onClick={() => handleDelete(Object.keys(rowSelection), deleteType)}
                             >

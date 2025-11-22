@@ -54,7 +54,7 @@ const Review = () => {
                         exportEndpoint="/api/review/export"
                         deleteEndpoint="/api/review/delete"
                         deleteType="SD"
-                        trashView={ADMIN_TRASH}
+                        trashView={`${ADMIN_TRASH}?trashof=review`}
                         createAction={action}
                     />
                 </CardContent>

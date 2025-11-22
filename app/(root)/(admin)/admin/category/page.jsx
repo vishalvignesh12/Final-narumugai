@@ -56,7 +56,7 @@ const Category = () => {
                         exportEndpoint="/api/category/export"
                         deleteEndpoint="/api/category/delete"
                         deleteType="SD"
-                        trashView={ADMIN_TRASH}
+                        trashView={`${ADMIN_TRASH}?trashof=category`}
                         createAction={action}
                     />
                 </CardContent>

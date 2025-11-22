@@ -54,7 +54,7 @@ const Customers = () => {
                         exportEndpoint="/api/customers/export"
                         deleteEndpoint="/api/customers/delete"
                         deleteType="SD"
-                        trashView={ADMIN_TRASH}
+                        trashView={`${ADMIN_TRASH}?trashof=customers`}
                         createAction={action}
                     />
                 </CardContent>

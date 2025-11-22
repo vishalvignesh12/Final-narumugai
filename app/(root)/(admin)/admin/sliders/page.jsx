@@ -55,7 +55,7 @@ const Slider = () => {
                         columnsConfig={columns}
                         deleteEndpoint="/api/carousels/delete"
                         deleteType="SD"
-                        trashView={ADMIN_TRASH}
+                        trashView={`${ADMIN_TRASH}?trashof=slider`}
                         createAction={action}
                     />
                 </CardContent>

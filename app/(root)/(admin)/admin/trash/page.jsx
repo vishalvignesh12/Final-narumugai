@@ -3,14 +3,15 @@ import BreadCrumb from "@/components/Application/Admin/BreadCrumb"
 // import DatatableWrapper from "@/components/Application/Admin/DatatableWrapper" // <-- OLD LINE REMOVED
 import DeleteAction from "@/components/Application/Admin/DeleteAction"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { DT_CATEGORY_COLUMN, DT_COUPON_COLUMN, DT_CUSTOMERS_COLUMN, DT_ORDER_COLUMN, DT_PRODUCT_COLUMN, DT_PRODUCT_VARIANT_COLUMN, DT_REVIEW_COLUMN } from "@/lib/column"
+import { DT_BANNER_COLUMN, DT_CATEGORY_COLUMN, DT_COUPON_COLUMN, DT_CUSTOMERS_COLUMN, DT_ORDER_COLUMN, DT_PRODUCT_COLUMN, DT_PRODUCT_VARIANT_COLUMN, DT_REVIEW_COLUMN, DT_SLIDER_COLUMN } from "@/lib/column"
 import { columnConfig } from "@/lib/helperFunction"
 import { ADMIN_DASHBOARD, ADMIN_TRASH } from "@/routes/AdminPanelRoute"
 
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 // 1. IMPORT Suspense and dynamic
-import { useCallback, useMemo, Suspense } from "react" 
+import { useCallback, useMemo, Suspense } from "react"
 import dynamic from 'next/dynamic'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 // 2. DYNAMICALLY IMPORT DatatableWrapper (Fixes 'a is not iterable')
 const DatatableWrapper = dynamic(
@@ -77,34 +78,44 @@ const TRASH_CONFIG = {
         exportUrl: '/api/orders/export',
         deleteUrl: '/api/orders/delete'
     },
+    slider: {
+        title: 'Slider Trash',
+        columns: DT_SLIDER_COLUMN,
+        fetchUrl: '/api/slider',
+        exportUrl: '/api/slider/export',
+        deleteUrl: '/api/slider/delete'
+    },
+    banner: {
+        title: 'Banner Trash',
+        columns: DT_BANNER_COLUMN,
+        fetchUrl: '/api/banner',
+        exportUrl: '/api/banner/export',
+        deleteUrl: '/api/banner/delete'
+    },
 
 }
 
 // 3. CREATE AN INNER COMPONENT for all logic
 //    This is what will be "suspended"
 const TrashContent = () => {
+    const router = useRouter()
+    const searchParams = useSearchParams()
+    const trashOf = searchParams.get('trashof') || 'category'
 
-    const searchParams = useSearchParams() // <-- Hook is now safely inside
-    const trashOf = searchParams.get('trashof')
-
-    const config = TRASH_CONFIG[trashOf] || TRASH_CONFIG.category // Default to category
-
-    if (!config) {
-        return (
-            <div>
-                <BreadCrumb breadcrumbData={breadcrumbData} />
-                <p>Invalid trash category selected.</p>
-            </div>
-        )
-    }
+    const config = TRASH_CONFIG[trashOf]
 
     const columns = useMemo(() => {
+        if (!config) return []
         return columnConfig(config.columns || [], false, false, true)
     }, [config])
 
     const action = useCallback((row, deleteType, handleDelete) => {
         return [<DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />]
     }, [])
+
+    const handleTabChange = (value) => {
+        router.push(`${ADMIN_TRASH}?trashof=${value}`)
+    }
 
     return (
         <div>
@@ -113,20 +124,43 @@ const TrashContent = () => {
             <Card className="py-0 rounded shadow-sm gap-0">
                 <CardHeader className="pt-3 px-3 border-b [.border-b]:pb-2">
                     <div className="flex justify-between items-center">
-                        <h4 className='text-xl font-semibold'>{config.title}</h4>
+                        <h4 className='text-xl font-semibold'>Trash Management</h4>
                     </div>
                 </CardHeader>
                 <CardContent className="px-0 pt-0">
-                    <DatatableWrapper
-                        queryKey={`${trashOf}-data-deleted`}
-                        fetchUrl={config.fetchUrl}
-                        initialPageSize={10}
-                        columnsConfig={columns}
-                        exportEndpoint={config.exportUrl}
-                        deleteEndpoint={config.deleteUrl}
-                        deleteType="PD"
-                        createAction={action}
-                    />
+                    <Tabs value={trashOf} onValueChange={handleTabChange} className="w-full">
+                        <div className="px-3 py-2 border-b overflow-x-auto">
+                            <TabsList className="h-auto flex-wrap justify-start bg-transparent p-0 gap-2">
+                                {Object.entries(TRASH_CONFIG).map(([key, value]) => (
+                                    <TabsTrigger
+                                        key={key}
+                                        value={key}
+                                        className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground border border-input bg-background hover:bg-accent hover:text-accent-foreground"
+                                    >
+                                        {value.title.replace(' Trash', '')}
+                                    </TabsTrigger>
+                                ))}
+                            </TabsList>
+                        </div>
+
+                        {config ? (
+                            <DatatableWrapper
+                                key={trashOf} // Force re-render on tab change
+                                queryKey={`${trashOf}-data-deleted`}
+                                fetchUrl={config.fetchUrl}
+                                initialPageSize={10}
+                                columnsConfig={columns}
+                                exportEndpoint={config.exportUrl}
+                                deleteEndpoint={config.deleteUrl}
+                                deleteType="PD"
+                                createAction={action}
+                            />
+                        ) : (
+                            <div className="p-10 text-center text-gray-500">
+                                Invalid trash category selected.
+                            </div>
+                        )}
+                    </Tabs>
                 </CardContent>
             </Card>
         </div>

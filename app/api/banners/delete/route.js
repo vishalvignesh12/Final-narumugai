@@ -2,7 +2,45 @@ import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import BannerModel from "@/models/Banner.model";
 import { isAuthenticated } from "@/lib/authentication";
-import { isValidObjectId } from "mongoose";
+
+export async function PUT(request) {
+    try {
+        const auth = await isAuthenticated('admin')
+        if (!auth.isAuth) {
+            return response(false, 403, 'Unauthorized.')
+        }
+
+        await connectDB()
+        const payload = await request.json()
+
+        const ids = payload.ids || []
+        const deleteType = payload.deleteType
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return response(false, 400, 'Invalid or empty id list.')
+        }
+
+        const data = await BannerModel.find({ _id: { $in: ids } }).lean()
+        if (!data.length) {
+            return response(false, 404, 'Data not found.')
+        }
+
+        if (!['SD', 'RSD'].includes(deleteType)) {
+            return response(false, 400, 'Invalid delete operation. Delete type should be SD or RSD for this route.')
+        }
+
+        if (deleteType === 'SD') {
+            await BannerModel.updateMany({ _id: { $in: ids } }, { $set: { deletedAt: new Date().toISOString() } });
+        } else {
+            await BannerModel.updateMany({ _id: { $in: ids } }, { $set: { deletedAt: null } });
+        }
+
+        return response(true, 200, deleteType === 'SD' ? 'Data moved into trash.' : "Data restored.")
+
+    } catch (error) {
+        return catchError(error)
+    }
+}
 
 export async function DELETE(request) {
     try {
@@ -12,25 +50,27 @@ export async function DELETE(request) {
         }
 
         await connectDB()
-
         const payload = await request.json()
-        
-        if (!payload.id || !isValidObjectId(payload.id)) {
-            return response(false, 400, 'Valid banner ID is required.')
+
+        const ids = payload.ids || []
+        const deleteType = payload.deleteType
+
+        if (!Array.isArray(ids) || ids.length === 0) {
+            return response(false, 400, 'Invalid or empty id list.')
         }
 
-        // Soft delete by setting deletedAt
-        const deletedBanner = await BannerModel.findByIdAndUpdate(
-            payload.id,
-            { deletedAt: new Date() },
-            { new: true }
-        )
-
-        if (!deletedBanner) {
-            return response(false, 404, 'Banner not found.')
+        const data = await BannerModel.find({ _id: { $in: ids } }).lean()
+        if (!data.length) {
+            return response(false, 404, 'Data not found.')
         }
 
-        return response(true, 200, 'Banner deleted successfully.')
+        if (deleteType !== 'PD') {
+            return response(false, 400, 'Invalid delete operation. Delete type should be PD for this route.')
+        }
+
+        await BannerModel.deleteMany({ _id: { $in: ids } })
+
+        return response(true, 200, 'Banner deleted permanently.')
 
     } catch (error) {
         return catchError(error)
