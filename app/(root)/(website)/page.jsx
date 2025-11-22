@@ -6,6 +6,7 @@ import { FaInstagram, FaWhatsapp, FaFacebook } from 'react-icons/fa'
 import axios from 'axios'
 import WishlistButton from '@/components/Application/Website/WishlistButton'
 import { WEBSITE_PRODUCT_DETAILS } from '@/routes/WebsiteRoute'
+import HomeCarousel from '@/components/Application/Website/HomeCarousel'
 
 const Home = () => {
     const [featuredProducts, setFeaturedProducts] = useState([])
@@ -74,51 +75,9 @@ const Home = () => {
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
             />
-            
-            {/* Hero Section */}
-            <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-50">
-                <div className="absolute inset-0 bg-gradient-to-r from-pink-500/10 to-purple-500/10"></div>
-                <div className="relative z-10 text-center max-w-6xl mx-auto px-4">
-                    <div className="mb-8">
-                        <span className="inline-flex items-center px-4 py-2 rounded-full bg-pink-100 text-pink-800 text-sm font-medium mb-6">
-                            <Sparkles className="w-4 h-4 mr-2" />
-                            New Collection 2025
-                        </span>
-                        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-gray-900 mb-6 leading-tight">
-                            Exquisite
-                            <span className="bg-gradient-to-r from-pink-600 to-purple-600 bg-clip-text text-transparent"> Sarees </span>
-                            for Every Occasion
-                        </h1>
-                        <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-                            Discover our handpicked collection of premium sarees, from traditional silk to contemporary designs. 
-                            Crafted with love, delivered with care.
-                        </p>
-                    </div>
-                    
-                    <div className="flex justify-center items-center mb-12">
-                        <Link href="/shop" className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white font-semibold rounded-full hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-                            <ShoppingBag className="w-5 h-5 mr-2" />
-                            Shop Now
-                            <ArrowRight className="w-5 h-5 ml-2" />
-                        </Link>
-                    </div>
 
-                    <div className="grid grid-cols-3 gap-8 max-w-2xl mx-auto">
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-gray-900">10K+</div>
-                            <div className="text-gray-600">Happy Customers</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-gray-900">500+</div>
-                            <div className="text-gray-600">Saree Designs</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-gray-900">15+</div>
-                            <div className="text-gray-600">Years Experience</div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            {/* Hero Carousel Section */}
+            <HomeCarousel />
 
             {/* Categories Section */}
             <section className="py-20 bg-white">
@@ -131,7 +90,7 @@ const Home = () => {
                             Explore our curated collection of sarees for every style and occasion
                         </p>
                     </div>
-                    
+
                     <div className="grid md:grid-cols-3 gap-8">
                         <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-100 to-rose-100 p-8 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
                             <div className="relative z-10">
@@ -195,7 +154,7 @@ const Home = () => {
                             Handpicked sarees that showcase the finest craftsmanship and timeless beauty
                         </p>
                     </div>
-                    
+
                     {loading ? (
                         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-8">
                             {[...Array(8)].map((_, index) => (
@@ -217,8 +176,8 @@ const Home = () => {
                                 >
                                     <Link href={WEBSITE_PRODUCT_DETAILS(product.slug)}>
                                         <div className="relative overflow-hidden">
-                                            <img 
-                                                src={product.media?.[0]?.secure_url || product.featuredImage?.secure_url || '/api/placeholder/300/400'} 
+                                            <img
+                                                src={product.media?.[0]?.secure_url || product.featuredImage?.secure_url || '/api/placeholder/300/400'}
                                                 alt={product.name || product.title}
                                                 className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={(e) => {
@@ -264,7 +223,7 @@ const Home = () => {
                             ))}
                         </div>
                     )}
-                    
+
                     <div className="text-center mt-12">
                         <Link href="/shop" className="inline-flex items-center px-8 py-4 bg-gray-900 text-white font-semibold rounded-full hover:bg-gray-800 transition-colors">
                             View All Products
@@ -285,7 +244,7 @@ const Home = () => {
                             Join thousands of satisfied customers who trust Narumugai for their saree needs
                         </p>
                     </div>
-                    
+
                     <div className="relative max-w-4xl mx-auto">
                         <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl p-8 md:p-12">
                             <div className="text-center">
@@ -306,15 +265,14 @@ const Home = () => {
                                 </div>
                             </div>
                         </div>
-                        
+
                         <div className="flex justify-center mt-8 space-x-2">
                             {testimonials.map((_, index) => (
                                 <button
                                     key={index}
                                     onClick={() => setCurrentTestimonial(index)}
-                                    className={`w-3 h-3 rounded-full transition-colors ${
-                                        currentTestimonial === index ? 'bg-pink-600' : 'bg-gray-300'
-                                    }`}
+                                    className={`w-3 h-3 rounded-full transition-colors ${currentTestimonial === index ? 'bg-pink-600' : 'bg-gray-300'
+                                        }`}
                                 />
                             ))}
                         </div>
@@ -332,7 +290,7 @@ const Home = () => {
                             Experience the perfect blend of tradition and innovation
                         </p>
                     </div>
-                    
+
                     <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <div className="text-center group">
                             <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
@@ -343,7 +301,7 @@ const Home = () => {
                                 Free delivery across India on orders above ₹999
                             </p>
                         </div>
-                        
+
                         <div className="text-center group">
                             <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                                 <Shield className="w-10 h-10" />
@@ -353,7 +311,7 @@ const Home = () => {
                                 100% authentic sarees with quality guarantee
                             </p>
                         </div>
-                        
+
                         <div className="text-center group">
                             <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                                 <Headphones className="w-10 h-10" />
@@ -363,7 +321,7 @@ const Home = () => {
                                 Expert assistance for all your saree needs
                             </p>
                         </div>
-                        
+
                         <div className="text-center group">
                             <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                                 <Award className="w-10 h-10" />

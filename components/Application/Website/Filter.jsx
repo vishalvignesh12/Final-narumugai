@@ -1,5 +1,4 @@
 'use client'
-'use client'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { Slider } from '@/components/ui/slider'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -57,9 +56,32 @@ const Filter = ({ onFilterChange, categorySlug }) => {
     // Handle initial category selection from URL slug
     useEffect(() => {
         if (categorySlug && categories.length > 0) {
-            const matchedCategory = categories.find(c => c.slug === categorySlug);
-            if (matchedCategory) {
-                const newSelected = [matchedCategory._id];
+            let newSelected = [];
+
+            if (categorySlug === 'silk') {
+                // Select all categories containing 'silk'
+                newSelected = categories
+                    .filter(c => c.slug.toLowerCase().includes('silk'))
+                    .map(c => c._id);
+            } else if (categorySlug === 'cotton') {
+                // Select all categories containing 'cotton'
+                newSelected = categories
+                    .filter(c => c.slug.toLowerCase().includes('cotton'))
+                    .map(c => c._id);
+            } else if (categorySlug === 'designer') {
+                // Select all categories NOT containing 'silk' or 'cotton'
+                newSelected = categories
+                    .filter(c => !c.slug.toLowerCase().includes('silk') && !c.slug.toLowerCase().includes('cotton'))
+                    .map(c => c._id);
+            } else {
+                // Normal single category behavior
+                const matchedCategory = categories.find(c => c.slug === categorySlug);
+                if (matchedCategory) {
+                    newSelected = [matchedCategory._id];
+                }
+            }
+
+            if (newSelected.length > 0) {
                 setSelectedCategories(newSelected);
                 // Trigger filter change immediately
                 if (onFilterChange) {

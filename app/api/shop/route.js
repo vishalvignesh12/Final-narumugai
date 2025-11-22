@@ -35,17 +35,44 @@ export async function POST(request) {
             matchQuery.slug = slug
         }
 
-        // Handle categorySlug
+        // Handle categorySlug with Group Logic
         if (categorySlug) {
-            const category = await CategoryModel.findOne({ slug: categorySlug });
-            if (category) {
-                // If categoryFilter is also present, merge them? 
-                // Or assume categorySlug is the initial filter.
-                // Let's add it to the $in array if it exists, or create it.
+            let categoryIds = [];
+
+            if (categorySlug === 'silk') {
+                // Find all categories containing 'silk'
+                const categories = await CategoryModel.find({
+                    slug: { $regex: 'silk', $options: 'i' }
+                });
+                categoryIds = categories.map(c => c._id);
+            } else if (categorySlug === 'cotton') {
+                // Find all categories containing 'cotton'
+                const categories = await CategoryModel.find({
+                    slug: { $regex: 'cotton', $options: 'i' }
+                });
+                categoryIds = categories.map(c => c._id);
+            } else if (categorySlug === 'designer') {
+                // Find all categories NOT containing 'silk' or 'cotton'
+                const categories = await CategoryModel.find({
+                    slug: { $not: { $regex: 'silk|cotton', $options: 'i' } }
+                });
+                categoryIds = categories.map(c => c._id);
+            } else {
+                // Normal single category behavior
+                const category = await CategoryModel.findOne({ slug: categorySlug });
+                if (category) {
+                    categoryIds = [category._id];
+                }
+            }
+
+            if (categoryIds.length > 0) {
                 if (!matchQuery.category) {
-                    matchQuery.category = { $in: [category._id] };
+                    matchQuery.category = { $in: categoryIds };
                 } else if (matchQuery.category.$in) {
-                    matchQuery.category.$in.push(category._id);
+                    // If there's already a filter, we should probably intersect or just add?
+                    // For now, let's push them, but usually filters are ANDed or ORed. 
+                    // Given the use case, adding to the $in array (OR logic) seems appropriate for the initial load.
+                    matchQuery.category.$in.push(...categoryIds);
                 }
             }
         }
