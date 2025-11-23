@@ -77,12 +77,31 @@ export async function POST(request) {
             }
         }
 
-        // Global search
+        // Global search - Enhanced to include category search
         if (globalFilter) {
-            matchQuery["$or"] = [
-                { name: { $regex: globalFilter, $options: 'i' } },
-                { description: { $regex: globalFilter, $options: 'i' } },
-            ];
+            try {
+                // Find categories matching the search term
+                const matchingCategories = await CategoryModel.find({
+                    name: { $regex: globalFilter, $options: 'i' },
+                    deletedAt: null
+                }).select('_id');
+
+                const categoryIds = matchingCategories.map(c => c._id);
+
+                matchQuery["$or"] = [
+                    { name: { $regex: globalFilter, $options: 'i' } },
+                    { description: { $regex: globalFilter, $options: 'i' } },
+                    // Add category matching - include products from matching categories
+                    ...(categoryIds.length > 0 ? [{ category: { $in: categoryIds } }] : [])
+                ];
+            } catch (err) {
+                console.error("Error in category search:", err);
+                // Fallback to just name/description search if category search fails
+                matchQuery["$or"] = [
+                    { name: { $regex: globalFilter, $options: 'i' } },
+                    { description: { $regex: globalFilter, $options: 'i' } },
+                ];
+            }
         }
 
         // Column filters
@@ -156,6 +175,14 @@ export async function GET(request) {
 
         const productIdsFromVariants = matchingVariants.map(v => v.product);
 
+        // Find categories matching the search term
+        const matchingCategories = await CategoryModel.find({
+            name: { $regex: query, $options: 'i' },
+            deletedAt: null
+        }).select('_id');
+
+        const categoryIds = matchingCategories.map(c => c._id);
+
         // Main search query
         const matchQuery = {
             deletedAt: null,
@@ -163,7 +190,8 @@ export async function GET(request) {
             $or: [
                 { name: { $regex: query, $options: 'i' } },
                 { description: { $regex: query, $options: 'i' } },
-                { _id: { $in: productIdsFromVariants } }
+                { _id: { $in: productIdsFromVariants } },
+                ...(categoryIds.length > 0 ? [{ category: { $in: categoryIds } }] : [])
             ]
         };
 
