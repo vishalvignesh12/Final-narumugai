@@ -64,6 +64,8 @@ const OrderDetails = ({ params }) => {
         }
     }
 
+    const mrpTotal = orderData?.products?.reduce((acc, product) => acc + (product.mrp * product.qty), 0) || 0
+
     return (
         <div>
             <BreadCrumb breadcrumbData={breadcrumbData} />
@@ -88,29 +90,29 @@ const OrderDetails = ({ params }) => {
                                 <thead className="border-b bg-gray-50 dark:bg-card md:table-header-group hidden">
                                     <tr>
                                         <th className="text-start p-3">Product</th>
-                                        <th className="text-center p-3">Price</th>
+                                        <th className="text-center p-3">Price (MRP)</th>
                                         <th className="text-center p-3">Quantity</th>
                                         <th className="text-center p-3">Total</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {orderData && orderData?.products?.map((product) => (
-                                        <tr key={product.variantId._id} className="md:table-row block border-b">
+                                    {orderData && orderData?.products?.map((product, index) => (
+                                        <tr key={index} className="md:table-row block border-b">
                                             <td className="md:table-cell p-3">
                                                 <div className="flex items-center gap-5">
-                                                    <Image src={product?.variantId?.media[0]?.secure_url || placeholderImg.src} width={60} height={60} alt="product" className="rounded" />
+                                                    <Image src={product?.variantId?.media?.[0]?.secure_url || placeholderImg.src} width={60} height={60} alt="product" className="rounded" />
                                                     <div>
                                                         <h4 className="text-lg">
-                                                            <Link href={WEBSITE_PRODUCT_DETAILS(product?.productId?.slug)}>{product?.productId?.name}</Link>
-                                                            <p>Color: {product?.variantId?.color}</p>
-                                                            <p>Size: {product?.variantId?.size}</p>
+                                                            <Link href={WEBSITE_PRODUCT_DETAILS(product?.productId?.slug || '#')}>{product?.productId?.name || product.name}</Link>
+                                                            <p>Color: {product?.variantId?.color || 'N/A'}</p>
+                                                            <p>Size: {product?.variantId?.size || 'N/A'}</p>
                                                         </h4>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center">
                                                 <span className="md:hidden font-medium">Price</span>
-                                                <span>{product.sellingPrice.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                                <span>{product.mrp.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                             </td>
                                             <td className="md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center">
                                                 <span className="md:hidden font-medium">Quantity</span>
@@ -118,7 +120,7 @@ const OrderDetails = ({ params }) => {
                                             </td>
                                             <td className="md:table-cell flex justify-between md:p-3 px-3 pb-2 text-center">
                                                 <span className="md:hidden font-medium">Total</span>
-                                                <span>{(product.qty * product.sellingPrice).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
+                                                <span>{(product.qty * product.mrp).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</span>
                                             </td>
                                         </tr>
                                     ))}
@@ -179,7 +181,7 @@ const OrderDetails = ({ params }) => {
                                             <tbody>
                                                 <tr>
                                                     <td className="font-medium py-2">Subtotal</td>
-                                                    <td className="text-end py-2">{orderData?.subtotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
+                                                    <td className="text-end py-2">{mrpTotal.toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}</td>
                                                 </tr>
                                                 <tr>
                                                     <td className="font-medium py-2">Discount</td>

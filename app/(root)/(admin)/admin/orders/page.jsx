@@ -6,7 +6,7 @@ import ViewAction from '@/components/Application/Admin/ViewAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_ORDER_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_DASHBOARD, ADMIN_ORDER_DETAILS, ADMIN_ORDER_SHOW, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
+import { ADMIN_DASHBOARD, ADMIN_ORDER_DETAILS_ROUTE, ADMIN_ORDER_SHOW, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic' // <-- ADDED
 
@@ -32,7 +32,7 @@ const Orders = () => {
 
     const action = useCallback((row, deleteType, handleDelete) => {
         return [
-            <ViewAction key="view" href={`${ADMIN_ORDER_DETAILS}/${row.original.orderId}`} />,
+            <ViewAction key="view-action" href={ADMIN_ORDER_DETAILS_ROUTE(row.original.order_id)} />,
             <DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />
         ]
     }, [])

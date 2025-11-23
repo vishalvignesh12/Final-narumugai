@@ -50,7 +50,8 @@ export const ADMIN_REVIEW_SHOW = '/admin/review'
 // orders routes  
 
 export const ADMIN_ORDER_SHOW = '/admin/orders'
-export const ADMIN_ORDER_DETAILS = (order_id) => order_id ? `/admin/orders/details/${order_id}` : ''
+// Route for order details
+export const ADMIN_ORDER_DETAILS_ROUTE = (order_id) => order_id ? `/admin/orders/details/${order_id}` : ''
 
 
 // Trash route 
