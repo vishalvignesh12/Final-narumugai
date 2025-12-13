@@ -59,7 +59,7 @@
     "lucide-react": "^0.509.0",
     "material-react-table": "^3.2.1",
     "mongoose": "^8.14.2",
-    "next": "^15.5.2",
+    "next": "15.5.9",
     "next-cloudinary": "^6.16.0",
     "next-themes": "^0.4.6",
     "nodemailer": "^7.0.3",
