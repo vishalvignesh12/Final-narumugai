@@ -23,3 +23,9 @@ test('qty 0, qty 21, and qty 1.5 are rejected', () => {
 test('variantId "null" string stays a string (legacy sentinel handled by pricing)', () => {
   assert.equal(checkoutProductSchema.parse({ ...valid, variantId: 'null' }).variantId, 'null')
 })
+
+test('order payload fixture from a stale cart passes full product array validation', () => {
+  const staleCart = [{ productId: '64b000000000000000000001', name: 'Saree', qty: undefined, mrp: '999', sellingPrice: '499' }]
+  const payload = { products: staleCart.map(i => ({ ...i, variantId: i.variantId ?? null, qty: Number(i.qty || 1), mrp: Number(i.mrp || 0), sellingPrice: Number(i.sellingPrice || 0) })) }
+  assert.equal(checkoutProductSchema.array().safeParse(payload.products).success, true)
+})

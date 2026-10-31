@@ -7,14 +7,13 @@ import { Input } from '@/components/ui/input'
 import { showToast } from '@/lib/showToast'
 import { zSchema } from '@/lib/zodSchema'
 import { WEBSITE_ORDER_DETAILS, WEBSITE_PRODUCT_DETAILS, WEBSITE_SHOP } from '@/routes/WebsiteRoute'
-import { clearCart } from '@/store/reducer/cartReducer'
 import { zodResolver } from '@hookform/resolvers/zod'
 import axios from 'axios'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useEffect, useState, useRef } from 'react'
 import { useForm } from 'react-hook-form'
-import { useDispatch, useSelector } from 'react-redux'
+import { useSelector } from 'react-redux'
 import { IoCloseCircleSharp } from "react-icons/io5"
 import { FaShippingFast } from "react-icons/fa"
 import { Textarea } from '@/components/ui/textarea'
@@ -29,7 +28,6 @@ const breadCrumb = {
 
 const Checkout = () => {
     const router = useRouter()
-    const dispatch = useDispatch()
     const cart = useSelector(store => store.cartStore)
     const authStore = useSelector(store => store.authStore)
     const [verifiedCartData, setVerifiedCartData] = useState([])
@@ -52,15 +50,15 @@ const Checkout = () => {
         if (cart.count > 0) {
             const cartData = cart.products.map(item => ({
                 productId: item.productId,
-                variantId: item.variantId,
+                variantId: item.variantId || null,
                 name: item.name,
                 url: item.url || item.slug || '',
                 size: item.size,
                 color: item.color,
-                mrp: item.mrp,
-                sellingPrice: item.sellingPrice,
+                mrp: Number(item.mrp || 0),
+                sellingPrice: Number(item.sellingPrice || 0),
                 media: item.media,
-                qty: item.qty || 1
+                qty: Number(item.qty || 1)
             }))
             setVerifiedCartData(cartData)
         } else {
@@ -194,29 +192,17 @@ const Checkout = () => {
         // `item.variantId.startsWith('fallback-')` has been
         // removed from here.
 
-        // Prepare items for stock check
-        const stockLockItems = verifiedCartData.map(cartItem => ({
-            variantId: cartItem.variantId,
-            quantity: cartItem.qty || 1
-        }));
-
         try {
-            // --- STEP 1: ATOMIC STOCK PURCHASE (LOCK) ---
-            // First, try to "purchase" or "lock" the stock atomically.
-            await axios.post('/api/stock/atomic-purchase', {
-                items: stockLockItems
-            });
-
-            // --- STEP 2: INITIATE PAYMENT (If stock lock succeeds) ---
+            // The server reserves inventory atomically with order creation.
             try {
                 // Prepare cart products data for the order
                 const products = verifiedCartData.map((cartItem) => ({
                     productId: cartItem.productId,
-                    variantId: cartItem.variantId,
+                    variantId: cartItem.variantId || null,
                     name: cartItem.name,
-                    qty: cartItem.qty || 1,
-                    mrp: cartItem.mrp,
-                    sellingPrice: cartItem.sellingPrice,
+                    qty: Number(cartItem.qty || 1),
+                    mrp: Number(cartItem.mrp || 0),
+                    sellingPrice: Number(cartItem.sellingPrice || 0),
                 }));
 
                 // Prepare the payload
@@ -225,8 +211,6 @@ const Checkout = () => {
                     products: products,
                     // Send coupon code for server-side validation
                     couponCode: couponCode,
-                    // Conditionally add userId ONLY if it exists.
-                    ...(authStore?.auth?._id && { userId: authStore.auth._id })
                 };
 
                 // Call API to create a pending order and get PayU details
@@ -236,23 +220,23 @@ const Checkout = () => {
                     throw new Error(response.message || 'Failed to initiate payment');
                 }
                 
+                // Remember this transaction so the cart is cleared only after
+                // the verified success callback returns to the order page.
+                try {
+                    sessionStorage.setItem('pending-payu-order-id', response.data.txnid)
+                } catch (storageError) {
+                    console.warn('Could not save the pending payment reference.', storageError)
+                }
+
                 // Set PayU data, which triggers the useEffect to submit the form
                 setPayuData(response.data);
-                
-                // --- FIX ---
-                // We clear the cart from Redux *now*, as we are redirecting to payment.
-                // If payment fails, the user's order is 'failed' but the stock
-                // will be returned by the 'verify' route.
-                dispatch(clearCart());
 
             } catch (initiateError) {
-                // --- ROLLBACK: Payment initiation failed, so UNLOCK stock ---
-
                 // --- ::: START OF ENHANCED LOGGING ::: ---
                 const errorData = initiateError.response?.data;
                 const errorMessage = errorData?.message || initiateError.message || 'Error processing your order';
                 
-                console.error('Error initiating payment, unlocking stock:', errorMessage);
+                console.error('Error initiating payment:', errorMessage);
                 if (errorData?.error) {
                     console.error('Validation errors:', errorData.error);
                 }
@@ -260,20 +244,15 @@ const Checkout = () => {
 
                 showToast('error', errorMessage);
                 
-                // Call the unlock endpoint to return the items to stock
-                await axios.post('/api/stock/unlock', {
-                    items: stockLockItems
-                });
                 setPlacingOrder(false);
             }
 
         } catch (stockError) {
-            // --- STEP 1 FAILED: Stock purchase failed ---
             // --- ENHANCED ERROR LOGGING ---
             const errorData = stockError.response?.data;
             const errorMessage = errorData?.message || 'An item in your cart is no longer available.';
 
-            console.error('Error locking stock:', errorMessage);
+            console.error('Payment initiation failed:', errorMessage);
             if (errorData?.error) {
                 console.error('Locking errors:', errorData.error);
             }
