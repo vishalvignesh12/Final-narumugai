@@ -13,7 +13,7 @@ Narumugai is a saree e-commerce website with a customer storefront, account and 
 
 ## Requirements
 
-- Node.js 20.19.x (declared in `package.json` and `.nvmrc`)
+- Node.js 26.x (declared in `package.json` and `.nvmrc`)
 - npm
 - A MongoDB database and credentials for the external services used by enabled features
 

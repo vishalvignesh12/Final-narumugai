@@ -12,7 +12,7 @@ npm run build
 npm start
 ```
 
-The project requires Node.js 20.19.x, as declared in `package.json` and `.nvmrc`. `next.config.js` does not enable static export. Configure the host to run the production Next.js server and route traffic to its listening port.
+The project requires Node.js 26.x, as declared in `package.json` and `.nvmrc`. `next.config.js` does not enable static export. Configure the host to run the production Next.js server and route traffic to its listening port.
 
 ## Production checklist
 

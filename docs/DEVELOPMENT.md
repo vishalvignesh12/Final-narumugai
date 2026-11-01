@@ -2,7 +2,7 @@
 
 ## Local development setup
 
-Use Node.js 20.x and npm. Install the lockfile-defined dependencies with `npm ci`, create `.env.local` using [Configuration](CONFIGURATION.md), and start the hot-reloading server with `npm run dev`. Keep local credentials and test data separate from production.
+Use Node.js 26.x and npm. Install the lockfile-defined dependencies with `npm ci`, create `.env.local` using [Configuration](CONFIGURATION.md), and start the hot-reloading server with `npm run dev`. Keep local credentials and test data separate from production.
 
 ## Package scripts
 

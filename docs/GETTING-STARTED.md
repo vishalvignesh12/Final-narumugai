@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Node.js 20.x and npm.
+- Node.js 26.x and npm.
 - Git.
 - MongoDB access for application data.
 - Credentials for the external services needed by the features you intend to exercise (Cloudinary, SMTP, and PayU).

@@ -4,7 +4,7 @@ The Prisma 7 PostgreSQL foundation is hosted by Supabase. The checked-in migrati
 
 ## Runtime requirements
 
-- Use Node.js `20.19.x` (see `.nvmrc`). Prisma 7 supports Node 20 starting at 20.19.
+- Use Node.js `26.x` (see `.nvmrc`).
 - Copy `.env.example` to the ignored `.env.local` and fill in the Supabase values locally. Never commit `.env.local` or paste credentials into source files.
 - `DATABASE_URL` is used by the runtime Prisma client. For a long-running Next.js server, use the Supavisor **session pooler** (port 5432). For serverless runtime, use the Supavisor **transaction pooler** (port 6543) and include `pgbouncer=true` as Supabase directs.
 - `DIRECT_URL` is used only by Prisma CLI migrations. Use the Supabase direct database connection when the environment supports its network route; otherwise use Supavisor session mode. Do not use the transaction pooler for schema migrations.
