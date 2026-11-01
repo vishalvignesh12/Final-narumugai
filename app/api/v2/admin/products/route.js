@@ -1,0 +1,3 @@
+import { getAdminRouteHandlers } from '@/src/modules/admin/admin-runtime.js'
+export async function GET(request) { return (await getAdminRouteHandlers()).listProducts(request) }
+export async function POST(request) { return (await getAdminRouteHandlers()).createProduct(request) }

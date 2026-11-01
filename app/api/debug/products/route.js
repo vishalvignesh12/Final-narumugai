@@ -2,9 +2,12 @@ import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductModel from "@/models/Product.model";
 import ProductVariantModel from "@/models/ProductVariant.model";
+import { isAuthenticated } from "@/lib/authentication";
 
 export async function GET(request) {
     try {
+        const auth = await isAuthenticated('admin');
+        if (!auth.isAuth) return response(false, 401, 'Unauthorized.');
         await connectDB()
         
         // Get basic product count

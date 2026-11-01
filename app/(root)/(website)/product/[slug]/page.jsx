@@ -1,13 +1,11 @@
 import React from 'react'
 import ProductDetails from './ProductDetails'
-import { Metadata } from 'next'
 import { getBaseURL } from '@/lib/config'
 
 // Database imports
 import { connectDB } from '@/lib/databaseConnection'
 import ProductModel from '@/models/Product.model'
 import ProductVariantModel from '@/models/ProductVariant.model'
-import ReviewModel from '@/models/Review.model'
 
 // Import Media model to ensure it's registered with Mongoose
 import MediaModel from '@/models/Media.model'
@@ -75,17 +73,14 @@ export async function generateMetadata({ params }) {
             };
         }
 
-        // Get review count 
-        const reviewCount = await ReviewModel.countDocuments({ product: getProduct._id });
-
         // Return metadata 
         return {
-            title: `${getProduct.name} | Premium Saree Online | Narumugai`,
-            description: `Buy ${getProduct.name} online at best price. Premium quality saree. Free shipping and easy returns.`,
-            keywords: `${getProduct.name}, saree online, buy saree online, premium sarees`,
+            title: `${getProduct.name} | Narumugai Boutique`,
+            description: `View ${getProduct.name}, its price, product details, and available options at Narumugai Boutique.`,
+            keywords: `${getProduct.name}, Narumugai Boutique`,
             openGraph: {
-                title: `${getProduct.name} | Premium Saree Online | Narumugai`,
-                description: `Buy ${getProduct.name} online at best price. Premium quality saree with free shipping.`,
+                title: `${getProduct.name} | Narumugai Boutique`,
+                description: `View ${getProduct.name} and its available options at Narumugai Boutique.`,
                 type: 'website',
                 url: `${getBaseURL()}/product/${slug}`,
                 siteName: 'Narumugai',
@@ -95,14 +90,14 @@ export async function generateMetadata({ params }) {
                         url: variant?.media?.[0]?.secure_url || getProduct?.media?.[0]?.secure_url || '/assets/images/img-placeholder.webp',
                         width: 1200,
                         height: 630,
-                        alt: `${getProduct.name} | Narumugai Sarees`,
+                        alt: `${getProduct.name} | Narumugai Boutique`,
                         type: 'image/jpeg'
                     },
                     ...(variant?.media?.slice(1, 4) || getProduct?.media?.slice(1, 4) || []).map(img => ({
                         url: img.secure_url,
                         width: 1200,
                         height: 630,
-                        alt: `${getProduct.name} - Additional view | Narumugai Sarees`,
+                        alt: `${getProduct.name} - Additional view | Narumugai Boutique`,
                         type: 'image/jpeg'
                     }))
                 ]
@@ -111,8 +106,8 @@ export async function generateMetadata({ params }) {
                 card: 'summary_large_image',
                 site: '@narumugai',
                 creator: '@narumugai',
-                title: `${getProduct.name} | Premium Saree Online | Narumugai`,
-                description: `Buy ${getProduct.name} online at best price. Premium quality saree with free shipping.`,
+                title: `${getProduct.name} | Narumugai Boutique`,
+                description: `View ${getProduct.name} and its available options at Narumugai Boutique.`,
                 images: [variant?.media?.[0]?.secure_url || getProduct?.media?.[0]?.secure_url || '/assets/images/img-placeholder.webp'],
                 app: {
                     name: {
@@ -137,7 +132,7 @@ export async function generateMetadata({ params }) {
                 'product:condition': 'new',
                 'product:brand': 'Narumugai',
                 'product:retailer_item_id': variant._id || getProduct._id,
-                'product:category': getProduct.category || 'Sarees',
+                'product:category': 'Apparel',
                 'product:color': variant?.color,
                 'product:size': variant?.size,
                 'business:contact_data:country_name': 'India',
@@ -217,9 +212,6 @@ const ProductPage = async ({ params }) => {
             };
         }
 
-        // get review count 
-        const reviewCount = await ReviewModel.countDocuments({ product: productData._id });
-
         // --- FIX: Serialize all data before passing to client component ---
         const product = JSON.parse(JSON.stringify(productData));
         const allVariants = JSON.parse(JSON.stringify(allVariantsData));
@@ -255,23 +247,20 @@ const ProductPage = async ({ params }) => {
                                 "@type": "Brand",
                                 "name": "Narumugai"
                             },
-                            "category": "Clothing > Women's Clothing > Sarees",
+                            "category": "Apparel",
                             "image": varnt?.media?.map(img => img.secure_url) || prod?.media?.map(img => img.secure_url) || [],
                             "offers": {
                                 "@type": "Offer",
                                 "price": varnt.sellingPrice,
                                 "priceCurrency": "INR",
-                                "availability": "https://schema.org/InStock",
+                                "availability": (varnt.quantity || 0) > 0
+                                    ? "https://schema.org/InStock"
+                                    : "https://schema.org/OutOfStock",
                                 "seller": {
                                     "@type": "Organization",
                                     "name": "Narumugai"
                                 },
                                 "priceValidUntil": new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-                            },
-                            "aggregateRating": {
-                                "@type": "AggregateRating",
-                                "ratingValue": "4.5", // You might want to fetch this dynamically
-                                "reviewCount": reviewCount || 0
                             },
                             "additionalProperty": [
                                 {
@@ -284,11 +273,6 @@ const ProductPage = async ({ params }) => {
                                     "name": "Size",
                                     "value": varnt.size
                                 },
-                                {
-                                    "@type": "PropertyValue",
-                                    "name": "Material",
-                                    "value": "Premium Fabric" // You might want to make this dynamic
-                                }
                             ],
                             "breadcrumb": {
                                 "@type": "BreadcrumbList",
@@ -302,7 +286,7 @@ const ProductPage = async ({ params }) => {
                                     {
                                         "@type": "ListItem",
                                         "position": 2,
-                                        "name": "Shop Sarees",
+                                        "name": "Shop",
                                         "item": "https://narumugai.com/shop"
                                     },
                                     {
@@ -324,7 +308,6 @@ const ProductPage = async ({ params }) => {
                     allVariants={allVariants}
                     colors={colors}
                     sizes={sizes}
-                    reviewCount={reviewCount}
                 />
             </div>
         );

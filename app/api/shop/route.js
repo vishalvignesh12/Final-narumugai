@@ -57,24 +57,27 @@ export async function POST(request) {
                     slug: { $not: { $regex: 'silk|cotton', $options: 'i' } }
                 });
                 categoryIds = categories.map(c => c._id);
+            } else if (categorySlug === 'kurthi' || categorySlug === 'kurthi-materials') {
+                // Treat the Kurthi landing page as a collection of its three
+                // product categories (including the singular umbrella label).
+                const categories = await CategoryModel.find({
+                    deletedAt: null,
+                    $or: [
+                        { slug: { $in: ['kurthi', 'kurthis', 'kurthi-materials', 'gown', 'gowns', 'chudi-materials'] } },
+                        { name: { $regex: /^(kurthis?|kurthi materials|gowns?|chudi materials)$/i } }
+                    ]
+                }).select('_id');
+                categoryIds = categories.map(c => c._id);
             } else {
                 // Normal single category behavior
-                const category = await CategoryModel.findOne({ slug: categorySlug });
+                const category = await CategoryModel.findOne({ slug: categorySlug, deletedAt: null });
                 if (category) {
                     categoryIds = [category._id];
                 }
             }
 
-            if (categoryIds.length > 0) {
-                if (!matchQuery.category) {
-                    matchQuery.category = { $in: categoryIds };
-                } else if (matchQuery.category.$in) {
-                    // If there's already a filter, we should probably intersect or just add?
-                    // For now, let's push them, but usually filters are ANDed or ORed. 
-                    // Given the use case, adding to the $in array (OR logic) seems appropriate for the initial load.
-                    matchQuery.category.$in.push(...categoryIds);
-                }
-            }
+            // An unknown category must return no products, never the full catalog.
+            matchQuery.category = { $in: categoryIds };
         }
 
         // Global search - Enhanced to include category search

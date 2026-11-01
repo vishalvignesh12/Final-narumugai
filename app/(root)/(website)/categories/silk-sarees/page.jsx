@@ -1,4 +1,3 @@
-import { Metadata } from 'next'
 import React from 'react'
 import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb'
 import CategoryPageClient from '@/components/Application/Website/CategoryPageClient'

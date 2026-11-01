@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/src/generated/prisma/
 /.pnp
 .pnp.*
 .yarn/*
@@ -15,6 +16,7 @@
 
 # next.js
 /.next/
+/.next-dev/
 /out/
 
 # production
@@ -32,6 +34,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel

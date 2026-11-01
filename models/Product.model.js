@@ -45,12 +45,8 @@ const productSchema = new mongoose.Schema({
         type: Number,
         default: 1,
         min: 0,
+        validate: Number.isInteger,
         index: true
-    },
-    lockedQuantity: {
-        type: Number,
-        default: 0,
-        min: 0
     },
     isAvailable: {
         type: Boolean,

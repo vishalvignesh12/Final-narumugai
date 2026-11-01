@@ -2,6 +2,7 @@
 const nextConfig = {
     compress: true,
     poweredByHeader: false,
+    distDir: process.env.NODE_ENV === 'development' ? '.next-dev' : '.next',
 
     async headers() {
         return [

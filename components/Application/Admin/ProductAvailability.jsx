@@ -17,13 +17,16 @@ import ButtonLoading from '@/components/Application/ButtonLoading'
 
 const ProductAvailability = () => {
     const [search, setSearch] = useState('')
+    const [debouncedSearch, setDebouncedSearch] = useState('')
+    const [page, setPage] = useState(0)
     const [updatingProduct, setUpdatingProduct] = useState(null)
     const queryClient = useQueryClient()
 
-    // Fetch ALL products with availability status (no pagination)
+    // Load one bounded page of availability results.
     const fetchProducts = async () => {
         try {
-            const { data: response } = await axios.get(`/api/product/availability?page=0&limit=10000&search=${search}`)
+            const params = new URLSearchParams({ page: String(page), limit: '20', search: debouncedSearch })
+            const { data: response } = await axios.get(`/api/product/availability?${params}`)
             return response
         } catch (error) {
             console.error('Failed to fetch products:', error)
@@ -32,13 +35,12 @@ const ProductAvailability = () => {
     }
 
     const { data, isPending, isError, error } = useQuery({
-        queryKey: ['product-availability', search],
-        queryFn: fetchProducts,
-        keepPreviousData: true
+        queryKey: ['product-availability', debouncedSearch, page],
+        queryFn: fetchProducts
     })
 
     // Handle availability toggle
-    const handleAvailabilityToggle = async (productId, currentStatus, productName) => {
+    const handleAvailabilityToggle = async (productId, currentStatus) => {
         setUpdatingProduct(productId)
         try {
             const newStatus = !currentStatus
@@ -50,7 +52,7 @@ const ProductAvailability = () => {
             if (response.success) {
                 showToast('success', response.message)
                 // Invalidate and refetch the query
-                queryClient.invalidateQueries(['product-availability'])
+                queryClient.invalidateQueries({ queryKey: ['product-availability'] })
             } else {
                 throw new Error(response.message)
             }
@@ -61,11 +63,30 @@ const ProductAvailability = () => {
         }
     }
 
+    const handleVariantAvailabilityToggle = async (variant) => {
+        setUpdatingProduct(variant._id)
+        try {
+            const isAvailable = !(variant.quantity > 0)
+            const { data: response } = await axios.patch('/api/product/availability', {
+                variantId: variant._id,
+                isAvailable
+            })
+            if (!response.success) throw new Error(response.message)
+            showToast('success', response.message)
+            queryClient.invalidateQueries({ queryKey: ['product-availability'] })
+        } catch (error) {
+            showToast('error', error.response?.data?.message || error.message)
+        } finally {
+            setUpdatingProduct(null)
+        }
+    }
+
     // Handle search with debounce
     useEffect(() => {
         const timeoutId = setTimeout(() => {
-            // Just trigger refetch when search changes
-        }, 500)
+            setDebouncedSearch(search.trim())
+            setPage(0)
+        }, 300)
         return () => clearTimeout(timeoutId)
     }, [search])
 
@@ -110,7 +131,7 @@ const ProductAvailability = () => {
                         <div className="flex items-center space-x-2">
                             <TbPackage className="text-green-500 text-2xl" />
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Available</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Available on this page</p>
                                 <p className="text-2xl font-bold text-green-600">
                                     {products.filter(p => p.isAvailable).length}
                                 </p>
@@ -124,7 +145,7 @@ const ProductAvailability = () => {
                         <div className="flex items-center space-x-2">
                             <TbPackageOff className="text-red-500 text-2xl" />
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Sold Out</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Sold out on this page</p>
                                 <p className="text-2xl font-bold text-red-600">
                                     {products.filter(p => !p.isAvailable).length}
                                 </p>
@@ -138,7 +159,7 @@ const ProductAvailability = () => {
                         <div className="flex items-center space-x-2">
                             <TbPackage className="text-blue-500 text-2xl" />
                             <div>
-                                <p className="text-sm text-gray-600 dark:text-gray-400">Total Products</p>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">Matching products</p>
                                 <p className="text-2xl font-bold text-blue-600">{meta.totalProducts || 0}</p>
                             </div>
                         </div>
@@ -239,20 +260,49 @@ const ProductAvailability = () => {
 
                                         {/* Additional Product Info */}
                                         <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                                            <div className="flex justify-between">
-                                                <span>SKU:</span>
-                                                <span className="font-mono">{product.sku || 'N/A'}</span>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span>Stock:</span>
-                                                <span className={`font-semibold ${product.isAvailable
-                                                    ? 'text-green-600 dark:text-green-400'
-                                                    : 'text-red-600 dark:text-red-400'
-                                                    }`}>
-                                                    {product.isAvailable ? 'In Stock' : 'Out of Stock'}
-                                                </span>
-                                            </div>
+                                            {!product.variants?.length && (
+                                                <>
+                                                    <div className="flex justify-between">
+                                                        <span>SKU:</span>
+                                                        <span className="font-mono">{product.sku || 'N/A'}</span>
+                                                    </div>
+                                                    <div className="flex justify-between">
+                                                        <span>Stock:</span>
+                                                        <span className={`font-semibold ${product.isAvailable ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                            {product.isAvailable ? 'One piece available' : 'Out of stock'}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
+
+                                        {!!product.variants?.length && (
+                                            <div className="mt-4 space-y-2">
+                                                <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Size availability</p>
+                                                {product.variants.map(variant => {
+                                                    const variantAvailable = variant.quantity > 0
+                                                    return (
+                                                        <div key={variant._id} className="flex items-center justify-between gap-2 rounded-md border p-2">
+                                                            <div className="min-w-0">
+                                                                <span className="font-medium">{variant.size}</span>
+                                                                {variant.color && <span className="ml-2 text-xs text-gray-500">{variant.color}</span>}
+                                                                <span className={`ml-2 text-xs ${variantAvailable ? 'text-green-600' : 'text-red-600'}`}>
+                                                                    {variantAvailable ? 'Available' : 'Sold out'}
+                                                                </span>
+                                                            </div>
+                                                            <Button
+                                                                size="sm"
+                                                                variant={variantAvailable ? 'destructive' : 'default'}
+                                                                disabled={updatingProduct === variant._id}
+                                                                onClick={() => handleVariantAvailabilityToggle(variant)}
+                                                            >
+                                                                {variantAvailable ? 'Mark sold' : 'Mark available'}
+                                                            </Button>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        )}
 
                                         {!product.isAvailable && product.soldAt && (
                                             <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 p-2 rounded">
@@ -262,10 +312,10 @@ const ProductAvailability = () => {
                                     </div>
                                 </div>
 
-                                {/* Enhanced Action Button */}
-                                <ButtonLoading
+                                {/* Simple products use a product-level availability control. */}
+                                {!product.variants?.length && <ButtonLoading
                                     loading={updatingProduct === product._id}
-                                    onClick={() => handleAvailabilityToggle(product._id, product.isAvailable, product.name)}
+                                    onClick={() => handleAvailabilityToggle(product._id, product.isAvailable)}
                                     className={`w-full h-11 font-semibold text-sm rounded-lg transition-all duration-200 ${product.isAvailable
                                         ? 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-red-200 dark:hover:shadow-red-900'
                                         : 'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-green-200 dark:hover:shadow-green-900'
@@ -283,10 +333,23 @@ const ProductAvailability = () => {
                                             Mark as Available
                                         </>
                                     )}
-                                </ButtonLoading>
+                                </ButtonLoading>}
                             </CardContent>
                         </Card>
                     ))}
+                </div>
+            )}
+            {!isPending && !isError && products.length > 0 && (
+                <div className="flex items-center justify-center gap-4" aria-label="Product availability pages">
+                    <Button variant="outline" onClick={() => setPage(value => Math.max(0, value - 1))} disabled={page === 0}>
+                        Previous
+                    </Button>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">
+                        Page {page + 1} of {meta.totalPages || 1}
+                    </span>
+                    <Button variant="outline" onClick={() => setPage(value => Math.min((meta.totalPages || 1) - 1, value + 1))} disabled={!meta.hasNextPage}>
+                        Next
+                    </Button>
                 </div>
             )}
         </div>

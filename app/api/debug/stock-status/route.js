@@ -1,9 +1,12 @@
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import ProductVariantModel from "@/models/ProductVariant.model";
+import { isAuthenticated } from "@/lib/authentication";
 
 export async function GET(request) {
     try {
+        const auth = await isAuthenticated('admin');
+        if (!auth.isAuth) return response(false, 401, 'Unauthorized.');
         await connectDB()
         
         const searchParams = request.nextUrl.searchParams
@@ -12,7 +15,7 @@ export async function GET(request) {
         if (variantId) {
             // Get specific variant details
             const variant = await ProductVariantModel.findById(variantId)
-                .populate('product', 'name isAvailable quantity lockedQuantity')
+                .populate('product', 'name isAvailable quantity')
                 .lean()
             
             if (!variant) {
@@ -21,28 +24,26 @@ export async function GET(request) {
             
             return response(true, 200, 'Variant details', {
                 variant,
-                availableQuantity: (variant.quantity || 0) - (variant.lockedQuantity || 0),
-                canPurchase: variant.product.isAvailable && ((variant.quantity || 0) - (variant.lockedQuantity || 0)) > 0
+                availableQuantity: variant.quantity || 0,
+                canPurchase: Boolean(variant.product?.isAvailable) && (variant.quantity || 0) > 0
             })
         }
         
         // Get sample variants with stock info
-        const variants = await ProductVariantModel.find({}, 'sku quantity lockedQuantity')
-            .populate('product', 'name isAvailable quantity lockedQuantity')
+        const variants = await ProductVariantModel.find({}, 'sku quantity')
+            .populate('product', 'name isAvailable quantity')
             .limit(10)
             .lean()
         
         const variantStats = variants.map(variant => ({
             variantId: variant._id,
-            productName: variant.product.name,
+            productName: variant.product?.name,
             sku: variant.sku,
-            productAvailable: variant.product.isAvailable,
+            productAvailable: Boolean(variant.product?.isAvailable),
             variantQuantity: variant.quantity || 0,
-            variantLocked: variant.lockedQuantity || 0,
-            productQuantity: variant.product.quantity || 0,
-            productLocked: variant.product.lockedQuantity || 0,
-            availableStock: (variant.quantity || 0) - (variant.lockedQuantity || 0),
-            canPurchase: variant.product.isAvailable && ((variant.quantity || 0) - (variant.lockedQuantity || 0)) > 0
+            productQuantity: variant.product?.quantity || 0,
+            availableStock: variant.quantity || 0,
+            canPurchase: Boolean(variant.product?.isAvailable) && (variant.quantity || 0) > 0
         }))
         
         return response(true, 200, 'Stock status check', {

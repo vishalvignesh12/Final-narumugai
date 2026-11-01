@@ -1,110 +1,67 @@
-import { isAuthenticated } from "@/lib/authentication";
-import { connectDB } from "@/lib/databaseConnection";
-import { catchError, response } from "@/lib/helperFunction";
-import OrderModel from "@/models/Order.model";
-import ProductModel from "@/models/Product.model";
-import ProductVariantModel from "@/models/ProductVariant.model";
-import { z } from "zod";
+import { z } from 'zod';
+import { isAuthenticated } from '@/lib/authentication';
+import { connectDB } from '@/lib/databaseConnection';
+import { catchError, response } from '@/lib/helperFunction';
+import OrderModel from '@/models/Order.model';
+import { unlockStock } from '@/lib/inventoryRestore';
 
 const cancelOrderSchema = z.object({
-    orderId: z.string().length(24, 'Invalid order ID format'),
-    reason: z.string().min(1, 'Cancellation reason is required').max(500, 'Reason too long')
+  orderId: z.string().length(24, 'Invalid order ID format'),
+  reason: z.string().trim().min(1, 'Cancellation reason is required').max(500, 'Reason too long'),
 });
 
 export async function PUT(request) {
-    try {
-        await connectDB()
-        
-        // Authenticate user
-        const auth = await isAuthenticated('user')
-        if (!auth.isAuth) {
-            return response(false, 401, 'Unauthorized')
-        }
+  let session;
+  try {
+    const auth = await isAuthenticated('user');
+    if (!auth.isAuth) return response(false, 401, 'Unauthorized.');
 
-        const payload = await request.json()
-        const validate = cancelOrderSchema.safeParse(payload)
-        
-        if (!validate.success) {
-            return response(false, 400, 'Invalid or missing fields.', validate.error)
-        }
+    const parsed = cancelOrderSchema.safeParse(await request.json());
+    if (!parsed.success) return response(false, 400, 'Invalid or missing fields.', parsed.error.flatten());
+    await connectDB();
 
-        const { orderId, reason } = validate.data
-        
-        // Start database session for transaction
-        const session = await OrderModel.startSession()
-        
-        try {
-            session.startTransaction()
+    const { orderId, reason } = parsed.data;
+    session = await OrderModel.startSession();
+    session.startTransaction();
 
-            // Find the order and verify ownership
-            const order = await OrderModel.findOne({
-                _id: orderId,
-                user: auth.userId,
-                deletedAt: null
-            }).session(session)
-
-            if (!order) {
-                throw new Error('Order not found or access denied')
-            }
-
-            // Check if order can be cancelled (only pending, processing orders can be cancelled)
-            if (!['pending', 'processing'].includes(order.status)) {
-                throw new Error(`Cannot cancel order with status: ${order.status}. Only pending or processing orders can be cancelled.`)
-            }
-
-            // Restore stock for cancelled order
-            for (const product of order.products) {
-                // Add back the quantity to the product variant
-                const result = await ProductVariantModel.findByIdAndUpdate(
-                    product.variantId,
-                    {
-                        $inc: { quantity: product.qty }
-                    },
-                    {
-                        session,
-                        new: true
-                    }
-                ).populate('product')
-
-                if (result) {
-                    // If product was marked as sold out, make it available again
-                    if (!result.product.isAvailable && result.quantity > 0) {
-                        await ProductModel.findByIdAndUpdate(
-                            result.product._id,
-                            {
-                                isAvailable: true,
-                                $unset: { soldAt: 1 } // Remove soldAt timestamp
-                            },
-                            { session }
-                        )
-                    }
-                }
-            }
-
-            // Update order status to cancelled and add cancellation reason
-            await OrderModel.findByIdAndUpdate(
-                orderId,
-                {
-                    status: 'cancelled',
-                    cancellationReason: reason,
-                    cancelledAt: new Date(),
-                    cancelledBy: auth.userId
-                },
-                { session }
-            )
-
-            await session.commitTransaction()
-
-            return response(true, 200, 'Order cancelled successfully. Stock has been restored.')
-
-        } catch (error) {
-            await session.abortTransaction()
-            throw error
-        } finally {
-            session.endSession()
-        }
-
-    } catch (error) {
-        return catchError(error)
+    // Claim the state transition first so repeat requests cannot restore stock twice.
+    const existing = await OrderModel.findOne({ _id: orderId, user: auth.userId, deletedAt: null }).session(session)
+    if (!existing || !['pending-payment', 'processing'].includes(existing.status)) {
+      await session.abortTransaction();
+      return response(false, 409, 'This order cannot be cancelled in its current state.');
     }
+
+    if (existing.status === 'processing') {
+      const requested = await OrderModel.findOneAndUpdate(
+        { _id: existing._id, status: 'processing', payment_status: 'paid' },
+        {
+          $set: { status: 'cancel-requested', cancellationReason: reason, cancelledAt: new Date(), cancelledBy: auth.userId },
+          $push: { statusHistory: { at: new Date(), from: 'processing', to: 'cancel-requested', actorId: auth.userId, note: reason } }
+        },
+        { new: true, session }
+      )
+      if (!requested) throw new Error('Order changed while requesting cancellation.')
+      await session.commitTransaction()
+      return response(true, 200, 'Cancellation requested. Our team will process your refund.')
+    }
+
+    const order = await OrderModel.findOneAndUpdate(
+      { _id: existing._id, status: 'pending-payment', payment_status: 'pending' },
+      {
+        $set: { status: 'cancelled', cancellationReason: reason, cancelledAt: new Date(), cancelledBy: auth.userId },
+        $push: { statusHistory: { at: new Date(), from: 'pending-payment', to: 'cancelled', actorId: auth.userId, note: reason } }
+      },
+      { new: true, session },
+    )
+    if (!order) throw new Error('Order changed while cancelling.')
+    await unlockStock(order, session);
+
+    await session.commitTransaction();
+    return response(true, 200, 'Order cancelled successfully. Inventory has been restored.');
+  } catch (error) {
+    if (session?.inTransaction()) await session.abortTransaction();
+    return catchError(error);
+  } finally {
+    await session?.endSession();
+  }
 }

@@ -1,49 +1,12 @@
 import { connectDB } from "@/lib/databaseConnection";
-import { catchError, response } from "@/lib/helperFunction";
 import OrderModel from "@/models/Order.model";
-import ProductModel from "@/models/Product.model";
-import ProductVariantModel from "@/models/ProductVariant.model";
-import { orderNotification } from "@/email/orderNotification";
-import { sendMail } from "@/lib/sendMail";
 import { NextResponse } from "next/server";
-import crypto from "crypto";
-
-// --- (verifyHash function remains the same) ---
-const verifyHash = (data, salt) => {
-    const hashString = `${salt}|${data.status}|||||||||||${data.email}|${data.firstname}|${data.productinfo}|${data.amount}|${data.txnid}|${data.key}`;
-    const calculatedHash = crypto.createHash('sha512').update(hashString).digest('hex');
-    return calculatedHash === data.hash;
-};
-
-
-// --- FIX: NEW HELPER FUNCTION TO UNLOCK STOCK ---
-async function unlockStock(order, session = null) {
-    console.log(`Unlocking stock for failed order ${order.order_id}`);
-    for (const item of order.products) {
-        try {
-            if (!item.variantId || item.variantId.toString().includes('fallback-')) {
-                // Handle fallback variants
-                const productId = item.productId;
-                await ProductModel.findOneAndUpdate(
-                    { _id: productId },
-                    { $inc: { quantity: item.qty }, isAvailable: true }, // Increment quantity back
-                    { session }
-                );
-            } else {
-                // Handle real variants
-                await ProductVariantModel.findOneAndUpdate(
-                    { _id: item.variantId },
-                    { $inc: { quantity: item.qty } }, // Increment quantity back
-                    { session }
-                );
-            }
-        } catch (error) {
-            // Log error but don't stop the redirect.
-            // This needs monitoring.
-            console.error(`CRITICAL: Failed to unlock stock for item ${item.variantId || item.productId} in order ${order.order_id}`, error);
-        }
-    }
-}
+import { createOrderAccessToken } from "@/lib/orderAccess";
+import { unlockStock } from "@/lib/inventoryRestore";
+import { sanitizeGatewayText } from "@/lib/sanitize";
+import { verifyLegacyPayUHash } from "@/lib/payments/legacyPayu";
+import { getOrderUrl, sendOrderNotifications } from "@/lib/orderNotifications";
+import { getBaseURL } from "@/lib/config";
 
 
 export async function POST(request) {
@@ -53,30 +16,36 @@ export async function POST(request) {
     try {
         const formData = await request.formData();
         const data = Object.fromEntries(formData);
+        const baseURL = getBaseURL();
         
         await connectDB();
 
         const salt = process.env.PAYU_SALT;
         const key = process.env.PAYU_KEY;
+        if (!salt || !key) throw new Error('PayU is not configured.');
 
         // 1. Verify the hash
-        const isHashValid = verifyHash({ ...data, key }, salt);
+        const isHashValid = data.key === key && verifyLegacyPayUHash(data, salt);
         if (!isHashValid) {
-            return NextResponse.redirect(new URL('/payment-failed?error=invalid_hash', process.env.NEXT_PUBLIC_BASE_URL));
+            return NextResponse.redirect(new URL('/payment-failure?error=invalid_hash', baseURL));
         }
 
         // 2. Find the order
         order = await OrderModel.findOne({ transaction_id: data.txnid });
         if (!order) {
-            return NextResponse.redirect(new URL('/payment-failed?error=order_not_found', process.env.NEXT_PUBLIC_BASE_URL));
+            return NextResponse.redirect(new URL('/payment-failure?error=order_not_found', baseURL));
+        }
+        if (data.key !== key || Number(data.amount).toFixed(2) !== Number(order.totalAmount).toFixed(2)) {
+            return NextResponse.redirect(new URL('/payment-failure?error=payment_mismatch', baseURL));
         }
         
         // If order is already processed, just redirect
         if (order.status !== 'pending-payment') {
-             const redirectURL = data.status === 'success' 
-                ? `/order-details/${order.order_id}` 
-                : '/payment-failed?error=payment_failed_or_cancelled';
-             return NextResponse.redirect(new URL(redirectURL, process.env.NEXT_PUBLIC_BASE_URL));
+             const accessToken = data.status === 'success' ? await createOrderAccessToken(order.order_id) : null;
+             const redirectURL = data.status === 'success'
+                ? `/order-details/${order.order_id}?status=success&access_token=${encodeURIComponent(accessToken)}`
+                : '/payment-failure?error=payment_failed_or_cancelled';
+             return NextResponse.redirect(new URL(redirectURL, baseURL));
         }
 
         // 3. Handle payment status
@@ -84,12 +53,28 @@ export async function POST(request) {
             // Start a database transaction
             session = await OrderModel.startSession();
             session.startTransaction();
+            let paymentCommitted = false;
 
             try {
-                // 4. PAYMENT SUCCESS: Update order status
-                order.status = 'processing'; // Or 'pending'
-                order.payment_gateway_id = data.mihpayid;
-                await order.save({ session });
+                const claimedOrder = await OrderModel.findOneAndUpdate(
+                    { _id: order._id, status: 'pending-payment' },
+                    {
+                        $set: {
+                            status: 'processing',
+                            payment_status: 'paid',
+                            payment_method: 'PayU',
+                            payment_id: data.mihpayid
+                        }
+                    },
+                    { new: true, session }
+                );
+                if (!claimedOrder) {
+                    await session.abortTransaction();
+                    session = null;
+                    const accessToken = await createOrderAccessToken(order.order_id);
+                    return NextResponse.redirect(new URL(`/order-details/${order.order_id}?status=success&access_token=${encodeURIComponent(accessToken)}`, baseURL));
+                }
+                order = claimedOrder;
 
                 // --- 5. (CRITICAL FIX) STOCK DEDUCTION IS REMOVED ---
                 // The stock was already deducted by /api/stock/atomic-purchase
@@ -97,33 +82,57 @@ export async function POST(request) {
 
                 // Commit transaction
                 await session.commitTransaction();
+                paymentCommitted = true;
                 
-                // 6. Send email notification
+                // Notifications are sent only after the payment/order transaction commits.
+                let accessToken = null;
                 try {
-                    const mailData = {
-                        order_id: order.order_id,
-                        orderDetailsUrl: `${process.env.NEXT_PUBLIC_BASE_URL}/order-details/${order.order_id}`
-                    }
-                    await sendMail('Order placed successfully.', order.email, orderNotification(mailData));
+                    accessToken = await createOrderAccessToken(order.order_id);
+                } catch (tokenError) {
+                    console.error(`Could not create order access link for ${order.order_id}:`, tokenError.message);
+                }
+
+                const fallbackSuccessUrl = new URL('/payment-success', baseURL);
+                fallbackSuccessUrl.searchParams.set('orderId', order.order_id);
+                fallbackSuccessUrl.searchParams.set('transactionId', order.transaction_id);
+                fallbackSuccessUrl.searchParams.set('amount', String(order.totalAmount));
+                const customerOrderUrl = accessToken
+                    ? getOrderUrl(baseURL, order.order_id, accessToken)
+                    : fallbackSuccessUrl.toString();
+
+                try {
+                    await sendOrderNotifications({
+                        order,
+                        baseURL,
+                        customerOrderUrl
+                    });
                 } catch (emailError) {
-                    console.error("Failed to send order email:", emailError);
+                    console.error(`Failed to prepare order notifications for ${order.order_id}:`, emailError.message);
                 }
 
                 // 7. Redirect user to success page
-                return NextResponse.redirect(new URL(`/order-details/${order.order_id}?status=success`, process.env.NEXT_PUBLIC_BASE_URL));
+                if (!accessToken) return NextResponse.redirect(fallbackSuccessUrl);
+                const successUrl = new URL(`/order-details/${encodeURIComponent(order.order_id)}`, baseURL);
+                successUrl.searchParams.set('status', 'success');
+                successUrl.searchParams.set('access_token', accessToken);
+                return NextResponse.redirect(successUrl);
 
             } catch (error) {
+                if (paymentCommitted) {
+                    console.error(`Order ${order.order_id} was paid, but its confirmation step failed:`, error.message);
+                    const successUrl = new URL('/payment-success', baseURL);
+                    successUrl.searchParams.set('orderId', order.order_id);
+                    successUrl.searchParams.set('transactionId', order.transaction_id);
+                    successUrl.searchParams.set('amount', String(order.totalAmount));
+                    return NextResponse.redirect(successUrl);
+                }
                 // If DB save fails, roll back
                 await session.abortTransaction();
                 
-                // --- FIX: ROLLBACK STOCK ---
-                // If the final order save fails, we must also unlock the stock.
-                await unlockStock(order); // Pass the full order object
-
-                order.status = 'failed'; 
-                order.ordernote = `Payment successful but order failed: ${error.message}`;
-                await order.save(); // Save failure status outside transaction
-                return NextResponse.redirect(new URL(`/payment-failed?error=order_processing_failed&txnid=${data.txnid}`, process.env.NEXT_PUBLIC_BASE_URL));
+                // Stock remains reserved: the gateway confirmed payment, so
+                // releasing it here could sell the same item twice.
+                console.error('Payment succeeded but order processing failed:', error);
+                return NextResponse.redirect(new URL(`/payment-failure?error=order_processing_failed&txnid=${data.txnid}`, baseURL));
             } finally {
                 session.endSession();
             }
@@ -131,18 +140,20 @@ export async function POST(request) {
         } else {
             // 4. PAYMENT FAILURE
             
-            // --- 5. (CRITICAL FIX) UNLOCK STOCK ---
-            // Payment failed or was cancelled, so we must
-            // return the items to the inventory.
-            await unlockStock(order); // Pass the full order object
-            
-            // 6. Update order status to 'failed'
-            order.status = 'failed';
-            order.ordernote = `Payment failed or cancelled. Reason: ${data.error_Message || 'Unknown'}`;
-            await order.save();
+            session = await OrderModel.startSession();
+            session.startTransaction();
+            const failedOrder = await OrderModel.findOneAndUpdate(
+                { _id: order._id, status: 'pending-payment' },
+                { $set: { status: 'failed', payment_status: 'failed', payment_method: 'PayU', ordernote: `Payment failed or cancelled. Reason: ${sanitizeGatewayText(data.error_Message)}` } },
+                { new: true, session }
+            );
+            if (failedOrder) await unlockStock(failedOrder, session);
+            await session.commitTransaction();
+            session.endSession();
+            session = null;
             
             // 7. Redirect user to failure page
-            return NextResponse.redirect(new URL(`/payment-failed?error=${data.error_Message || 'payment_failed'}&txnid=${data.txnid}`, process.env.NEXT_PUBLIC_BASE_URL));
+            return NextResponse.redirect(new URL(`/payment-failure?error=${encodeURIComponent(sanitizeGatewayText(data.error_Message, 120))}&txnid=${encodeURIComponent(data.txnid)}`, baseURL));
         }
 
     } catch (error) {
@@ -151,12 +162,7 @@ export async function POST(request) {
             session.endSession();
         }
         
-        // --- FIX: Safety net to unlock stock on catastrophic error ---
-        if (order) {
-            await unlockStock(order);
-        }
-
         console.error("Critical error in PayU verify route:", error);
-        return NextResponse.redirect(new URL('/payment-failed?error=server_error', process.env.NEXT_PUBLIC_BASE_URL));
+        return NextResponse.redirect(new URL('/payment-failure?error=server_error', getBaseURL()));
     }
 }

@@ -16,6 +16,10 @@ export async function POST(request) {
         const decoded = await jwtVerify(token, secret)
         const userId = decoded.payload.userId
 
+        if (decoded.payload.purpose && decoded.payload.purpose !== 'email-verification') {
+            return response(false, 400, 'Invalid verification token.')
+        }
+
         if (!isValidObjectId(userId)) {
             return response(false, 400, 'Invalid user id.', userId)
         }

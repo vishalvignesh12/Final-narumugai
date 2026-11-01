@@ -10,7 +10,8 @@ const couponSchema = new mongoose.Schema({
     discountPercentage: {
         type: Number,
         required: true,
-        trim: true,
+        min: 0,
+        max: 100,
     },
     minShoppingAmount: {
         type: Number,
@@ -26,6 +27,26 @@ const couponSchema = new mongoose.Schema({
         default: null,
         index: true
     },
+    usageLimit: {
+        type: Number,
+        min: 1,
+        default: null
+    },
+    usedCount: {
+        type: Number,
+        min: 0,
+        default: 0
+    },
+    perUserLimit: {
+        type: Number,
+        min: 1,
+        default: null
+    },
+    redemptions: [{
+        orderId: { type: mongoose.Schema.Types.ObjectId, ref: 'Order' },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        at: { type: Date, default: Date.now }
+    }]
 
 }, { timestamps: true })
 

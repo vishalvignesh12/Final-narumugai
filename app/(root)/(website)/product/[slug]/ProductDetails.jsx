@@ -306,9 +306,6 @@ const ProductDetails = ({
                     {/* Product Title */}
                     <h2 className="text-3xl font-bold mb-3">{product.name || 'No Name'}</h2>
                     
-                    {/* TODO: Add Star Rating Component Here */}
-                    {/* <StarRating rating={4.5} reviewCount={reviewCount} /> */}
-                    
                     <div className="flex flex-wrap gap-6">
                         
                         {/* Left Info Column */}
@@ -384,11 +381,9 @@ const ProductDetails = ({
                                     {(displayPrice.sellingPrice || 0).toLocaleString('en-IN', { style: 'currency', currency: 'INR' })}
                                 </span>
                                 
-                                {/* Delivery Info (Dynamic date) */}
-                                <p className="text-sm text-gray-600 mt-2">
-                                    <span className="font-semibold text-green-700">FREE Delivery</span>
-                                    {' '}by {new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.
-                                </p>
+                                <Link href="/shipping-policy" className="mt-2 inline-block text-sm text-gray-600 underline underline-offset-2 hover:text-primary">
+                                    View shipping information
+                                </Link>
 
                                 {/* Stock Status */}
                                 <div className="my-4">

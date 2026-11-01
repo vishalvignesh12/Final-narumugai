@@ -1,5 +1,5 @@
 "use client"
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import SearchWithFilters from '@/components/Application/Website/SearchWithFilters';
 import ProductBox from '@/components/Application/Website/ProductBox';
 import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb';
@@ -9,7 +9,7 @@ import axios from 'axios';
 import useWindowSize from '@/hooks/useWindowSize';
 import { Button } from "@/components/ui/button";
 
-const Shop = () => {
+const ShopContent = () => {
     // --- FIX 1: Correctly initialize search params ---
     const searchParamsObj = useSearchParams();
     const searchParamsString = searchParamsObj.toString();
@@ -130,4 +130,10 @@ const Shop = () => {
     );
 };
 
-export default Shop;
+export default function Shop() {
+    return (
+        <Suspense fallback={<div className="container mx-auto px-4 py-8">Loading products…</div>}>
+            <ShopContent />
+        </Suspense>
+    );
+}

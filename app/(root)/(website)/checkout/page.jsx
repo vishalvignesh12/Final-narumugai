@@ -26,6 +26,18 @@ const breadCrumb = {
     ]
 }
 
+const CHECKOUT_PLACEHOLDER = '/assets/images/img-placeholder.webp'
+
+const getCheckoutImageSource = (media) => {
+    const candidate = Array.isArray(media) ? media[0] : media
+    if (typeof candidate === 'string' && candidate.trim()) return candidate
+    if (candidate && typeof candidate === 'object') {
+        const source = candidate.secure_url || candidate.url
+        if (typeof source === 'string' && source.trim()) return source
+    }
+    return CHECKOUT_PLACEHOLDER
+}
+
 const Checkout = () => {
     const router = useRouter()
     const cart = useSelector(store => store.cartStore)
@@ -67,7 +79,7 @@ const Checkout = () => {
     }, [cart.products, cart.count])
 
     useEffect(() => {
-        const cartProducts = cart.products
+        const cartProducts = verifiedCartData
 
         const subTotalAmount = cartProducts.reduce((sum, product) => sum + (product.sellingPrice * (product.qty || 1)), 0)
         const discount = cartProducts.reduce((sum, product) => sum + ((product.mrp - product.sellingPrice) * (product.qty || 1)), 0)
@@ -82,7 +94,7 @@ const Checkout = () => {
         // --- MODIFIED --- Update minShoppingAmount for coupon
         couponForm.setValue('minShoppingAmount', subTotalAmount)
 
-    }, [cart, subtotal, couponDiscountAmount]) // Added dependencies
+    }, [verifiedCartData, couponDiscountAmount]) // Added dependencies
 
     // Coupon form
     const couponFormSchema = zSchema.pick({
@@ -101,7 +113,10 @@ const Checkout = () => {
     const applyCoupon = async (values) => {
         setCouponLoading(true)
         try {
-            const { data: response } = await axios.post('/api/coupon/apply', values)
+            const { data: response } = await axios.post('/api/coupon/apply', {
+                code: values.code,
+                products: verifiedCartData
+            })
             if (!response.success) {
                 throw new Error(response.message)
             }
@@ -193,10 +208,26 @@ const Checkout = () => {
         // removed from here.
 
         try {
+            const { data: verificationResponse } = await axios.post('/api/cart-verification', verifiedCartData.map(item => ({
+                productId: item.productId,
+                variantId: item.variantId,
+                qty: item.qty
+            })))
+            if (!verificationResponse.success) {
+                throw new Error(verificationResponse.message || 'Unable to verify cart availability.')
+            }
+            if (verificationResponse.data.length !== verifiedCartData.length) {
+                showToast('info', 'Some items were removed or updated to match current availability.')
+            }
+            setVerifiedCartData(verificationResponse.data)
+            if (verificationResponse.data.length === 0) {
+                throw new Error('Your cart is no longer available.')
+            }
+
             // The server reserves inventory atomically with order creation.
             try {
                 // Prepare cart products data for the order
-                const products = verifiedCartData.map((cartItem) => ({
+                const products = verificationResponse.data.map((cartItem) => ({
                     productId: cartItem.productId,
                     variantId: cartItem.variantId || null,
                     name: cartItem.name,
@@ -480,7 +511,7 @@ const Checkout = () => {
                                                         <div className="w-16 h-16">
                                                             {/* --- FIX 2: Added fallback src to prevent "" src error --- */}
                                                             <Image 
-                                                                src={product.media || '/assets/images/img-placeholder.webp'} 
+                                                                src={getCheckoutImageSource(product.media)}
                                                                 width={64} 
                                                                 height={64} 
                                                                 alt={product.name} 

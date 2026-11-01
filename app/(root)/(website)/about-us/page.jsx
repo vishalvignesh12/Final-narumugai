@@ -1,6 +1,5 @@
 import WebsiteBreadcrumb from '@/components/Application/Website/WebsiteBreadcrumb'
 import React from 'react'
-import { Metadata } from 'next'
 
 export const metadata = {
   title: "About Narumugai - Premium Saree Store | Traditional Indian Clothing",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { USER_DASHBOARD, WEBSITE_LOGIN } from "./routes/WebsiteRoute"
 import { jwtVerify } from "jose"
 import { ADMIN_DASHBOARD } from "./routes/AdminPanelRoute"
+import { isV2ApiEnabled } from "./lib/apiVersioning"
 
 // Track redirect attempts to prevent infinite loops
 function trackRedirectAttempt(request) {
@@ -24,6 +25,14 @@ function trackRedirectAttempt(request) {
 export async function middleware(request) {
     try {
         const pathname = request.nextUrl.pathname
+
+        if (pathname.startsWith('/api/v2/') && !isV2ApiEnabled()) {
+            return NextResponse.json(
+                { success: false, message: 'The V2 API is not enabled in this deployment.' },
+                { status: 404, headers: { 'Cache-Control': 'no-store' } },
+            )
+        }
+
         const hasToken = request.cookies.has('access_token')
 
         // Track redirect attempts
@@ -103,5 +112,5 @@ export async function middleware(request) {
 
 
 export const config = {
-    matcher: ['/admin/:path*', '/my-account/:path*', '/auth/:path*']
+    matcher: ['/admin/:path*', '/my-account/:path*', '/auth/:path*', '/api/v2/:path*']
 }

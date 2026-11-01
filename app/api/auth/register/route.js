@@ -1,11 +1,11 @@
-import { emailVerificationLink } from "@/email/emailVerificationLink";
+import { otpEmail } from "@/email/otpEmail";
 import { connectDB } from "@/lib/databaseConnection";
 import { catchError, response } from "@/lib/helperFunction";
 import { sendMail } from "@/lib/sendMail";
 import { zSchema } from "@/lib/zodSchema";
 import UserModel from "@/models/User.model";
-import { SignJWT } from "jose";
-import { getBaseURL } from "@/lib/config"; // <--- 1. ADD THIS IMPORT
+import OTPModel from "@/models/Otp.model";
+import { generateOTP } from "@/lib/generateOTP";
 
 export async function POST(request) {
     try {
@@ -25,10 +25,23 @@ export async function POST(request) {
 
         const { name, email, password } = validatedData.data
 
-        // check already registered user 
-        const checkUser = await UserModel.exists({ email })
-        if (checkUser) {
-            return response(true, 409, 'User already registered.')
+        // If registration previously created an unverified account but email
+        // delivery failed, let the user request a fresh verification code.
+        const existingUser = await UserModel.findOne({ email })
+        if (existingUser) {
+            if (existingUser.deletedAt || existingUser.isEmailVerified) {
+                return response(false, 409, 'This email is already registered. Please sign in.')
+            }
+
+            await OTPModel.deleteMany({ email, purpose: 'EMAIL_VERIFICATION' })
+            const otp = generateOTP()
+            await OTPModel.create({ email, otp, purpose: 'EMAIL_VERIFICATION' })
+            const resendStatus = await sendMail('Verify your Narumugai email address', email, otpEmail(otp))
+            if (!resendStatus.success) {
+                await OTPModel.deleteMany({ email, purpose: 'EMAIL_VERIFICATION' })
+                return response(false, 500, 'Could not send the verification code. Please check email configuration and try again.')
+            }
+            return response(true, 200, 'A new email verification code has been sent.')
         }
 
         // new registration  
@@ -38,25 +51,19 @@ export async function POST(request) {
 
         await NewRegistration.save()
 
-        const secret = new TextEncoder().encode(process.env.SECRET_KEY)
-        const token = await new SignJWT({ userId: NewRegistration._id.toString() })
-            .setIssuedAt()
-            .setExpirationTime('1h')
-            .setProtectedHeader({ alg: 'HS256' })
-            .sign(secret)
+        const otp = generateOTP()
+        await OTPModel.deleteMany({ email, purpose: 'EMAIL_VERIFICATION' })
+        await OTPModel.create({ email, otp, purpose: 'EMAIL_VERIFICATION' })
+        const mailStatus = await sendMail('Verify your Narumugai email address', email, otpEmail(otp))
+        if (!mailStatus.success) {
+            await OTPModel.deleteMany({ email, purpose: 'EMAIL_VERIFICATION' })
+            await UserModel.deleteOne({ _id: NewRegistration._id })
+            return response(false, 500, 'Could not send the verification code. Please try registering again.')
+        }
 
-        // --- 2. USE getBaseURL() TO BUILD THE LINK ---
-        const verificationLink = `${getBaseURL()}/auth/verify-email/${token}`
-
-        await sendMail(
-            'Email Verification request from narumugai', 
-            email, 
-            emailVerificationLink(verificationLink) // <--- 3. USE THE NEW LINK
-        )
-
-        return response(true, 200, 'Registration success, Please verify your email address.')
+        return response(true, 200, 'Registration successful. Enter the verification code sent to your email.')
 
     } catch (error) {
-        catchError(error)
+        return catchError(error)
     }
 }

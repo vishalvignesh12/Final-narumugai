@@ -6,9 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import WishlistButton from './WishlistButton'
-import { IoStar, IoStarOutline } from 'react-icons/io5'
-import { FiEye, FiShoppingCart } from 'react-icons/fi' // Import FiEye
-import { TbTruck } from 'react-icons/tb'
+import { FiEye } from 'react-icons/fi'
 import { Skeleton } from "@/components/ui/skeleton" 
 
 const ProductBox = ({ product, showQuickActions = false }) => {
@@ -22,18 +20,6 @@ const ProductBox = ({ product, showQuickActions = false }) => {
     const discountPercentage = product?.mrp && product?.sellingPrice 
         ? Math.round(((product.mrp - product.sellingPrice) / product.mrp) * 100)
         : 0
-
-    const renderRating = (rating = 4.5) => {
-        const stars = []
-        for (let i = 0; i < 5; i++) {
-            if (i < Math.floor(rating)) {
-                stars.push(<IoStar key={i} className="text-yellow-400 w-3 h-3" />)
-            } else {
-                stars.push(<IoStarOutline key={i} className="text-gray-300 w-3 h-3" />)
-            }
-        }
-        return stars
-    }
 
     return (
         <Card 
@@ -116,14 +102,6 @@ const ProductBox = ({ product, showQuickActions = false }) => {
                         </h4>
                     </Link>
                     
-                    {/* Rating */}
-                    <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-0.5">
-                            {renderRating()}
-                        </div>
-                        <span className="text-xs text-gray-500">(4.5)</span>
-                    </div>
-                    
                     {/* Price Section */}
                     <div className='flex items-center justify-between'>
                         <div className='flex flex-col gap-1'>
@@ -137,12 +115,6 @@ const ProductBox = ({ product, showQuickActions = false }) => {
                                     </span>
                                 )}
                             </div>
-                            {product?.isAvailable && (
-                                <div className="flex items-center gap-1 text-xs text-green-600">
-                                    <TbTruck className="w-3 h-3" />
-                                    <span>Free delivery</span>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
@@ -169,9 +141,6 @@ const ProductBoxSkeleton = () => {
                         <Skeleton className="h-4 w-full" />
                         <Skeleton className="h-4 w-3/4" />
                     </div>
-                    
-                    {/* Rating Skeleton */}
-                    <Skeleton className="h-3 w-1/3" />
                     
                     {/* Price Skeleton */}
                     <div className='flex items-center justify-between'>

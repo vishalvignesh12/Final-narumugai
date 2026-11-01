@@ -1,4 +1,4 @@
-export const emailVerificationLink = (link) => {
+export const emailVerificationLink = (link, baseURL) => {
     const html = `
 <!DOCTYPE html>
 <html lang="en" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:v="urn:schemas-microsoft-com:vml">
@@ -127,7 +127,7 @@ export const emailVerificationLink = (link) => {
                                                                     style="line-height:10px">
                                                                     <div style="max-width: 250px;"><img
                                                                             alt="Email Verification" height="auto"
-                                                                            src="https://res.cloudinary.com/dg7efdu9o/image/upload/v1747200655/otp-email_rsq47y.webp"
+                                                                            src="${baseURL}/assets/email/logo-black.png"
                                                                             style="display: block; height: auto; border: 0; width: 100%;"
                                                                             title="Email Verification" width="250" /></div>
                                                                 </div>

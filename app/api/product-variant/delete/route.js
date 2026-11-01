@@ -62,16 +62,16 @@ export async function DELETE(request) {
             return response(false, 400, 'Invalid or empty id list.')
         }
 
-        const data = await ProductVariantModel.find({ _id: { $in: ids } }).lean()
-        if (!data.length) {
-            return response(false, 404, 'Data not found.')
-        }
-
         if (deleteType !== 'PD') {
             return response(false, 400, 'Invalid delete operation. Delete type should be PD for this route.')
         }
 
-        await ProductVariantModel.deleteMany({ _id: { $in: ids } })
+        const trashedVariants = await ProductVariantModel.find({ _id: { $in: ids }, deletedAt: { $ne: null } }).select('_id').lean()
+        if (trashedVariants.length !== new Set(ids.map(String)).size) {
+            return response(false, 409, 'Only variants already in trash can be permanently deleted.')
+        }
+
+        await ProductVariantModel.deleteMany({ _id: { $in: trashedVariants.map(variant => variant._id) }, deletedAt: { $ne: null } })
 
         return response(true, 200, 'Data deleted permanently')
     } catch (error) {

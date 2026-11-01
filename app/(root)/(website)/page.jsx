@@ -1,8 +1,7 @@
 'use client'
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ChevronRight, Star, Heart, ShoppingBag, Truck, Shield, Headphones, Award, ArrowRight, Play, Users, Sparkles } from 'lucide-react'
-import { FaInstagram, FaWhatsapp, FaFacebook } from 'react-icons/fa'
+import { ChevronRight, Heart, ShoppingBag, Award, ArrowRight, Sparkles, Truck, Shield, Headphones } from 'lucide-react'
 import axios from 'axios'
 import WishlistButton from '@/components/Application/Website/WishlistButton'
 import { WEBSITE_PRODUCT_DETAILS } from '@/routes/WebsiteRoute'
@@ -11,32 +10,6 @@ import HomeCarousel from '@/components/Application/Website/HomeCarousel'
 const Home = () => {
     const [featuredProducts, setFeaturedProducts] = useState([])
     const [loading, setLoading] = useState(true)
-    const [currentTestimonial, setCurrentTestimonial] = useState(0)
-
-    const testimonials = [
-        {
-            name: "Priya Sharma",
-            location: "Chennai",
-            rating: 5,
-            text: "Absolutely gorgeous sarees! The quality is exceptional and the customer service is outstanding. My go-to place for traditional wear.",
-            image: "/api/placeholder/60/60"
-        },
-        {
-            name: "Nethra",
-            location: "Chennai",
-            rating: 5,
-            text: "Beautiful collection with authentic designs. Fast delivery and excellent packaging. Highly recommended for saree lovers!",
-            image: "/api/placeholder/60/60"
-        },
-        {
-            name: "Meera Reddy",
-            location: "Chennai",
-            rating: 5,
-            text: "The silk sarees are pure luxury! Perfect for weddings and festivals. The craftsmanship is truly remarkable.",
-            image: "/api/placeholder/60/60"
-        }
-    ]
-
     useEffect(() => {
         const fetchProducts = async () => {
             try {
@@ -52,20 +25,15 @@ const Home = () => {
         }
         fetchProducts()
 
-        // Auto-rotate testimonials
-        const interval = setInterval(() => {
-            setCurrentTestimonial(prev => (prev + 1) % testimonials.length)
-        }, 5000)
-        return () => clearInterval(interval)
     }, [])
 
     // Structured data for SEO
     const structuredData = {
         "@context": "https://schema.org",
         "@type": "WebPage",
-        "name": "Narumugai - Premium Sarees Online",
-        "description": "Shop exquisite collection of traditional and designer sarees",
-        "url": "https://narumugaiboutique.com"
+        "name": "Narumugai Boutique",
+        "description": "Browse clothing collections from Narumugai Boutique.",
+        "url": "https://narumugai.com"
     }
 
     return (
@@ -87,11 +55,11 @@ const Home = () => {
                             Shop by Category
                         </h2>
                         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                            Explore our curated collection of sarees for every style and occasion
+                            Browse sarees, Kurthis, gowns, and Chudi Materials.
                         </p>
                     </div>
 
-                    <div className="grid md:grid-cols-3 gap-8">
+                    <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
                         <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-100 to-rose-100 p-8 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
                             <div className="relative z-10">
                                 <div className="w-16 h-16 bg-pink-500 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
@@ -139,6 +107,22 @@ const Home = () => {
                                 </Link>
                             </div>
                         </div>
+
+                        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-100 to-orange-100 p-8 hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2">
+                            <div className="relative z-10">
+                                <div className="w-16 h-16 bg-amber-500 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
+                                    <ShoppingBag className="w-8 h-8 text-white" />
+                                </div>
+                                <h3 className="text-2xl font-bold text-gray-900 mb-4">Kurthi Materials</h3>
+                                <p className="text-gray-600 mb-6">
+                                    Explore our kurthi materials in sizes from S to XL
+                                </p>
+                                <Link href="/categories/kurthi-materials" className="inline-flex items-center text-amber-700 font-semibold hover:text-amber-800">
+                                    Explore Collection
+                                    <ChevronRight className="w-4 h-4 ml-1" />
+                                </Link>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -151,7 +135,7 @@ const Home = () => {
                             Featured Collection
                         </h2>
                         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                            Handpicked sarees that showcase the finest craftsmanship and timeless beauty
+                            Explore available pieces across our clothing collections.
                         </p>
                     </div>
 
@@ -177,11 +161,11 @@ const Home = () => {
                                     <Link href={WEBSITE_PRODUCT_DETAILS(product.slug)}>
                                         <div className="relative overflow-hidden">
                                             <img
-                                                src={product.media?.[0]?.secure_url || product.featuredImage?.secure_url || '/api/placeholder/300/400'}
+                                                src={product.media?.[0]?.secure_url || product.featuredImage?.secure_url || '/assets/images/img-placeholder.webp'}
                                                 alt={product.name || product.title}
                                                 className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-300"
                                                 onError={(e) => {
-                                                    e.target.src = '/api/placeholder/300/400'
+                                                    e.target.src = '/assets/images/img-placeholder.webp'
                                                 }}
                                             />
                                             <div className="absolute top-4 right-4">
@@ -213,10 +197,6 @@ const Home = () => {
                                                     ₹{(product.sellingPrice || product.price || 0).toLocaleString('en-IN')}
                                                 </span>
                                             </div>
-                                            <div className="flex items-center">
-                                                <Star className="w-4 h-4 text-yellow-400 fill-current" />
-                                                <span className="text-sm text-gray-600 ml-1">4.8</span>
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -233,53 +213,7 @@ const Home = () => {
                 </div>
             </section>
 
-            {/* Testimonials Section */}
-            <section className="py-20 bg-white">
-                <div className="max-w-7xl mx-auto px-4">
-                    <div className="text-center mb-16">
-                        <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-6">
-                            What Our Customers Say
-                        </h2>
-                        <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-                            Join thousands of satisfied customers who trust Narumugai for their saree needs
-                        </p>
-                    </div>
-
-                    <div className="relative max-w-4xl mx-auto">
-                        <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-3xl p-8 md:p-12">
-                            <div className="text-center">
-                                <div className="flex justify-center mb-6">
-                                    {[...Array(5)].map((_, i) => (
-                                        <Star key={i} className="w-8 h-8 text-yellow-400 fill-current" />
-                                    ))}
-                                </div>
-                                <p className="text-2xl text-gray-800 mb-8 italic leading-relaxed">
-                                    "{testimonials[currentTestimonial].text}"
-                                </p>
-                                <div className="flex items-center justify-center">
-                                    <div className="w-16 h-16 bg-pink-200 rounded-full mr-4"></div>
-                                    <div>
-                                        <h4 className="font-semibold text-gray-900">{testimonials[currentTestimonial].name}</h4>
-                                        <p className="text-gray-600">{testimonials[currentTestimonial].location}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="flex justify-center mt-8 space-x-2">
-                            {testimonials.map((_, index) => (
-                                <button
-                                    key={index}
-                                    onClick={() => setCurrentTestimonial(index)}
-                                    className={`w-3 h-3 rounded-full transition-colors ${currentTestimonial === index ? 'bg-pink-600' : 'bg-gray-300'
-                                        }`}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-            </section>
-            {/* Why Choose Us Section */}
+            {/* Store information */}
             <section className="py-20 bg-gray-900 text-white">
                 <div className="max-w-7xl mx-auto px-4">
                     <div className="text-center mb-16">
@@ -287,7 +221,7 @@ const Home = () => {
                             Why Choose Narumugai?
                         </h2>
                         <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-                            Experience the perfect blend of tradition and innovation
+                            Find the collection and product details that work for you
                         </p>
                     </div>
 
@@ -296,9 +230,9 @@ const Home = () => {
                             <div className="w-20 h-20 bg-gradient-to-br from-pink-500 to-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                                 <Truck className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-semibold mb-3">Free Shipping</h3>
+                            <h3 className="text-xl font-semibold mb-3">Shipping information</h3>
                             <p className="text-gray-400">
-                                Free delivery across India on orders above ₹999
+                                Review shipping terms and delivery details before placing an order.
                             </p>
                         </div>
 
@@ -306,9 +240,9 @@ const Home = () => {
                             <div className="w-20 h-20 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                                 <Shield className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-semibold mb-3">Quality Assured</h3>
+                            <h3 className="text-xl font-semibold mb-3">Product details</h3>
                             <p className="text-gray-400">
-                                100% authentic sarees with quality guarantee
+                                Check each listing for its description, images, price, and available options.
                             </p>
                         </div>
 
@@ -316,9 +250,9 @@ const Home = () => {
                             <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                                 <Headphones className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-semibold mb-3">24/7 Support</h3>
+                            <h3 className="text-xl font-semibold mb-3">Browse collections</h3>
                             <p className="text-gray-400">
-                                Expert assistance for all your saree needs
+                                Shop sarees, Kurthis, gowns, and Chudi Materials from the collections.
                             </p>
                         </div>
 
@@ -326,9 +260,9 @@ const Home = () => {
                             <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-teal-500 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
                                 <Award className="w-10 h-10" />
                             </div>
-                            <h3 className="text-xl font-semibold mb-3">15+ Years</h3>
+                            <h3 className="text-xl font-semibold mb-3">Choose your size</h3>
                             <p className="text-gray-400">
-                                Trusted experience in saree craftsmanship
+                                Select an available size or variant on the product page before adding to cart.
                             </p>
                         </div>
                     </div>

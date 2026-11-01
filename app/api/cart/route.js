@@ -1,86 +1,59 @@
-// app/api/cart/route.js
-import { connectDB } from "@/lib/databaseConnection";
-import { catchError, response } from "@/lib/helperFunction";
-import { jwtVerify } from "jose";
-import { NextRequest } from "next/server";
-import UserModel from "@/models/User.model";
-import ProductVariantModel from "@/models/ProductVariant.model";
+import { isAuthenticated } from '@/lib/authentication';
+import { connectDB } from '@/lib/databaseConnection';
+import { catchError, response } from '@/lib/helperFunction';
+import { addCartItemSchema, canFitCartQuantity, getAvailableVariantQuantity, removeCartItemSchema, updateCartItemSchema } from '@/lib/legacyCartContract';
+import ProductVariantModel from '@/models/ProductVariant.model';
+import UserModel from '@/models/User.model';
 
-export async function GET(request) {
+async function getUserAuth() {
+  const auth = await isAuthenticated('user');
+  return auth.isAuth ? auth : null;
+}
+
+async function findActiveVariant(variantId) {
+  return ProductVariantModel.findOne({ _id: variantId, deletedAt: null })
+    .populate({
+      path: 'product',
+      select: 'name sellingPrice mrp media isAvailable deletedAt',
+      populate: { path: 'media', select: 'secure_url' },
+    })
+    .populate('media', 'secure_url')
+    .lean();
+}
+
+export async function GET() {
   try {
+    const auth = await getUserAuth();
+    if (!auth) return response(false, 401, 'Unauthorized.');
     await connectDB();
 
-    // Extract token from cookies in the request
-    const authHeader = request.headers.get('cookie');
-    const match = authHeader?.match(/access_token=([^;]+)/);
-    const token = match ? match[1] : null;
+    const user = await UserModel.findById(auth.userId).select('cart').lean();
+    if (!user) return response(false, 404, 'User not found.');
 
-    if (!token) {
-      return response(false, 401, "Unauthorized");
-    }
-
-    // Verify token
-    if (!process.env.SECRET_KEY) {
-      console.error('SECRET_KEY is not defined in environment variables');
-      return response(false, 500, "Server configuration error");
-    }
-
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.SECRET_KEY));
-    const userId = payload._id;
-
-    const user = await UserModel.findById(userId).select("cart").lean();
-    if (!user) {
-      return response(false, 404, "User not found");
-    }
-
-    // Populate the cart items with product and variant details
-    if (user.cart && user.cart.length > 0) {
-      const cartItems = [];
-      for (const cartItem of user.cart) {
-        const variant = await ProductVariantModel.findById(cartItem.variantId)
-          .populate('product', 'name sellingPrice mrp media')
-          .populate('media', 'secure_url')
-          .lean();
-
-        if (variant) {
-          cartItems.push({
-            ...cartItem,
-            product: variant.product,
-            variantDetails: {
-              size: variant.size,
-              color: variant.color,
-              stock: variant.stock,
-              sellingPrice: variant.sellingPrice || variant.product?.sellingPrice,
-              mrp: variant.mrp || variant.product?.mrp
-            },
-            media: variant.media?.secure_url || variant.product?.media?.[0]?.secure_url
-          });
-        }
-      }
-      
-      // Calculate totals
-      const count = cartItems.reduce((total, item) => total + (item.qty || 1), 0);
-      const subtotal = cartItems.reduce((sum, item) => sum + ((item.variantDetails?.sellingPrice || 0) * (item.qty || 1)), 0);
-      const discount = cartItems.reduce((sum, item) => {
-        const sellingPrice = item.variantDetails?.sellingPrice || 0;
-        const mrp = item.variantDetails?.mrp || 0;
-        return sum + ((mrp - sellingPrice) * (item.qty || 1));
-      }, 0);
-
-      return response(true, 200, "Cart retrieved successfully.", {
-        products: cartItems,
-        count,
-        subtotal,
-        discount
-      });
-    } else {
-      return response(true, 200, "Cart retrieved successfully.", {
-        products: [],
-        count: 0,
-        subtotal: 0,
-        discount: 0
+    const products = [];
+    for (const cartItem of user.cart || []) {
+      const variant = await findActiveVariant(cartItem.variantId);
+      if (!variant?.product || variant.product.deletedAt) continue;
+      const price = variant.sellingPrice ?? variant.product.sellingPrice;
+      const mrp = variant.mrp ?? variant.product.mrp;
+      products.push({
+        ...cartItem,
+        product: variant.product,
+        variantDetails: {
+          size: variant.size,
+          color: variant.color,
+          stock: getAvailableVariantQuantity(variant),
+          sellingPrice: price,
+          mrp,
+        },
+        media: variant.media?.[0]?.secure_url || variant.product.media?.[0]?.secure_url,
       });
     }
+
+    const count = products.reduce((sum, item) => sum + item.qty, 0);
+    const subtotal = products.reduce((sum, item) => sum + item.variantDetails.sellingPrice * item.qty, 0);
+    const discount = products.reduce((sum, item) => sum + (item.variantDetails.mrp - item.variantDetails.sellingPrice) * item.qty, 0);
+    return response(true, 200, 'Cart retrieved successfully.', { products, count, subtotal, discount });
   } catch (error) {
     return catchError(error);
   }
@@ -88,62 +61,36 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const auth = await getUserAuth();
+    if (!auth) return response(false, 401, 'Unauthorized.');
+    const parsed = addCartItemSchema.safeParse(await request.json());
+    if (!parsed.success) return response(false, 400, 'Invalid cart item.', parsed.error.flatten());
     await connectDB();
 
-    // Extract token from cookies in the request
-    const authHeader = request.headers.get('cookie');
-    const match = authHeader?.match(/access_token=([^;]+)/);
-    const token = match ? match[1] : null;
-
-    if (!token) {
-      return response(false, 401, "Unauthorized");
+    const { productId, variantId, qty } = parsed.data;
+    const variant = await findActiveVariant(variantId);
+    if (!variant?.product || variant.product.deletedAt || !variant.product.isAvailable || String(variant.product._id) !== productId) {
+      return response(false, 404, 'Product option not found or unavailable.');
     }
 
-    // Verify token
-    if (!process.env.SECRET_KEY) {
-      console.error('SECRET_KEY is not defined in environment variables');
-      return response(false, 500, "Server configuration error");
-    }
+    const user = await UserModel.findById(auth.userId).select('cart').lean();
+    if (!user) return response(false, 404, 'User not found.');
+    const current = user.cart?.find((item) => String(item.variantId) === variantId)?.qty || 0;
+    const newQuantity = current + qty;
+    if (!canFitCartQuantity(newQuantity, getAvailableVariantQuantity(variant))) return response(false, 409, 'Not enough stock available.');
 
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.SECRET_KEY));
-    const userId = payload._id;
-
-    const { productId, variantId, qty = 1 } = await request.json();
-
-    if (!productId || !variantId) {
-      return response(false, 400, "Product ID and Variant ID are required");
-    }
-
-    // Verify product variant exists and has enough stock
-    const variant = await ProductVariantModel.findById(variantId).lean();
-    if (!variant) {
-      return response(false, 404, "Product variant not found");
-    }
-
-    if (variant.stock < qty) {
-      return response(false, 400, "Not enough stock available");
-    }
-
-    // Add item to user's cart or update quantity if it already exists
-    const user = await UserModel.findOne({ _id: userId, "cart.variantId": variantId });
-    
-    if (user) {
-      // If the item exists, update the quantity
-      await UserModel.findOneAndUpdate(
-        { _id: userId, "cart.variantId": variantId },
-        { $inc: { "cart.$.qty": qty } },
-        { new: true }
+    if (current) {
+      await UserModel.updateOne(
+        { _id: auth.userId, 'cart.variantId': variantId },
+        { $set: { 'cart.$.qty': newQuantity } },
       );
     } else {
-      // If the item doesn't exist, add it to the cart
-      await UserModel.findByIdAndUpdate(
-        userId,
-        { $push: { cart: { productId, variantId, qty } } },
-        { new: true }
+      await UserModel.updateOne(
+        { _id: auth.userId },
+        { $push: { cart: { productId: variant.product._id, variantId, qty } } },
       );
     }
-
-    return response(true, 200, "Product added to cart successfully.");
+    return response(true, 200, 'Product added to cart successfully.');
   } catch (error) {
     return catchError(error);
   }
@@ -151,47 +98,26 @@ export async function POST(request) {
 
 export async function PUT(request) {
   try {
+    const auth = await getUserAuth();
+    if (!auth) return response(false, 401, 'Unauthorized.');
+    const parsed = updateCartItemSchema.safeParse(await request.json());
+    if (!parsed.success) return response(false, 400, 'Invalid cart update.', parsed.error.flatten());
     await connectDB();
 
-    // Extract token from cookies in the request
-    const authHeader = request.headers.get('cookie');
-    const match = authHeader?.match(/access_token=([^;]+)/);
-    const token = match ? match[1] : null;
-
-    if (!token) {
-      return response(false, 401, "Unauthorized");
+    const { variantId, qty } = parsed.data;
+    const variant = await findActiveVariant(variantId);
+    if (!variant?.product || variant.product.deletedAt || !variant.product.isAvailable) {
+      return response(false, 404, 'Product option not found or unavailable.');
     }
+    if (!canFitCartQuantity(qty, getAvailableVariantQuantity(variant))) return response(false, 409, 'Not enough stock available.');
 
-    // Verify token
-    if (!process.env.SECRET_KEY) {
-      console.error('SECRET_KEY is not defined in environment variables');
-      return response(false, 500, "Server configuration error");
-    }
-
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.SECRET_KEY));
-    const userId = payload._id;
-
-    const { variantId, qty } = await request.json();
-
-    if (!variantId || qty === undefined) {
-      return response(false, 400, "Variant ID and quantity are required");
-    }
-
-    // Update the quantity of the specific cart item
-    const updatedUser = await UserModel.findOneAndUpdate(
-      { 
-        _id: userId, 
-        "cart.variantId": variantId 
-      },
-      { $set: { "cart.$.qty": qty } },
-      { new: true }
-    );
-
-    if (!updatedUser) {
-      return response(false, 404, "Cart item not found");
-    }
-
-    return response(true, 200, "Cart updated successfully.");
+    const updated = await UserModel.findOneAndUpdate(
+      { _id: auth.userId, 'cart.variantId': variantId },
+      { $set: { 'cart.$.qty': qty } },
+      { new: true, projection: { _id: 1 } },
+    ).lean();
+    if (!updated) return response(false, 404, 'Cart item not found.');
+    return response(true, 200, 'Cart updated successfully.');
   } catch (error) {
     return catchError(error);
   }
@@ -199,39 +125,18 @@ export async function PUT(request) {
 
 export async function DELETE(request) {
   try {
+    const auth = await getUserAuth();
+    if (!auth) return response(false, 401, 'Unauthorized.');
+    const parsed = removeCartItemSchema.safeParse(await request.json());
+    if (!parsed.success) return response(false, 400, 'Invalid cart item.', parsed.error.flatten());
     await connectDB();
 
-    // Extract token from cookies in the request
-    const authHeader = request.headers.get('cookie');
-    const match = authHeader?.match(/access_token=([^;]+)/);
-    const token = match ? match[1] : null;
-
-    if (!token) {
-      return response(false, 401, "Unauthorized");
-    }
-
-    // Verify token
-    if (!process.env.SECRET_KEY) {
-      console.error('SECRET_KEY is not defined in environment variables');
-      return response(false, 500, "Server configuration error");
-    }
-
-    const { payload } = await jwtVerify(token, new TextEncoder().encode(process.env.SECRET_KEY));
-    const userId = payload._id;
-
-    const { variantId } = await request.json();
-
-    if (!variantId) {
-      return response(false, 400, "Variant ID is required");
-    }
-
-    // Remove the item from the user's cart
-    await UserModel.findByIdAndUpdate(
-      userId,
-      { $pull: { cart: { variantId } } }
+    const result = await UserModel.updateOne(
+      { _id: auth.userId },
+      { $pull: { cart: { variantId: parsed.data.variantId } } },
     );
-
-    return response(true, 200, "Product removed from cart successfully.");
+    if (!result.modifiedCount) return response(false, 404, 'Cart item not found.');
+    return response(true, 200, 'Product removed from cart successfully.');
   } catch (error) {
     return catchError(error);
   }

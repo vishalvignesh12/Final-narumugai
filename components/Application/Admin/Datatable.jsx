@@ -112,15 +112,16 @@ const Datatable = ({
     } = useQuery({
         queryKey: [queryKey, { columnFilters, globalFilter, pagination, sorting }],
         queryFn: async () => {
-            const url = new URL(fetchUrl, process.env.NEXT_PUBLIC_BASE_URL)
-            url.searchParams.set('start', `${pagination.pageIndex * pagination.pageSize}`)
-            url.searchParams.set('size', `${pagination.pageSize}`)
-            url.searchParams.set('filters', JSON.stringify(columnFilters ?? []))
-            url.searchParams.set('globalFilter', globalFilter ?? '')
-            url.searchParams.set('sorting', JSON.stringify(sorting ?? []))
-            url.searchParams.set('deleteType', deleteType)
-
-            const { data: response } = await axios.get(url.href)
+            const { data: response } = await axios.get(fetchUrl, {
+                params: {
+                    start: pagination.pageIndex * pagination.pageSize,
+                    size: pagination.pageSize,
+                    filters: JSON.stringify(columnFilters ?? []),
+                    globalFilter: globalFilter ?? '',
+                    sorting: JSON.stringify(sorting ?? []),
+                    deleteType
+                }
+            })
             return response
         },
         placeholderData: keepPreviousData,

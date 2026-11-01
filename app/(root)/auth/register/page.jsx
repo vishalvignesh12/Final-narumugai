@@ -22,16 +22,16 @@ import { WEBSITE_LOGIN } from '@/routes/WebsiteRoute'
 import axios from 'axios'
 import { showToast } from '@/lib/showToast'
 import { useRouter } from 'next/navigation' // <-- 1. IMPORT useRouter
+import EmailOtpVerification from '@/components/Application/EmailOtpVerification'
 
-// We no longer need OTPVerification, so all related imports are removed.
 
 const RegisterPage = () => {
 
     const router = useRouter() // <-- 2. INITIALIZE useRouter
     const [loading, setLoading] = useState(false)
     const [isTypePassword, setIsTypePassword] = useState(true)
+    const [verificationEmail, setVerificationEmail] = useState('')
     
-    // We remove the 'otpEmail' and 'otpVerificationLoading' states
 
     const formSchema = zSchema.pick({
         name: true,
@@ -51,7 +51,6 @@ const RegisterPage = () => {
         },
     })
 
-    // 3. THIS IS THE UPDATED SUBMIT FUNCTION
     const handleRegisterSubmit = async (values) => {
         try {
             setLoading(true)
@@ -60,19 +59,16 @@ const RegisterPage = () => {
                 throw new Error(registerResponse.message)
             }
 
-            // SUCCESS! Now we show the toast and redirect to login.
             form.reset()
-            showToast('success', registerResponse.message) // This message comes from the API
-            router.push(WEBSITE_LOGIN) // <-- Redirect to the login page
+            setVerificationEmail(values.email)
+            showToast('success', registerResponse.message)
 
         } catch (error) {
-            showToast('error', error.message)
+            showToast('error', error.response?.data?.message || error.message)
         } finally {
             setLoading(false)
         }
     }
-
-    // The 'handleOtpVerification' function is no longer needed and has been removed.
 
     return (
         <Card className="w-[400px]">
@@ -81,8 +77,15 @@ const RegisterPage = () => {
                     <h1 className='text-4xl font-bold text-pink-500 mb-3'>Narumugai</h1>
                 </div>
 
-                {/* 4. THE CONDITIONAL LOGIC IS REMOVED. WE ONLY SHOW THE REGISTER FORM. */}
-                <>
+                {verificationEmail ? (
+                    <EmailOtpVerification
+                        email={verificationEmail}
+                        onVerified={() => {
+                            showToast('success', 'Email verified. You can now sign in.')
+                            router.push(WEBSITE_LOGIN)
+                        }}
+                    />
+                ) : <>
                     <div className='text-center'>
                         <h1 className='text-3xl font-bold mb-3'>Create An Account</h1>
                     </div>
@@ -168,8 +171,7 @@ const RegisterPage = () => {
                             </form>
                         </Form>
                     </div>
-                </>
-                {/* The 'else' block that showed <OTPVerification /> has been removed. */}
+                </>}
 
             </CardContent>
         </Card>

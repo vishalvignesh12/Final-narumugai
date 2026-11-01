@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/databaseConnection"
 import { catchError, response } from "@/lib/helperFunction"
 import { zSchema } from "@/lib/zodSchema"
 import ProductVariantModel from "@/models/ProductVariant.model"
+import ProductModel from "@/models/Product.model"
 
 export async function POST(request) {
     try {
@@ -45,6 +46,9 @@ export async function POST(request) {
         })
 
         await newProductVariant.save()
+        await ProductModel.findByIdAndUpdate(variantData.product, {
+            $set: { isAvailable: true, soldAt: null }
+        })
 
         return response(true, 200, 'Product Variant added successfully.')
 

@@ -55,7 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const staticRoutes = [
             '/', '/shop', '/about-us', '/privacy-policy', 
             '/refund-policy', '/return-policy', '/shipping-policy', 
-            '/terms-and-conditions'
+            '/terms-and-conditions', '/categories/kurthi-materials'
         ].map(route => ({
             url: `${BASE_URL}${route}`,
             lastModified: new Date(),

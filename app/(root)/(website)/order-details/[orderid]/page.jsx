@@ -5,18 +5,23 @@ import placeholderImg from '@/public/assets/images/img-placeholder.webp'
 import Link from "next/link"
 import { WEBSITE_PRODUCT_DETAILS } from "@/routes/WebsiteRoute"
 import { getBaseURL } from "@/lib/config" // Ensure you import this or use process.env
+import ClearCartAfterPayment from "@/components/Application/Website/ClearCartAfterPayment"
 
-const OrderDetails = async ({ params }) => {
+const OrderDetails = async ({ params, searchParams }) => {
     // Await params as required in Next.js 15
     const { orderid } = await params
+    const { access_token: accessToken } = await searchParams
     
     // Fetch order data
     // Use absolute URL for server-side fetch
-    const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/orders/get/${orderid}`
+    const apiUrl = `${getBaseURL()}/api/orders/get/${orderid}`
     let orderData = null
     
     try {
-        const res = await axios.get(apiUrl)
+        const res = await axios.get(apiUrl, {
+            params: accessToken ? { access_token: accessToken } : undefined,
+            headers: { 'Cache-Control': 'no-store' }
+        })
         orderData = res.data
     } catch (error) {
         console.error("Failed to fetch order:", error)
@@ -37,6 +42,9 @@ const OrderDetails = async ({ params }) => {
                     </div>
                 ) : (
                     <div>
+                        {orderData?.data?.status === 'processing' && (
+                            <ClearCartAfterPayment orderId={orderData.data.order_id} />
+                        )}
                         <div className="mb-5">
                             <p><b>Order Id:</b> {orderData?.data?.order_id}</p>
                             <p><b>Transaction Id:</b> {orderData?.data?.payment_id}</p>

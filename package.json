@@ -4,17 +4,32 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": "20.x"
+    "node": ">=20.19.0 <21"
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
     "network": "node scripts/set-network-access.js",
     "localhost": "node scripts/set-network-access.js localhost",
     "populate-db": "node scripts/populate-database.js",
-    "populate-via-api": "node scripts/populate-via-api.js"
+    "populate-via-api": "node scripts/populate-via-api.js",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:migrate:dev": "prisma migrate dev",
+    "db:migrate:deploy": "prisma migrate deploy",
+    "db:seed": "prisma db seed",
+    "db:status": "prisma migrate status",
+    "test:auth": "node scripts/test-auth.js",
+    "test:phase1": "node --test tests/phase1-security.test.js",
+    "test:phase2": "node --test tests/api-response.test.js tests/legacy-cart-contract.test.js",
+    "test:phase3": "node --test tests/phase3-storefront.test.js",
+    "test:phase4": "node --test tests/phase4-admin-inventory.test.js",
+    "test:phase5": "node --test tests/phase5-order-notifications.test.js",
+    "test:phase6": "node --test tests/phase6-build-boundary.test.js",
+    "test:users": "node --test src/modules/users/*.test.js",
+    "test:commerce": "node --test src/modules/catalog/*.test.js src/modules/cart/*.test.js src/modules/coupons/*.test.js src/modules/checkout/*.test.js src/modules/payments/*.test.js src/modules/orders/*.test.js src/modules/admin/*.test.js"
   },
   "dependencies": {
     "@ckeditor/ckeditor5-react": "^9.5.0",
@@ -24,6 +39,8 @@
     "@mui/icons-material": "^7.1.0",
     "@mui/material": "^7.1.0",
     "@mui/x-date-pickers": "^8.3.1",
+    "@prisma/adapter-pg": "7.10.0",
+    "@prisma/client": "7.10.0",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-avatar": "^1.1.9",
     "@radix-ui/react-checkbox": "^1.3.1",
@@ -51,10 +68,10 @@
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "dotenv": "18.0.6",
     "entities": "^6.0.0",
     "export-to-csv": "^1.4.0",
     "fuse.js": "^7.1.0",
-    "input-otp": "^1.4.2",
     "jose": "^6.0.11",
     "lucide-react": "^0.509.0",
     "material-react-table": "^3.2.1",
@@ -63,6 +80,7 @@
     "next-cloudinary": "^6.16.0",
     "next-themes": "^0.4.6",
     "nodemailer": "^7.0.3",
+    "pg": "8.23.1",
     "razorpay": "^2.9.6",
     "react": "^19.1.1",
     "react-day-picker": "^9.11.1",
@@ -88,7 +106,10 @@
     "@types/node": "24.4.0",
     "eslint": "^9",
     "eslint-config-next": "15.3.2",
+    "prisma": "^7.10.0",
     "tailwindcss": "^4",
-    "tw-animate-css": "^1.2.9"
+    "tsx": "^4.23.15",
+    "tw-animate-css": "^1.2.9",
+    "typescript": "5.9.3"
   }
 }

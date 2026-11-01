@@ -6,6 +6,10 @@ import { CldUploadWidget } from 'next-cloudinary';
 import { FiPlus } from "react-icons/fi";
 
 const UploadMedia = ({ isMultiple, queryClient }) => {
+    const isConfigured = Boolean(
+        process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME &&
+        process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET
+    )
 
     const handleOnError = (error) => {
         const errorMessage = error?.statusText || error?.message || "Upload Error";
@@ -48,6 +52,15 @@ const UploadMedia = ({ isMultiple, queryClient }) => {
                 showToast('error', error.message || "Failed to save media")
             }
         }
+    }
+
+    if (!isConfigured) {
+        return (
+            <Button type="button" disabled title="Configure Cloudinary to enable media uploads.">
+                <FiPlus className="mr-2" />
+                Upload Media
+            </Button>
+        )
     }
 
     return (

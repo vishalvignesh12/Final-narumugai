@@ -1,12 +1,12 @@
 'use client'
-import React from 'react'
+import React, { Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { XCircle, RefreshCw, Home, HelpCircle, Mail, Phone, ArrowRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
-const PaymentFailure = () => {
+const PaymentFailureContent = () => {
     const searchParams = useSearchParams()
     const errorMessage = searchParams.get('error') || 'Payment could not be processed'
     const orderId = searchParams.get('orderId') || null
@@ -144,4 +144,10 @@ const PaymentFailure = () => {
     )
 }
 
-export default PaymentFailure
+export default function PaymentFailure() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center">Loading payment details…</div>}>
+            <PaymentFailureContent />
+        </Suspense>
+    )
+}

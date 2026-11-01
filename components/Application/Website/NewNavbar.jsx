@@ -57,6 +57,7 @@ const NewNavbar = () => {
         { href: WEBSITE_HOME, label: 'Home' },
         { href: '/about-us', label: 'About' },
         { href: WEBSITE_SHOP, label: 'Shop' },
+        { href: '/categories/kurthi-materials', label: 'Kurthi Collection' },
         { href: '/categories', label: 'Categories' },
     ]
 

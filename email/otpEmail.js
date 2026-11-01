@@ -153,8 +153,8 @@ export const otpEmail = (otp) => {
 															<td class="pad">
 																<div
 																	style="color:#374151;font-family:Tahoma,Verdana,Segoe,sans-serif;font-size:15px;line-height:150%;text-align:center;mso-line-height-alt:22px;">
-																	<p style="margin: 0 0 10px 0; word-break: break-word;">Thank you for registering with Narumugai!</p>
-																	<p style="margin: 0; word-break: break-word;">Your OTP for account verification is:</p>
+																	<p style="margin: 0 0 10px 0; word-break: break-word;">Use this code to verify your email or complete sign-in to Narumugai.</p>
+																	<p style="margin: 0; word-break: break-word;">Your one-time code is:</p>
 																</div>
 															</td>
 														</tr>

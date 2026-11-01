@@ -8,20 +8,28 @@ const productSchema = new Schema({
         required: true
     },
     variantId: {
-        // --- FIX 1: Change type to String ---
-        // This allows storing 'null', 'fallback-...' strings, or real ObjectIds as strings
+        // Legacy orders may contain fallback sentinel strings. New product-level
+        // inventory lines store null and identify their source using inventoryType.
         type: String, 
-        
-        // --- FIX 2: Make it not required ---
-        // This allows 'null' or 'undefined' values.
         required: false, 
-        
-        // --- FIX 3: Explicitly allow null ---
         default: null 
+    },
+    inventoryType: {
+        type: String,
+        enum: ['product', 'variant'],
+        default: 'variant'
     },
     name: {
         type: String,
         required: true
+    },
+    size: {
+        type: String,
+        default: null
+    },
+    color: {
+        type: String,
+        default: null
     },
     qty: {
         type: Number,
@@ -110,11 +118,13 @@ const orderSchema = new Schema(
         status: {
             type: String,
             enum: [
+                'pending',
                 'pending-payment',
                 'processing',
                 'shipped',
                 'delivered',
                 'cancelled',
+                'cancel-requested',
                 'failed',
                 'refunded'
             ],
@@ -140,12 +150,42 @@ const orderSchema = new Schema(
         },
         payment_status: {
             type: String,
+            enum: ['pending', 'paid', 'failed', 'refunded'],
             default: 'pending'
         },
+        cancellationReason: {
+            type: String,
+            maxlength: 500
+        },
+        cancelledAt: {
+            type: Date,
+            default: null
+        },
+        cancelledBy: {
+            type: Schema.Types.ObjectId,
+            ref: 'User',
+            default: null
+        },
+        reservationExpiresAt: {
+            type: Date,
+            default: null
+        },
+        statusHistory: [{
+            at: { type: Date, default: Date.now },
+            from: { type: String, required: true },
+            to: { type: String, required: true },
+            actorId: { type: Schema.Types.ObjectId, ref: 'User', default: null },
+            note: { type: String, maxlength: 500 }
+        }],
     },
     {
         timestamps: true,
     }
+);
+
+orderSchema.index(
+    { reservationExpiresAt: 1 },
+    { partialFilterExpression: { status: 'pending-payment' } }
 );
 
 const OrderModel = models.Order || model('Order', orderSchema);

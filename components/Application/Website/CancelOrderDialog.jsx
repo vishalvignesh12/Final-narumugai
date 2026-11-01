@@ -50,8 +50,12 @@ const CancelOrderDialog = ({ order, onOrderCancelled }) => {
         }
     }
 
-    // Only show cancel button for pending and processing orders
-    if (!['pending', 'processing'].includes(order.status)) {
+    if (order.payment_status === 'paid' || ['processing', 'shipped', 'delivered'].includes(order.status)) {
+        return <span className="text-xs text-gray-500">Contact support to request cancellation of a paid order.</span>
+    }
+
+    // The self-service path is only for unpaid pending orders.
+    if (order.status !== 'pending' || order.payment_status !== 'pending') {
         return null
     }
 
@@ -102,8 +106,7 @@ const CancelOrderDialog = ({ order, onOrderCancelled }) => {
 
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <p className="text-sm text-yellow-800">
-                            <strong>Note:</strong> Once cancelled, this order cannot be restored. 
-                            The stock will be returned to inventory and refund will be processed according to our refund policy.
+                            <strong>Note:</strong> This option is only for unpaid pending orders. Paid orders require support review before any refund or inventory change.
                         </p>
                     </div>
                 </div>

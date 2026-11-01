@@ -1,6 +1,7 @@
 'use client'
 import { useEffect } from 'react'
 import CookieManager from '@/lib/cookieManager'
+import { shouldClearSessionForStatus } from '@/lib/authStatus'
 
 const AutoCookieGuardian = () => {
     useEffect(() => {
@@ -18,14 +19,12 @@ const AutoCookieGuardian = () => {
         window.fetch = async (...args) => {
             try {
                 const response = await originalFetch(...args)
-                if (response.status === 401 || response.status === 403) {
+                if (shouldClearSessionForStatus(response.status)) {
                     CookieManager.deleteAuthCookies()
+                    window.dispatchEvent(new Event('auth-expired'))
                 }
                 return response
             } catch (error) {
-                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-                    CookieManager.autoCleanup()
-                }
                 throw error
             }
         }

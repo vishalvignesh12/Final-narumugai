@@ -10,6 +10,9 @@ import crypto from "crypto";
 import { v4 as uuidv4 } from 'uuid';
 import { isAuthenticated } from "@/lib/authentication";
 import { checkoutProductSchema } from "@/lib/checkout-contract";
+import { CHECKOUT_ERRORS } from "@/lib/checkout-contract";
+import { computeCouponState, couponCodeFilter, couponConsumedFilter } from "@/lib/coupons";
+import { expireStaleReservations } from "@/lib/reservationExpiry";
 
 // --- FIX: Updated orderSchema ---
 // REMOVED totals, as they are not trusted from the client.
@@ -71,23 +74,24 @@ async function calculateServerTotal(products, couponCode) {
 
     // Securely validate coupon on the server
     if (couponCode) {
-        const coupon = await CouponModel.findOne({ 
-            code: couponCode, 
+        const coupon = await CouponModel.findOne({
+            code: couponCodeFilter(couponCode),
             deletedAt: null,
-            expiryDate: { $gte: new Date() } 
+            validity: { $gte: new Date() }
         });
 
         if (!coupon) {
             throw new Error('The coupon code is invalid or has expired.');
         }
-        if (subtotal < coupon.minShoppingAmount) {
+        const couponState = computeCouponState({ coupon, subtotal });
+        if (!couponState.valid) {
             throw new Error(`Coupon requires a minimum purchase of ${coupon.minShoppingAmount}.`);
         }
-
-        couponDiscountAmount = (subtotal * coupon.discountPercentage) / 100;
+        couponDiscountAmount = couponState.discountAmount;
     }
 
     const totalAmount = subtotal - couponDiscountAmount;
+    if (totalAmount <= 0) throw new Error(CHECKOUT_ERRORS.nonPositiveTotal);
 
     return { subtotal, discount, couponDiscountAmount, totalAmount, pricedProducts };
 }
@@ -134,11 +138,19 @@ export async function POST(request) {
         for (const item of validatedData.products) {
             const isRealVariant = item.variantId && item.variantId !== 'null' && !item.variantId.startsWith('fallback-');
             if (isRealVariant) {
-                const variant = await ProductVariantModel.findOneAndUpdate(
+                let variant = await ProductVariantModel.findOneAndUpdate(
                     { _id: item.variantId, deletedAt: null, quantity: { $gte: item.qty } },
                     { $inc: { quantity: -item.qty } },
                     { new: true, session }
                 ).populate('product', 'name isAvailable deletedAt').lean();
+                if (!variant) {
+                    await expireStaleReservations({ session });
+                    variant = await ProductVariantModel.findOneAndUpdate(
+                        { _id: item.variantId, deletedAt: null, quantity: { $gte: item.qty } },
+                        { $inc: { quantity: -item.qty } },
+                        { new: true, session }
+                    ).populate('product', 'name isAvailable deletedAt').lean();
+                }
                 if (!variant?.product || !variant.product.isAvailable || variant.product.deletedAt) {
                     throw new Error(`${variant?.product?.name || item.name} is no longer available in the requested quantity.`);
                 }
@@ -151,11 +163,19 @@ export async function POST(request) {
                 const productId = item.variantId?.startsWith('fallback-') ? item.variantId.slice('fallback-'.length) : item.productId;
                 const hasVariants = await ProductVariantModel.findOne({ product: productId, deletedAt: null }).session(session).select('_id').lean();
                 if (hasVariants) throw new Error(`${item.name} requires a size or product option selection.`);
-                const product = await ProductModel.findOneAndUpdate(
+                let product = await ProductModel.findOneAndUpdate(
                     { _id: productId, deletedAt: null, isAvailable: true, quantity: { $gte: item.qty } },
                     { $inc: { quantity: -item.qty } },
                     { new: true, session }
                 ).lean();
+                if (!product) {
+                    await expireStaleReservations({ session });
+                    product = await ProductModel.findOneAndUpdate(
+                        { _id: productId, deletedAt: null, isAvailable: true, quantity: { $gte: item.qty } },
+                        { $inc: { quantity: -item.qty } },
+                        { new: true, session }
+                    ).lean();
+                }
                 if (!product) throw new Error(`${item.name} is no longer available in the requested quantity.`);
                 if (product.quantity === 0) await ProductModel.updateOne({ _id: product._id }, { $set: { isAvailable: false, soldAt: new Date() } }, { session });
             }
@@ -184,9 +204,33 @@ export async function POST(request) {
             transaction_id: txnid, // Save our unique txnid
             order_id: txnid, // Use txnid as the order_id
             status: 'pending-payment' // New status
+            , reservationExpiresAt: new Date(Date.now() + 15 * 60 * 1000)
         });
 
         await newOrder.save({ session });
+        if (validatedData.couponCode) {
+            const coupon = await CouponModel.findOne({
+                code: couponCodeFilter(validatedData.couponCode),
+                deletedAt: null,
+                validity: { $gte: new Date() }
+            }).session(session);
+            if (!coupon) throw new Error('The coupon code is invalid or has expired.');
+            const consumed = await CouponModel.updateOne(
+                { _id: coupon._id, ...couponConsumedFilter(coupon) },
+                {
+                    $inc: { usedCount: 1 },
+                    $push: {
+                        redemptions: {
+                            orderId: newOrder._id,
+                            userId: auth.isAuth ? auth.userId : undefined,
+                            at: new Date()
+                        }
+                    }
+                },
+                { session }
+            );
+            if (consumed.matchedCount !== 1) throw new Error(CHECKOUT_ERRORS.couponLimit);
+        }
         await session.commitTransaction();
 
         // 5. Prepare PayU data
