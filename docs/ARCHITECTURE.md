@@ -8,8 +8,7 @@ Narumugai is a Next.js 15 App Router application. React pages and client compone
 
 - **Live storefront and admin:** MongoDB through Mongoose in `models/` and `app/api/`.
 - **Live identity:** the `access_token` JWT cookie, checked by `lib/authentication.js` in API handlers and by middleware for protected pages. The browser fetches the current user summary from `/api/auth/session`; Redux holds that summary in memory only.
-- **PostgreSQL V2:** migration work only. Its `/api/v2/*` routes return 404 unless `ENABLE_V2_API=true` is explicitly set. The flag must stay disabled until a planned data migration, identity cutover, and production acceptance are complete.
-- Keep new storefront and admin work on the MongoDB path until a separate cutover is approved. Do not dual-write a commerce operation to MongoDB and PostgreSQL.
+- Keep new storefront and admin work on the MongoDB path. Do not dual-write a commerce operation.
 
 ## Major components
 
@@ -87,7 +86,7 @@ docs/                   Project documentation and implementation notes
 
 ## Important boundaries
 
-- `middleware.js` protects selected page paths and disables `/api/v2/*` by default. Legacy Mongo API routes must perform their own authentication and role checks.
+- `middleware.js` protects selected page paths. Mongo API routes perform their own authentication and role checks.
 - `lib/databaseConnection.js` reads `MONGODB_URI` and caches the Mongoose connection on `global` for reuse.
 - `next.config.js` permits optimized remote images from `res.cloudinary.com` and configures long-lived cache headers for image/static asset paths.
 - PayU integration is implemented in `app/api/payment/`; the repository also contains Razorpay as a dependency, but the active payment route code references PayU settings.

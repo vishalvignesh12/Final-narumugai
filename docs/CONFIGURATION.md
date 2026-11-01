@@ -1,6 +1,6 @@
 # Configuration
 
-Configuration is read from `process.env`. For local development, copy `.env.example` to `.env.local` at the project root. The table below includes legacy application settings and the V2 foundation settings currently available.
+Configuration is read from `process.env`. For local development, copy `.env.example` to `.env.local` at the project root.
 
 ## Variables
 
@@ -24,13 +24,9 @@ Configuration is read from `process.env`. For local development, copy `.env.exam
 | `PAYU_ENDPOINT` | PayU checkout | Gateway endpoint for the selected environment. |
 | `PAYU_PROTOCOL` | PayU callback URL construction | Protocol used to build success/failure callback URLs. |
 | `NODE_ENV` | Framework/runtime behavior | Set by Next.js in standard development/production commands. |
-| `DATABASE_URL` | V2 PostgreSQL runtime | Supabase PostgreSQL connection for V2 identity data. Use the runtime pooler appropriate to the deployment. |
-| `DIRECT_URL` | Prisma migrations | Direct or session-pooler PostgreSQL connection used for migrations. |
 | `DEV_SEED_CUSTOMER_PHONE` | Optional development seed | Fixture customer phone; never grants admin access. |
 | `DEV_SEED_CUSTOMER_NAME` | Optional development seed | Fixture customer display name. |
-| `PAYU_KEY` / `PAYU_SALT` / `PAYU_ENDPOINT` | V2 PayU checkout | Merchant credentials and hosted checkout endpoint. Keep `PAYU_SALT` private. |
-| `PAYU_STATUS_ENDPOINT` | V2 payment reconciliation | Optional override for PayU's server-side `verify_payment` API endpoint. |
-| `RESERVATION_EXPIRY_SECRET` | Reservation reconciliation | Bearer secret for the scheduled `POST /api/v2/operations/reservations/expire` invocation. |
+| `RESERVATION_EXPIRY_SECRET` | Reservation reconciliation | Secret for the protected reservation expiry endpoint. |
 
 ## Example local file
 
@@ -38,12 +34,10 @@ Configuration is read from `process.env`. For local development, copy `.env.exam
 NEXT_PUBLIC_BASE_URL=http://localhost:3000
 MONGODB_URI=mongodb://127.0.0.1:27017/narumugai_dev
 SECRET_KEY=replace-with-a-long-random-local-secret
-DATABASE_URL=postgresql://...
-DIRECT_URL=postgresql://...
 PAYU_KEY=
 PAYU_SALT=
 PAYU_ENDPOINT=https://test.payu.in/_payment
-RESERVATION_EXPIRY_SECRET=replace-with-a-long-random-secret
+| `RESERVATION_EXPIRY_SECRET` | Reservation reconciliation | Secret for the protected reservation expiry endpoint. |
 
 NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=
 NEXT_PUBLIC_CLOUDINARY_API_KEY=
@@ -75,9 +69,3 @@ This is a template only; leave integrations blank only when not exercising their
 - Use separate MongoDB databases and gateway credentials for development and production.
 - Rotate credentials if they are exposed; do not include them in screenshots, logs, or documentation.
 - Configure `SECRET_KEY` consistently across replicas so users do not receive inconsistent token verification.
-
-## V2 Supabase/PostgreSQL foundation
-
-Phase 2 adds a separate Supabase PostgreSQL connection for the V2 identity schema. The legacy application still uses the MongoDB settings above until later migration phases cut over each module.
-
-Copy the tracked `.env.example` to the ignored `.env.local`, then set `DATABASE_URL` to the Supabase runtime connection and `DIRECT_URL` to a direct or session-pooler connection for Prisma migrations. Use the Supavisor transaction pooler only for serverless runtime and add `pgbouncer=true`; do not use transaction mode for migrations. See [the V2 Supabase setup guide](v2/SUPABASE-SETUP.md) for connection details and database commands.

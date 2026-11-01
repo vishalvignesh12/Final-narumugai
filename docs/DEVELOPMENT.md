@@ -16,10 +16,6 @@ Use Node.js 26.x and npm. Install the lockfile-defined dependencies with `npm ci
 | `npm run localhost` | Runs the same script with `localhost`. |
 | `npm run populate-db` | Runs `scripts/populate-database.js`; may create or alter database content. |
 | `npm run populate-via-api` | Runs `scripts/populate-via-api.js`; may write through the running app's API. |
-| `npm run db:validate` / `db:generate` | Validate the Prisma schema or generate the ignored Prisma client. |
-| `npm run db:migrate:deploy` / `db:status` | Apply checked-in migrations or report migration status for the configured database. |
-| `npm run db:seed` | Run the guarded development PostgreSQL seed. |
-| `npm run test:users` / `test:commerce` | Run focused Node test suites that do not need database credentials. |
 | `npm run test:auth` | Run the focused auth and session unit tests. |
 
 ## Code organization and conventions
@@ -29,7 +25,7 @@ Use Node.js 26.x and npm. Install the lockfile-defined dependencies with `npm ci
 - Keep reusable storefront/admin interface in `components/Application/Website` and `components/Application/Admin`; shared primitives are in `components/ui`.
 - Put Mongoose schemas in `models/`, shared server utilities in `lib/`, and Redux state in `store/`.
 - Follow neighboring JavaScript/JSX style. ESLint is configured in `eslint.config.mjs`; no formatter configuration is present.
-- Validate API authorization in legacy Mongo handlers. Middleware gates `/api/v2/*` when `ENABLE_V2_API` is false and protects admin, account, and auth pages.
+- Validate API authorization in Mongo handlers. Middleware protects admin, account, and auth pages.
 
 ## Change workflow
 

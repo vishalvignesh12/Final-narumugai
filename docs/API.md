@@ -1,12 +1,12 @@
 # API reference
 
-The application API is implemented as Next.js App Router route handlers in `app/api`. All paths below are relative to `/api`. The table records route files and exported HTTP methods; it does not imply that every route is public. Authentication and validation differ by handler. Middleware gates `/api/v2/*` behind `ENABLE_V2_API`; legacy Mongo routes must enforce authentication and validation in each handler.
+The application API is implemented as Next.js App Router route handlers in `app/api`. All paths below are relative to `/api`. The table records route files and exported HTTP methods; it does not imply that every route is public. Authentication and validation differ by handler.
 
 ## Authentication and conventions
 
 Page authentication uses a JWT in the `access_token` cookie, verified with `SECRET_KEY`. Customers sign in with email/password and an emailed OTP. Registration email verification also uses an emailed OTP; password recovery uses a one-time email link. SMS OTP authentication has been removed. Protected browser requests should use same-origin cookies. API handlers commonly accept JSON request bodies and return JSON, while PayU verification may redirect to success/failure pages. Exact fields and response shapes are defined in each route file.
 
-These descriptions apply to the legacy API unless a route is explicitly marked V2. The MongoDB/JWT API is the active storefront path. V2 routes use the PostgreSQL-backed session cookie and are blocked by middleware unless `ENABLE_V2_API=true`.
+These descriptions apply to the MongoDB/JWT storefront API.
 
 ## Routes
 
@@ -110,30 +110,6 @@ These descriptions apply to the legacy API unless a route is explicitly marked V
 | GET | `/debug/products` | Debug product data. |
 | GET | `/debug/stock-status` | Inspect stock state. |
 | POST | `/debug/migrate-quantity` | Debug/migration operation for quantity fields. |
-
-## V2 routes
-
-| Methods | Path | Purpose |
-|---|---|---|
-| GET, DELETE | `/v2/auth/session` | Read the signed-in state or revoke the current PostgreSQL-backed session. |
-| GET, PATCH | `/v2/users/me` | Read or update the authenticated user's profile. PATCH accepts `displayName` and/or `email`; send `email: null` to clear it. |
-| GET, POST | `/v2/users/me/addresses` | List or create India-only delivery addresses for the authenticated user. New addresses are not default unless `isDefault: true` is explicitly sent. |
-| PATCH, DELETE | `/v2/users/me/addresses/{addressId}` | Update or delete an address owned by the authenticated user. PATCH can set `isDefault`; deleting the default leaves no default selected. |
-| GET | `/v2/products`, `/v2/products/{slug}`, `/v2/categories` | Public PostgreSQL catalog with bounded pagination, search, category/featured filters, and allowlisted sorting. |
-| GET, PUT, DELETE | `/v2/cart`, `/v2/cart/items/{variantId}` | Read or change a user cart or a guest cart identified by a Secure, HttpOnly opaque cookie. `PUT` accepts `{ "quantity": 1 }`, bounded to 1–20. |
-| POST | `/v2/cart` | Merge the guest cart into the signed-in user's cart; also claims guest orders tied to the guest token. |
-| GET | `/v2/wishlist` | Read the authenticated user's product-level wishlist. |
-| PUT, DELETE | `/v2/wishlist/items/{productId}` | Add or remove a product from the authenticated user's wishlist. |
-| POST | `/v2/coupons/validate` | Advisory coupon preview derived from the server cart; checkout recalculates it. |
-| POST | `/v2/checkout` | Create an idempotent pending order, reserve inventory, and return PayU form fields. Prices, quantities, and order state come from PostgreSQL. |
-| POST | `/v2/payments/payu/callback` | Verify the PayU response hash and transaction amount, deduplicate callbacks, and finalize or release a reservation. |
-| GET | `/v2/orders`, `/v2/orders/{orderNumber}` | Read only orders owned by the current user or the matching guest-cart token. |
-| POST | `/v2/orders/{orderNumber}` | Request cancellation. Paid order requests wait for admin-reviewed refund handling. |
-| GET, POST | `/v2/admin/categories`, `/v2/admin/products`, `/v2/admin/coupons` | Admin-only category, product/variant/inventory creation, and coupon management. Mutations create audit records. |
-| PATCH | `/v2/admin/categories/{id}`, `/v2/admin/products/{id}`, `/v2/admin/inventory/{variantId}`, `/v2/admin/coupons/{id}`, `/v2/admin/users/{id}`, `/v2/admin/orders/{id}` | Admin-only state changes with validation and audit records. Refund completion requires an operator-confirmed provider reference; inventory restocking is an explicit approval. |
-| POST | `/v2/operations/reservations/expire` | Scheduled PayU status reconciliation, authenticated with `Authorization: Bearer $RESERVATION_EXPIRY_SECRET`. Unresolved payments retain their stock reservation. |
-
-Address create/update inputs use `recipientName`, `phone`, `line1`, optional nullable `line2` and `landmark`, `city`, `state`, and `postalCode`. `phone` must be `+91` plus a valid 10-digit Indian mobile number; `postalCode` must be a six-digit Indian PIN. `countryCode` and `userId` are server-controlled and rejected from request bodies. `isDefault` is optional and defaults to `false`; set it to `true` explicitly to select a default.
 
 Password reset requests accept an email address and send a one-time link valid for 30 minutes. The update endpoint accepts the link token and a new password; tokens are stored as hashes and consumed once.
 

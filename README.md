@@ -24,7 +24,7 @@ npm ci
 npm run dev
 ```
 
-Before the first run, copy `.env.example` to `.env.local` and fill in the values described in [docs/CONFIGURATION.md](docs/CONFIGURATION.md). Open `http://localhost:3000`. The legacy storefront needs a reachable MongoDB database; V2 PostgreSQL routes need `DATABASE_URL` configured as well.
+Before the first run, copy `.env.example` to `.env.local` and fill in the values described in [docs/CONFIGURATION.md](docs/CONFIGURATION.md). Open `http://localhost:3000`. The storefront requires a reachable MongoDB database.
 
 ## Project documentation
 

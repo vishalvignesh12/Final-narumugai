@@ -2,15 +2,13 @@
 
 ## Current test setup
 
-V2 auth, user-profile, catalog, cart, wishlist, coupon, checkout, payment, order, and admin modules use Node's built-in test runner; no Jest, Vitest, Mocha, or Playwright configuration is present. The unit suites inject repositories and services, so they do not require Supabase credentials.
+The application tests use Node's built-in test runner; no Jest, Vitest, Mocha, or Playwright configuration is present. Focused tests do not require database credentials.
 
 ## Available checks
 
 ```bash
 npm run test:auth
-npm run test:users
 npm run test:commerce
-npx prisma validate
 npm run lint
 npm run build
 ```
