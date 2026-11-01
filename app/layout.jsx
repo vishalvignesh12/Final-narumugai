@@ -9,7 +9,7 @@ import ThemeProvider from '@/components/Application/Admin/ThemeProvider';
 
 // --- (metadata object is fine, no changes) ---
 export const metadata = {
-  // ...
+  metadataBase: getMetadataBaseURL(),
 };
 
 export default function RootLayout({ children }) {
