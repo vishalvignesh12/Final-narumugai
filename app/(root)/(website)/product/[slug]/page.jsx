@@ -15,7 +15,7 @@ export const revalidate = 300 // Revalidate every 5 minutes
 export const dynamicParams = true;
 
 export async function generateMetadata({ params }) {
-    const { slug } = params;
+    const { slug } = await params;
     
     console.log('Metadata params slug:', slug); 
 
@@ -150,7 +150,7 @@ export async function generateMetadata({ params }) {
 }
 
 const ProductPage = async ({ params }) => {
-    const { slug } = params;
+    const { slug } = await params;
     
     console.log('Product page params slug:', slug); 
 
