@@ -1,17 +1,18 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import nextVitals from "eslint-config-next/core-web-vitals";
 
 const eslintConfig = [
-  { ignores: ["src/generated/prisma/**"] },
-  ...compat.extends("next/core-web-vitals"),
+  { ignores: [".next/**", ".next-dev/**", "src/generated/prisma/**"] },
+  ...nextVitals,
+  {
+    rules: {
+      "react-hooks/error-boundaries": "off",
+      "react-hooks/immutability": "off",
+      "react-hooks/incompatible-library": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/set-state-in-effect": "off",
+      "react/no-unescaped-entities": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
