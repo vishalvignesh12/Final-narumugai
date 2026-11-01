@@ -21,11 +21,11 @@ The project requires Node.js 20.19.x, as declared in `package.json` and `.nvmrc`
 - Configure MongoDB, JWT, Cloudinary, email, and PayU values from [Configuration](CONFIGURATION.md). Use production credentials only in the production environment.
 - Allow the hosting environment to reach MongoDB and any required external services.
 - Configure the payment gateway's callback/return behavior to reach the deployed `/api/payment/verify` route and verify callback URL/protocol construction against the host's proxy setup.
-- Set `RESERVATION_EXPIRY_SECRET` to a strong random value. Vercel Cron invokes `/api/operations/reservations/expire` every five minutes with `Authorization: Bearer <secret>` to release abandoned checkout reservations.
+- Set `RESERVATION_EXPIRY_SECRET` to a strong random value. The payment initiation flow also performs an opportunistic sweep of expired reservations. On Vercel Hobby, use an external scheduler or manually call the protected `/api/operations/reservations/expire` endpoint; the five-minute Vercel Cron schedule requires Pro.
 - Use HTTPS so authentication cookies and payment flows are protected in transit.
 - Restrict or remove test, faker, debug, and migration routes before exposing the deployment.
 - Perform a smoke test of registration, email verification, image loading, admin authorization, checkout, payment return, and order status updates.
-- For PayU sandbox verification, confirm a successful callback changes the order to `processing`/`paid`, a failed callback restores inventory, repeated success callbacks do not duplicate notifications, and an abandoned pending payment is expired by the cron route.
+- For PayU sandbox verification, confirm a successful callback changes the order to `processing`/`paid`, a failed callback restores inventory, repeated success callbacks do not duplicate notifications, and an abandoned pending payment is released by the opportunistic sweep or protected expiry endpoint.
 
 ## P0 rollout verification status
 
@@ -40,7 +40,7 @@ The PayU sandbox scenarios remain a manual deployment check because they require
 1. Remove `variantId` from a persisted cart item and confirm checkout still initiates.
 2. Apply a coupon and confirm the charged amount is server-computed and `usedCount` increments once.
 3. Exhaust a limited coupon and confirm initiation fails without creating an order.
-4. Abandon a gateway checkout and invoke the reservation cron after expiry; confirm the order becomes `failed` and inventory is restored.
+4. Abandon a gateway checkout and invoke the protected reservation-expiry endpoint after expiry; confirm the order becomes `failed` and inventory is restored.
 5. Replay a successful PayU callback; confirm the order remains unchanged and notifications are not duplicated.
 
 ## Hosting notes
