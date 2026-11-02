@@ -1,9 +1,15 @@
 import cloudinary from "@/lib/cloudinary";
-import { catchError } from "@/lib/helperFunction";
+import { catchError, response } from "@/lib/helperFunction";
+import { isAuthenticated } from "@/lib/authentication";
 import { NextResponse } from "next/server";
 
 export async function POST(request) {
     try {
+        const auth = await isAuthenticated('admin')
+        if (!auth.isAuth) {
+            return response(false, 403, 'Unauthorized.')
+        }
+
         const payload = await request.json()
         const { paramsToSign } = payload
 

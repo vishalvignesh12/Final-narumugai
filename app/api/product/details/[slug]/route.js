@@ -10,7 +10,7 @@ export const revalidate = 3600;
 export async function GET(request, { params }) {
     try {
         await connectDB();
-        const { slug } = params;
+        const { slug } = await params;
         const searchParams = request.nextUrl.searchParams;
         const color = searchParams.get('color');
         const size = searchParams.get('size');

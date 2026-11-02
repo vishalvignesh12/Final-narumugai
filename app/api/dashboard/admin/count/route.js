@@ -4,9 +4,15 @@ import OrderModel from "@/models/Order.model"
 import ProductModel from "@/models/Product.model"
 import UserModel from "@/models/User.model"
 import { connectDB } from "@/lib/databaseConnection"
+import { isAuthenticated } from "@/lib/authentication"
 
 export async function GET() {
     try {
+        const auth = await isAuthenticated('admin')
+        if (!auth.isAuth) {
+            return response(false, 403, 'Unauthorized.')
+        }
+
         await connectDB();
 
         // 1. Total Revenue (Unchanged - only counts 'delivered')

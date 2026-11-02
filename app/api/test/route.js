@@ -1,10 +1,5 @@
-import { connectDB } from "@/lib/databaseConnection";
-import { NextResponse } from "next/server";
+import { disabledApiResponse } from '@/lib/disabledApiResponse';
 
 export async function GET() {
-    await connectDB()
-    return NextResponse.json({
-        success: true,
-        message: 'connection success.'
-    })
+    return disabledApiResponse('This test endpoint has been disabled.');
 }
