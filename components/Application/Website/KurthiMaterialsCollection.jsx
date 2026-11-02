@@ -9,13 +9,13 @@ import WebsiteBreadcrumb from './WebsiteBreadcrumb'
 import { Button } from '@/components/ui/button'
 
 const PAGE_SIZE = 12
-const ALL_CATEGORY_SLUGS = ['kurthis', 'gowns', 'chudi-materials']
+const ALL_CATEGORY_SLUGS = ['kurtis', 'gowns', 'chudi-material']
 
 export default function KurthiMaterialsCollection() {
     const [page, setPage] = useState(0)
     const [categoryFilter, setCategoryFilter] = useState('all')
     const { data, isPending, isError } = useQuery({
-        queryKey: ['kurthi-materials-v3', categoryFilter, page],
+        queryKey: ['kurthi-materials-v4', categoryFilter, page],
         staleTime: 0,
         refetchOnMount: 'always',
         queryFn: async () => {
