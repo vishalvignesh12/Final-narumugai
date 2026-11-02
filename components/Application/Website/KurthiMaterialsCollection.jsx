@@ -15,7 +15,7 @@ export default function KurthiMaterialsCollection() {
     const [page, setPage] = useState(0)
     const [categoryFilter, setCategoryFilter] = useState('all')
     const { data, isPending, isError } = useQuery({
-        queryKey: ['kurthi-materials', categoryFilter, page],
+        queryKey: ['kurthi-materials-v2', categoryFilter, page],
         queryFn: async () => {
             if (categoryFilter === 'all') {
                 const pageSizePerCategory = Math.ceil(PAGE_SIZE / ALL_CATEGORY_SLUGS.length)
