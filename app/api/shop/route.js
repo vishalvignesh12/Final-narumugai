@@ -57,14 +57,35 @@ export async function POST(request) {
                     slug: { $not: { $regex: 'silk|cotton', $options: 'i' } }
                 });
                 categoryIds = categories.map(c => c._id);
-            } else if (categorySlug === 'kurthi' || categorySlug === 'kurthi-materials') {
-                // Treat the Kurthi landing page as a collection of its three
-                // product categories (including the singular umbrella label).
+            } else if (['kurthi', 'kurthis', 'kurthi-materials', 'gowns', 'chudi-materials'].includes(categorySlug)) {
+                const categoryGroups = {
+                    kurthi: {
+                        slugs: ['kurthi', 'kurthis'],
+                        names: /^(kurthis?|kurthi collection)$/i
+                    },
+                    kurthis: {
+                        slugs: ['kurthi', 'kurthis'],
+                        names: /^(kurthis?|kurthi collection)$/i
+                    },
+                    gowns: {
+                        slugs: ['gown', 'gowns'],
+                        names: /^gowns?$/i
+                    },
+                    'chudi-materials': {
+                        slugs: ['chudi-material', 'chudi-materials', 'chudimaterial', 'chudimaterials'],
+                        names: /^chudi\s*materials?$/i
+                    },
+                    'kurthi-materials': {
+                        slugs: ['kurthi', 'kurthis', 'kurthi-materials', 'gown', 'gowns', 'chudi-material', 'chudi-materials'],
+                        names: /^(kurthis?|kurthi collection|kurthi materials|gowns?|chudi materials?)$/i
+                    }
+                }
+                const group = categoryGroups[categorySlug]
                 const categories = await CategoryModel.find({
                     deletedAt: null,
                     $or: [
-                        { slug: { $in: ['kurthi', 'kurthis', 'kurthi-materials', 'gown', 'gowns', 'chudi-materials'] } },
-                        { name: { $regex: /^(kurthis?|kurthi materials|gowns?|chudi materials)$/i } }
+                        { slug: { $in: group.slugs } },
+                        { name: { $regex: group.names } }
                     ]
                 }).select('_id');
                 categoryIds = categories.map(c => c._id);

@@ -14,6 +14,14 @@ test('storefront navigation exposes the Kurthi collection', async () => {
     assert.match(home, /href="\/categories\/kurthi-materials"/)
 })
 
+test('Kurthi collection filters resolve category aliases', async () => {
+    const shopRoute = await read('../app/api/shop/route.js')
+
+    assert.match(shopRoute, /'kurthis', 'kurthi-materials', 'gowns', 'chudi-materials'/)
+    assert.match(shopRoute, /'chudi-materials': \{/)
+    assert.match(shopRoute, /slug: \{ \$in: group\.slugs \}/)
+})
+
 test('storefront cards do not present invented ratings or delivery terms', async () => {
     const [home, productCard, details] = await Promise.all([
         read('../app/(root)/(website)/page.jsx'),
