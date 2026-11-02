@@ -1,6 +1,6 @@
 'use client'
 
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import Link from 'next/link'
 import { useState } from 'react'
@@ -15,7 +15,9 @@ export default function KurthiMaterialsCollection() {
     const [page, setPage] = useState(0)
     const [categoryFilter, setCategoryFilter] = useState('all')
     const { data, isPending, isError } = useQuery({
-        queryKey: ['kurthi-materials-v2', categoryFilter, page],
+        queryKey: ['kurthi-materials-v3', categoryFilter, page],
+        staleTime: 0,
+        refetchOnMount: 'always',
         queryFn: async () => {
             if (categoryFilter === 'all') {
                 const pageSizePerCategory = Math.ceil(PAGE_SIZE / ALL_CATEGORY_SLUGS.length)
@@ -25,7 +27,7 @@ export default function KurthiMaterialsCollection() {
                         size: pageSizePerCategory,
                         categorySlug
                     })
-                    if (!result.success) throw new Error(result.message || 'Could not load kurthi materials.')
+                    if (!result.success) throw new Error(result.message || 'Could not load kurthi collection.')
                     return result
                 }))
 
@@ -46,7 +48,6 @@ export default function KurthiMaterialsCollection() {
             if (!result.success) throw new Error(result.message || 'Could not load kurthi materials.')
             return result
         },
-        placeholderData: keepPreviousData
     })
 
     const products = data?.products || []
@@ -103,7 +104,7 @@ export default function KurthiMaterialsCollection() {
                     </>
                 ) : (
                     <div className="py-16 text-center">
-                        <h2 className="mb-2 text-2xl font-semibold text-gray-800">No kurthi materials available yet</h2>
+                        <h2 className="mb-2 text-2xl font-semibold text-gray-800">No kurthi collections available yet</h2>
                         <p className="mb-6 text-gray-600">Please check back soon for new designs.</p>
                         <Button asChild variant="outline"><Link href="/shop">Browse all products</Link></Button>
                     </div>

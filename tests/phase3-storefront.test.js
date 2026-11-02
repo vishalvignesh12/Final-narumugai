@@ -26,7 +26,8 @@ test('Kurthi collection filters resolve category aliases', async () => {
     assert.match(shopRoute, /slug: \{ \$in: group\.slugs \}/)
     assert.match(collection, /const ALL_CATEGORY_SLUGS = \['kurthis', 'gowns', 'chudi-materials'\]/)
     assert.match(collection, /Promise\.all\(ALL_CATEGORY_SLUGS\.map/)
-    assert.match(collection, /queryKey: \['kurthi-materials-v2', categoryFilter, page\]/)
+    assert.match(collection, /queryKey: \['kurthi-materials-v3', categoryFilter, page\]/)
+    assert.match(collection, /refetchOnMount: 'always'/)
     assert.match(collection, /categorySlug: categoryFilter/)
 })
 
