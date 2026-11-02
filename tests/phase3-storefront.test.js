@@ -17,7 +17,8 @@ test('storefront navigation exposes the Kurthi collection', async () => {
 test('Kurthi collection filters resolve category aliases', async () => {
     const shopRoute = await read('../app/api/shop/route.js')
 
-    assert.match(shopRoute, /'kurthis', 'kurthi-materials', 'gowns', 'chudi-materials'/)
+    assert.match(shopRoute, /'kurti', 'kurtis', 'kurthi', 'kurthis'/)
+    assert.match(shopRoute, /'kurti-materials', 'kurthi-materials'/)
     assert.match(shopRoute, /'chudi-materials': \{/)
     assert.match(shopRoute, /slug: \{ \$in: group\.slugs \}/)
 })

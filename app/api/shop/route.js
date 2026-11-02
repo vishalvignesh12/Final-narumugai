@@ -57,15 +57,27 @@ export async function POST(request) {
                     slug: { $not: { $regex: 'silk|cotton', $options: 'i' } }
                 });
                 categoryIds = categories.map(c => c._id);
-            } else if (['kurthi', 'kurthis', 'kurthi-materials', 'gowns', 'chudi-materials'].includes(categorySlug)) {
+            } else if (['kurti', 'kurtis', 'kurthi', 'kurthis', 'kurti-materials', 'kurthi-materials', 'gowns', 'chudi-materials'].includes(categorySlug)) {
                 const categoryGroups = {
+                    kurti: {
+                        slugs: ['kurti', 'kurtis', 'kurthi', 'kurthis'],
+                        names: /^kurth?is?$|^kurti collection$/i
+                    },
+                    kurtis: {
+                        slugs: ['kurti', 'kurtis', 'kurthi', 'kurthis'],
+                        names: /^kurth?is?$|^kurti collection$/i
+                    },
                     kurthi: {
-                        slugs: ['kurthi', 'kurthis'],
-                        names: /^(kurthis?|kurthi collection)$/i
+                        slugs: ['kurti', 'kurtis', 'kurthi', 'kurthis'],
+                        names: /^kurth?is?$|^kurti collection$/i
                     },
                     kurthis: {
-                        slugs: ['kurthi', 'kurthis'],
-                        names: /^(kurthis?|kurthi collection)$/i
+                        slugs: ['kurti', 'kurtis', 'kurthi', 'kurthis'],
+                        names: /^kurth?is?$|^kurti collection$/i
+                    },
+                    'kurti-materials': {
+                        slugs: ['kurti', 'kurtis', 'kurthi', 'kurthis', 'kurti-materials', 'kurthi-materials', 'gown', 'gowns', 'chudi-material', 'chudi-materials'],
+                        names: /^(kurth?is?|kurti collection|kurthi collection|kurti materials?|kurthi materials?|gowns?|chudi materials?)$/i
                     },
                     gowns: {
                         slugs: ['gown', 'gowns'],
@@ -76,8 +88,8 @@ export async function POST(request) {
                         names: /^chudi\s*materials?$/i
                     },
                     'kurthi-materials': {
-                        slugs: ['kurthi', 'kurthis', 'kurthi-materials', 'gown', 'gowns', 'chudi-material', 'chudi-materials'],
-                        names: /^(kurthis?|kurthi collection|kurthi materials|gowns?|chudi materials?)$/i
+                        slugs: ['kurti', 'kurtis', 'kurthi', 'kurthis', 'kurti-materials', 'kurthi-materials', 'gown', 'gowns', 'chudi-material', 'chudi-materials'],
+                        names: /^(kurth?is?|kurti collection|kurthi collection|kurti materials?|kurthi materials?|gowns?|chudi materials?)$/i
                     }
                 }
                 const group = categoryGroups[categorySlug]
