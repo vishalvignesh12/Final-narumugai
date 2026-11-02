@@ -9,6 +9,7 @@ import WebsiteBreadcrumb from './WebsiteBreadcrumb'
 import { Button } from '@/components/ui/button'
 
 const PAGE_SIZE = 12
+const ALL_CATEGORY_SLUGS = ['kurthis', 'gowns', 'chudi-materials']
 
 export default function KurthiMaterialsCollection() {
     const [page, setPage] = useState(0)
@@ -16,10 +17,31 @@ export default function KurthiMaterialsCollection() {
     const { data, isPending, isError } = useQuery({
         queryKey: ['kurthi-materials', categoryFilter, page],
         queryFn: async () => {
+            if (categoryFilter === 'all') {
+                const pageSizePerCategory = Math.ceil(PAGE_SIZE / ALL_CATEGORY_SLUGS.length)
+                const results = await Promise.all(ALL_CATEGORY_SLUGS.map(async categorySlug => {
+                    const { data: result } = await axios.post('/api/shop', {
+                        start: page * pageSizePerCategory,
+                        size: pageSizePerCategory,
+                        categorySlug
+                    })
+                    if (!result.success) throw new Error(result.message || 'Could not load kurthi materials.')
+                    return result
+                }))
+
+                return {
+                    success: true,
+                    products: results.flatMap(result => result.products || []),
+                    meta: {
+                        totalRowCount: results.reduce((total, result) => total + (result.meta?.totalRowCount || 0), 0)
+                    }
+                }
+            }
+
             const { data: result } = await axios.post('/api/shop', {
                 start: page * PAGE_SIZE,
                 size: PAGE_SIZE,
-                categorySlug: categoryFilter === 'all' ? 'kurthi-materials' : categoryFilter
+                categorySlug: categoryFilter
             })
             if (!result.success) throw new Error(result.message || 'Could not load kurthi materials.')
             return result

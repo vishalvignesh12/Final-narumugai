@@ -24,7 +24,9 @@ test('Kurthi collection filters resolve category aliases', async () => {
     assert.match(shopRoute, /'kurti-materials', 'kurthi-materials'/)
     assert.match(shopRoute, /'chudi-materials': \{/)
     assert.match(shopRoute, /slug: \{ \$in: group\.slugs \}/)
-    assert.match(collection, /categoryFilter === 'all' \? 'kurthi-materials' : categoryFilter/)
+    assert.match(collection, /const ALL_CATEGORY_SLUGS = \['kurthis', 'gowns', 'chudi-materials'\]/)
+    assert.match(collection, /Promise\.all\(ALL_CATEGORY_SLUGS\.map/)
+    assert.match(collection, /categorySlug: categoryFilter/)
 })
 
 test('storefront cards do not present invented ratings or delivery terms', async () => {
