@@ -6,7 +6,7 @@ import EditAction from '@/components/Application/Admin/EditAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_PRODUCT_VARIANT_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_DASHBOARD, ADMIN_PRODUCT_VARIANT_ADD, ADMIN_PRODUCT_VARIANT_SHOW, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
+import { ADMIN_DASHBOARD, ADMIN_PRODUCT_VARIANT_EDIT, ADMIN_PRODUCT_VARIANT_SHOW, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic' // <-- ADDED
 
@@ -32,7 +32,7 @@ const ProductVariant = () => {
 
     const action = useCallback((row, deleteType, handleDelete) => {
         return [
-            <EditAction key="edit" href={`${ADMIN_PRODUCT_VARIANT_ADD}/edit/${row.original._id}`} />,
+            <EditAction key="edit" href={ADMIN_PRODUCT_VARIANT_EDIT(row.original._id)} />,
             <DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />
         ]
     }, [])
