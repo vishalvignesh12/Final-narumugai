@@ -19,7 +19,7 @@ export default function KurthiMaterialsCollection() {
             const { data: result } = await axios.post('/api/shop', {
                 start: page * PAGE_SIZE,
                 size: PAGE_SIZE,
-                categorySlug: categoryFilter === 'all' ? 'kurthi' : categoryFilter
+                categorySlug: categoryFilter === 'all' ? 'kurthi-materials' : categoryFilter
             })
             if (!result.success) throw new Error(result.message || 'Could not load kurthi materials.')
             return result
