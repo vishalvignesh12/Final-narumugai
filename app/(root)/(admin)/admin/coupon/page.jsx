@@ -6,7 +6,7 @@ import EditAction from '@/components/Application/Admin/EditAction'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { DT_COUPON_COLUMN } from '@/lib/column'
 import { columnConfig } from '@/lib/helperFunction'
-import { ADMIN_COUPON_ADD, ADMIN_COUPON_SHOW, ADMIN_DASHBOARD, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
+import { ADMIN_COUPON_EDIT, ADMIN_COUPON_SHOW, ADMIN_DASHBOARD, ADMIN_TRASH } from '@/routes/AdminPanelRoute'
 import { useCallback, useMemo } from 'react'
 import dynamic from 'next/dynamic' // <-- ADDED
 
@@ -32,7 +32,7 @@ const Coupon = () => {
 
     const action = useCallback((row, deleteType, handleDelete) => {
         return [
-            <EditAction key="edit" href={`${ADMIN_COUPON_ADD}/edit/${row.original._id}`} />,
+            <EditAction key="edit" href={ADMIN_COUPON_EDIT(row.original._id)} />,
             <DeleteAction key="delete" handleDelete={handleDelete} row={row} deleteType={deleteType} />
         ]
     }, [])
